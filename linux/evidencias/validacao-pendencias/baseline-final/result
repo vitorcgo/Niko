@@ -1,0 +1,2 @@
+PASS: five real Tauri/WebKit show/hide/remap cycles; baseline=true
+FAIL: native critical in logs

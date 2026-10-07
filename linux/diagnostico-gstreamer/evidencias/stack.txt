@@ -1,0 +1,24 @@
+[Thread debugging using libthread_db enabled]
+Using host libthread_db library "/lib/x86_64-linux-gnu/libthread_db.so.1".
+[New Thread 0x7ffff4fff6c0 (LWP 202931)]
+[New Thread 0x7ffff47fe6c0 (LWP 202932)]
+
+** (gst-inspect-1.0:202911): CRITICAL **: 18:48:21.497: _dma_fmt_to_dma_drm_fmts: assertion 'fmt != GST_VIDEO_FORMAT_UNKNOWN' failed
+
+Thread 1 "gst-inspect-1.0" received signal SIGTRAP, Trace/breakpoint trap.
+0x00007ffff7d6c721 in g_logv () from /lib/x86_64-linux-gnu/libglib-2.0.so.0
+#0  0x00007ffff7d6c721 in g_logv () at /lib/x86_64-linux-gnu/libglib-2.0.so.0
+#1  0x00007ffff7d6c9d3 in g_log () at /lib/x86_64-linux-gnu/libglib-2.0.so.0
+#2  0x00007ffff76ce4d5 in ??? () at /tmp/niko-gstreamer.C0W3Mi/plugins/libgstmsdk.so
+#3  0x00007ffff76b0391 in ??? () at /tmp/niko-gstreamer.C0W3Mi/plugins/libgstmsdk.so
+#4  0x00007ffff76b9489 in ??? () at /tmp/niko-gstreamer.C0W3Mi/plugins/libgstmsdk.so
+#5  0x00007ffff7ef54f2 in ??? () at /lib/x86_64-linux-gnu/libgstreamer-1.0.so.0
+#6  0x00007ffff7efaa60 in ??? () at /lib/x86_64-linux-gnu/libgstreamer-1.0.so.0
+#7  0x00007ffff7f01f87 in ??? () at /lib/x86_64-linux-gnu/libgstreamer-1.0.so.0
+#8  0x00007ffff7f0350e in ??? () at /lib/x86_64-linux-gnu/libgstreamer-1.0.so.0
+#9  0x00007ffff7f0391e in ??? () at /lib/x86_64-linux-gnu/libgstreamer-1.0.so.0
+#10 0x00007ffff7f08c0c in gst_update_registry () at /lib/x86_64-linux-gnu/libgstreamer-1.0.so.0
+#11 0x00007ffff7e93577 in ??? () at /lib/x86_64-linux-gnu/libgstreamer-1.0.so.0
+#12 0x00007ffff7e93edd in ??? () at /lib/x86_64-linux-gnu/libgstreamer-1.0.so.0
+#13 0x00007ffff7d7cde9 in g_option_context_parse () at /lib/x86_64-linux-gnu/libglib-2.0.so.0
+#14 0x000055555555ea65 in ??? ()

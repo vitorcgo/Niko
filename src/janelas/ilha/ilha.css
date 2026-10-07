@@ -24,6 +24,15 @@
   user-select: none;
 }
 
+.area-ilha-linux .ilha-raiz {
+  top: 8px;
+}
+
+.ilha-aba:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
 .ilha-gatilho {
   position: fixed;
   top: 0;

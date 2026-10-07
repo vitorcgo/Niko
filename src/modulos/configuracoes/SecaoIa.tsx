@@ -318,7 +318,12 @@ export function SecaoIa() {
         aoFechar={() => setRemover(null)}
         aoConfirmar={async () => {
           if (!remover) return;
-          await removerProvedor(remover.id);
+          try {
+            await removerProvedor(remover.id);
+          } catch (e) {
+            avisar(T.configuracoes.falhaRemoverProvedor((e as Error).message));
+            return;
+          }
           const restantes = ia.reservas.filter((x) => x !== remover.id);
           const { [remover.id]: _removido, ...modelos } = ia.modelos;
           if (ia.provedorId === remover.id) definir({ ia: { ...ia, provedorId: restantes[0] ?? null, modelo: restantes[0] ? ia.modelos[restantes[0]] ?? "" : "", reservas: restantes.slice(1), modelos } });

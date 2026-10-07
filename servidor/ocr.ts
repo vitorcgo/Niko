@@ -1,4 +1,5 @@
 import type { IncomingMessage } from "node:http";
+import { rodarOcrLinux } from "./ocrLinux";
 import { execFile } from "node:child_process";
 import { rmSync, createWriteStream } from "node:fs";
 import { tmpdir } from "node:os";
@@ -51,7 +52,7 @@ export interface ResultadoOcr {
 function receberImagem(req: IncomingMessage, destino: string): Promise<void> {
   return new Promise((resolver, rejeitar) => {
     let tamanho = 0;
-    const saida = createWriteStream(destino);
+    const saida = createWriteStream(destino, {flags: "wx", mode: 0o600});
     req.on("data", (p: Buffer) => {
       tamanho += p.length;
       if (tamanho > LIMITE_IMAGEM) {
@@ -68,6 +69,7 @@ function receberImagem(req: IncomingMessage, destino: string): Promise<void> {
 }
 
 function rodarOcr(caminho: string): Promise<ResultadoOcr> {
+  if (process.platform === "linux") return rodarOcrLinux(caminho);
   if (process.platform !== "win32") return Promise.reject(new Error("ocr_indisponivel"));
   const script = garantirScript("niko-ocr", `﻿${SCRIPT}`);
   return new Promise((resolver, rejeitar) => {

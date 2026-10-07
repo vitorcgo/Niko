@@ -344,7 +344,7 @@ export async function salvarChaveConexao(servico: Servico, dados: { chave?: unkn
 }
 
 export async function removerChaveConexao(servico: Servico) {
-  await apagarSegredo(`conexao-${servico}`).catch(() => undefined);
+  if (lerConfig()[servico]?.temChave) await apagarSegredo(`conexao-${servico}`);
   const c = lerConfig();
   delete c[servico];
   salvarConfig(c);

@@ -1,0 +1,19 @@
+PASS: consumo Linux com credenciais e sessões fictícias; nenhuma API real consultada
+✔ leitura portátil, cache e sessão deduplicada; APIs remotas simuladas (264.097937ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 1
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 328.020533
+✔ consumo Linux somente em HOME fictício (1210.095325ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 1
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1226.020769

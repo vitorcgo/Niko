@@ -173,7 +173,7 @@ async function lerSessaoAtual(): Promise<SessaoAtual | null> {
   const recente = await arquivoMaisRecente(join(homedir(), ".claude", "projects"));
   if (!recente) return null;
   const sessao: SessaoAtual = {
-    projeto: basename(join(recente.caminho, "..")).replace(/^[A-Za-z]--/, "").replace(/-/g, "\\"),
+    projeto: process.platform === "linux" ? basename(join(recente.caminho, "..")) : basename(join(recente.caminho, "..")).replace(/^[A-Za-z]--/, "").replace(/-/g, "\\"),
     arquivo: basename(recente.caminho),
     ultimaAtividade: new Date(recente.modificado).toISOString(),
     mensagens: 0,
@@ -191,12 +191,13 @@ async function lerSessaoAtual(): Promise<SessaoAtual | null> {
       }
       continue;
     }
-    let json: { timestamp?: string; message?: { id?: string; model?: string; usage?: Record<string, number> } };
+    let json: { cwd?: string; timestamp?: string; message?: { id?: string; model?: string; usage?: Record<string, number> } };
     try {
       json = JSON.parse(linha);
     } catch {
       continue;
     }
+    if (process.platform === "linux" && json.cwd?.startsWith("/")) sessao.projeto = json.cwd;
     const uso = json.message?.usage;
     if (!uso) continue;
     const id = json.message?.id;

@@ -1,0 +1,62 @@
+libmutter-Message: 18:17:26.176: Running GNOME Shell (using mutter 46.2) as a Wayland display server
+** Message: 18:17:27.545: Obtained a high priority EGL context
+** Message: 18:17:27.894: Obtained a high priority EGL context
+libmutter-Message: 18:17:28.944: Using Wayland display name 'niko-native-174094'
+Window manager warning: Failed to set environment variable WAYLAND_DISPLAY for gnome-session: GDBus.Error:org.freedesktop.DBus.Error.NameHasNoOwner: Name "org.gnome.SessionManager" does not exist
+GNOME Shell-Message: 18:17:34.729: Unset XDG_SESSION_ID, getCurrentSessionProxy() called outside a user session. Asking logind directly.
+GNOME Shell-Message: 18:17:34.752: Will monitor session 69
+
+** (gnome-shell:174099): WARNING **: 18:17:36.336: Could not issue 'GetUnit' systemd call
+
+(gnome-shell:174099): Gjs-WARNING **: 18:17:37.079: Gio.UnixInputStream has been moved to a separate platform-specific library. Please update your code to use GioUnix.InputStream instead.
+0 inhibit() ["resource:///org/gnome/shell/misc/loginManager.js":209:8]
+1 InterpretGeneratorResume() ["self-hosted":1461:33]
+2 AsyncFunctionNext() ["self-hosted":852:26]
+3 anonymous() ["resource:///org/gnome/shell/ui/init.js":21:19]
+
+
+(gnome-shell:174099): GNOME Shell-CRITICAL **: 18:17:37.170: Gio.DBusError: GDBus.Error:org.freedesktop.DBus.Error.ServiceUnknown: The name org.gnome.Shell.CalendarServer was not provided by any .service files
+
+Stack trace:
+  asyncCallback@resource:///org/gnome/gjs/modules/core/overrides/Gio.js:114:23
+  @resource:///org/gnome/shell/ui/init.js:21:20
+  
+
+(gnome-shell:174099): libmutter-WARNING **: 18:17:37.184: Failed to create colord device for 'xrandr-MetaProducts Inc.-MetaMonitor-0xC0FFEE-1': device id 'xrandr-MetaProducts Inc.-MetaMonitor-0xC0FFEE-1' already exists
+
+(gnome-shell:174099): GNOME Shell-CRITICAL **: 18:17:37.185: Gio.DBusError: GDBus.Error:org.freedesktop.DBus.Error.ServiceUnknown: The name org.gnome.Shell.CalendarServer was not provided by any .service files
+
+Stack trace:
+  asyncCallback@resource:///org/gnome/gjs/modules/core/overrides/Gio.js:114:23
+  @resource:///org/gnome/shell/ui/init.js:21:20
+  
+/usr/share/ibus-table/engine/main.py:232: DeprecationWarning: Testing an element's truth value will raise an exception in future versions.  Use specific 'len(elem)' or 'elem is not None' test instead.
+  if element:
+invoking IsSupported() failed for remote volume monitor with dbus name org.gtk.vfs.UDisks2VolumeMonitor:: GDBus.Error:org.freedesktop.DBus.Error.ServiceUnknown: The name org.gtk.vfs.UDisks2VolumeMonitor was not provided by any .service files (g-dbus-error-quark, 2)
+invoking IsSupported() failed for remote volume monitor with dbus name org.gtk.vfs.GoaVolumeMonitor:: GDBus.Error:org.freedesktop.DBus.Error.ServiceUnknown: The name org.gtk.vfs.GoaVolumeMonitor was not provided by any .service files (g-dbus-error-quark, 2)
+portal is not running: GDBus.Error:org.freedesktop.DBus.Error.ServiceUnknown: The name org.freedesktop.portal.IBus was not provided by any .service files
+invoking IsSupported() failed for remote volume monitor with dbus name org.gtk.vfs.MTPVolumeMonitor:: GDBus.Error:org.freedesktop.DBus.Error.ServiceUnknown: The name org.gtk.vfs.MTPVolumeMonitor was not provided by any .service files (g-dbus-error-quark, 2)
+invoking IsSupported() failed for remote volume monitor with dbus name org.gtk.vfs.GPhoto2VolumeMonitor:: GDBus.Error:org.freedesktop.DBus.Error.ServiceUnknown: The name org.gtk.vfs.GPhoto2VolumeMonitor was not provided by any .service files (g-dbus-error-quark, 2)
+invoking IsSupported() failed for remote volume monitor with dbus name org.gtk.vfs.AfcVolumeMonitor:: GDBus.Error:org.freedesktop.DBus.Error.ServiceUnknown: The name org.gtk.vfs.AfcVolumeMonitor was not provided by any .service files (g-dbus-error-quark, 2)
+GNOME Shell-Message: 18:17:37.481: Failed to register AuthenticationAgent
+
+(gnome-shell:174099): libmutter-WARNING **: 18:17:40.647: (../src/backends/meta-barrier.c:258):init_barrier_impl: runtime check failed: (priv->impl)
+
+(gnome-shell:174099): libmutter-WARNING **: 18:17:40.648: (../src/backends/meta-barrier.c:258):init_barrier_impl: runtime check failed: (priv->impl)
+
+(gnome-shell:174099): libmutter-WARNING **: 18:17:40.648: (../src/backends/meta-barrier.c:258):init_barrier_impl: runtime check failed: (priv->impl)
+** Message: 18:17:42.474: Failed to start camera monitor
+GNOME Shell-Message: 18:17:47.885: GNOME Shell started at Tue Oct 06 2026 18:17:36 GMT-0300 (Brasilia Standard Time)
+GNOME Shell-Message: 18:17:47.914: Registering session with GDM
+GNOME Shell-Message: 18:17:55.271: TEST show step=3 locked=false greeter=false fullscreen=false button=true
+GNOME Shell-Message: 18:18:01.281: TEST show step=6 locked=false greeter=false fullscreen=false button=true
+GNOME Shell-Message: 18:18:07.301: TEST show step=9 locked=false greeter=false fullscreen=false button=true
+GNOME Shell-Message: 18:18:13.309: TEST show step=12 locked=false greeter=false fullscreen=false button=true
+GNOME Shell-Message: 18:18:19.324: TEST show step=15 locked=false greeter=false fullscreen=false button=true
+
+(gnome-shell:174099): GNOME Shell-CRITICAL **: 18:18:51.416: Niko: falha D-Bus: GDBus.Error:org.freedesktop.DBus.Error.AccessDenied: fictitious permission denied
+
+(gnome-shell:174099): GNOME Shell-CRITICAL **: 18:18:55.411: Niko: falha D-Bus: GDBus.Error:org.freedesktop.DBus.Error.NameHasNoOwner: Name "com.niko.desktop.SingleInstance" does not exist
+** Message: 18:18:57.479: Shutting down GNOME Shell
+
+(gnome-shell:174099): libmutter-WARNING **: 18:18:58.375: Failed to find colord device xrandr-MetaProducts Inc.-MetaMonitor-0xC0FFEE-1: device id 'xrandr-MetaProducts Inc.-MetaMonitor-0xC0FFEE-1' does not exist

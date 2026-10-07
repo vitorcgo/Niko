@@ -1,0 +1,18 @@
+{
+  "segundos": 30.1,
+  "cpuPercentUmNucleo": 4.9,
+  "pssMiB": 513.8,
+  "hardware": {
+    "cpuLogicos": 2,
+    "memoriaGiB": 15.4,
+    "gpu": [
+      {
+        "vendor": "0x8086",
+        "device": "0x4e55",
+        "driver": "i915"
+      }
+    ],
+    "backlight": true,
+    "bluetooth": true
+  }
+}

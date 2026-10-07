@@ -1,3 +1,4 @@
+import { pedirJanelasLinux, encerrarJanelasLinux } from "./janelasLinux";
 import { criarProcessoPowerShell } from "./processoPowerShell";
 
 const CODIGO = String.raw`
@@ -124,11 +125,14 @@ while ($true) {
 
 const janelas = criarProcessoPowerShell("niko-janelas", SCRIPT, "janelas_encerrado");
 
-export function pedirJanelas(acao: "listar" | "focar" | "minimizar" | "fechar", janela?: string): Promise<unknown> {
+export function pedirJanelas(acao: "listar" | "focar" | "minimizar" | "fechar" | "niko" | "miniatura" | "estado" | "reservar", janela?: string): Promise<unknown> {
+  if (process.platform === "linux") return pedirJanelasLinux(acao, janela);
+  if (["niko", "miniatura", "estado", "reservar"].includes(acao)) return Promise.reject(new Error("somente_linux"));
   if (janela !== undefined && !/^\d{1,20}$/.test(janela)) return Promise.reject(new Error("janela_invalida"));
   return janelas.pedir({ acao, janela }, 20000);
 }
 
 export function encerrarJanelas() {
+  if (process.platform === "linux") encerrarJanelasLinux();
   janelas.encerrar();
 }

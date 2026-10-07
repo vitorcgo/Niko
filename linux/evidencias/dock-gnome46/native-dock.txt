@@ -1,0 +1,1 @@
+PASS: dock Tauri/WebKit real, âncora, tamanho, AltTab, fullscreen sem foco; Node/GJS ações nativas e stale ID

@@ -14,6 +14,7 @@ import { ocrDaRequisicao } from "./ocr";
 import { receberEventoDoGancho, ehRotaDoGancho, ouvirEventos, decidirPedido, estadoDaInstalacao, previaDaInstalacao, instalarGanchos, removerGanchos, abrirProjeto } from "./claude";
 import { listarArquivos, receberArquivo, enviarConteudo, excluirArquivo, excluirArquivosDaMateria, baixarArquivo, abrirArquivoNoPrograma } from "./arquivos";
 import { tipoDoComputador, estadoDoSistema, listarRedes, listarBluetooth, lerComputador, conectarRede, esquecerRede, desconectarRede, definirBrilho, definirRadio, abrirConfiguracoesWindows } from "./sistema";
+import { integrarIlhaLinux } from "./gnomeIlhaLinux";
 
 const LIMITE_CORPO = 24 * 1024 * 1024;
 
@@ -82,6 +83,12 @@ export const rotas: Connect.NextHandleFunction = async (req, res, proximo) => {
   const caminho = url.pathname.slice("/ponte".length);
 
   try {
+    if (caminho === "/ilha/gnome" && req.method === "GET") return responder(res, 200, await integrarIlhaLinux("estado"));
+    if (caminho === "/ilha/gnome" && req.method === "POST") {
+      const corpo = await lerCorpo(req);
+      if (corpo.confirmacao !== "ATIVAR_ILHA") return responder(res, 400, { erro: "confirmacao_invalida" });
+      return responder(res, 200, await integrarIlhaLinux("instalar"));
+    }
     if (caminho === "/atualizacao" && req.method === "GET") return responder(res, 200, await lerUltimaVersao());
     if (caminho === "/estado" && req.method === "GET") {
       return responder(res, 200, { disponivel: true, plataforma: process.platform, provedores: listarProvedores() });
@@ -121,10 +128,11 @@ export const rotas: Connect.NextHandleFunction = async (req, res, proximo) => {
       if (id && acao === "abrir" && req.method === "POST") return responder(res, 200, abrirArquivoNoPrograma(banco, materia, id));
     }
     if (caminho === "/janelas" && req.method === "GET") return responder(res, 200, await pedirJanelas("listar"));
-    const acaoJanela = /^\/janelas\/(focar|minimizar|fechar)$/.exec(caminho);
+    if (caminho === "/janelas/estado" && req.method === "GET") return responder(res, 200, await pedirJanelas("estado"));
+    const acaoJanela = /^\/janelas\/(focar|minimizar|fechar|niko|miniatura|reservar)$/.exec(caminho);
     if (acaoJanela && req.method === "POST") {
       const corpo = await lerCorpo(req);
-      return responder(res, 200, await pedirJanelas(acaoJanela[1] as "focar", String(corpo.janela ?? "")));
+      return responder(res, 200, await pedirJanelas(acaoJanela[1] as "focar", String(acaoJanela[1] === "reservar" ? corpo.reservar : corpo.janela ?? "")));
     }
     if (caminho === "/midia" && req.method === "GET") {
       return responder(res, 200, await pedirMidia("estado"));
@@ -132,7 +140,7 @@ export const rotas: Connect.NextHandleFunction = async (req, res, proximo) => {
     const acaoMidia = /^\/midia\/(alternar|proxima|anterior|posicao)$/.exec(caminho);
     if (acaoMidia && req.method === "POST") {
       const corpo = await lerCorpo(req);
-      return responder(res, 200, await pedirMidia(acaoMidia[1] as "alternar", Number(corpo.segundos)));
+      return responder(res, 200, await pedirMidia(acaoMidia[1] as "alternar", Number(corpo.segundos), { player: typeof corpo.player === "string" ? corpo.player : undefined, dono: typeof corpo.dono === "string" ? corpo.dono : undefined, faixaId: typeof corpo.faixaId === "string" ? corpo.faixaId : null }));
     }
     if (caminho === "/conexoes" && req.method === "GET") {
       return responder(res, 200, estadoConexoes());
@@ -160,11 +168,13 @@ export const rotas: Connect.NextHandleFunction = async (req, res, proximo) => {
     if (caminho === "/dados/zerar" && req.method === "POST") {
       const corpo = await lerCorpo(req);
       if (corpo.confirmacao !== "APAGAR") return responder(res, 400, { erro: "confirmacao_invalida" });
-      const pasta = zerarBanco(String(req.headers["x-niko-banco"] ?? ""));
+      const banco = String(req.headers["x-niko-banco"] ?? "");
+      lerTudo(banco);
       if (corpo.chaves === true) {
         for (const p of listarProvedores()) await removerProvedor(p.id);
         for (const s of SERVICOS_CONEXAO) await removerChaveConexao(s);
       }
+      const pasta = zerarBanco(banco);
       return responder(res, 200, { pasta });
     }
     if (caminho === "/dados/backup" && req.method === "POST") {

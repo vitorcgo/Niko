@@ -1,0 +1,13 @@
+Evidence directory: /tmp/niko-sem-reinicio.QWXRQu
+dbus-daemon[77208]: [session uid=1000 pid=77208] Activating service name='org.gnome.Shell.Extensions' requested by ':1.7' (uid=1000 pid=77359 comm="gjs /caminho/Niko/linux/gnome/native-sem-reini" label="chatgpt (unconfined)")
+dbus-daemon[77208]: [session uid=1000 pid=77208] Successfully activated service 'org.gnome.Shell.Extensions'
+PASS: painel legado real, atualização com backup, nova_sessao explícita, compositor preservado
+✔ GNOME real: legado com painel carregado atualiza arquivos e mantém sessão (2297.796604ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 1
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 3811.899526

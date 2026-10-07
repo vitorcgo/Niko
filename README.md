@@ -206,6 +206,100 @@ O primeiro confere se as quatro versões concordam. O segundo mostra uma prévia
 
 Para reconstruir deliberadamente uma versão já publicada, use `pnpm lancar 0.1.1 --recompilar "Notas da versão"`. Essa opção dispensa a consulta de duplicidade no GitHub, mas mantém as validações dos arquivos e do build. Não substitua uma release publicada usando esses arquivos.
 
+## Linux experimental: GNOME 46 / Wayland
+
+A adaptação local foi implementada para **GNOME 46 com Wayland**, com validação em
+Ubuntu 24.04. Mantém o aplicativo Tauri/WebKit e os módulos existentes; as descrições
+Windows acima não significam que todas as APIs e comportamentos são iguais no Linux.
+Não há suporte implementado para KDE ou outros ambientes.
+
+### Como funciona
+
+A interface React roda nas janelas Tauri com WebKitGTK. A ponte Node empacotada atende
+os serviços locais, armazenamento e integrações do sistema. Credenciais usam
+Secret Service/libsecret; mídia usa MPRIS; controles usam APIs D-Bus nativas e
+PipeWire; OCR usa Tesseract com português e inglês.
+
+Para a ilha e o dock, o aplicativo conversa com uma **extensão GNOME**. Ela usa as
+APIs do GNOME Shell/Mutter para ancorar as janelas, acompanhar foco e fullscreen,
+listar aplicativos, executar ações e obter as miniaturas disponíveis. O aplicativo
+continua sendo Tauri/WebKit: a extensão fornece a integração com o compositor.
+
+O dock tem modos Fixo, Inteligente e Esconder. O modo Inteligente considera a
+sobreposição das janelas; consultas compartilham um cliente GJS persistente para
+reduzir criação de processos. Miniaturas de janelas minimizadas ou fora da área de
+trabalho atual não estão disponíveis nessa integração.
+
+### Por que somente esse ambiente?
+
+Wayland não oferece ao aplicativo uma API geral equivalente às operações de janela
+que o Niko usa no Windows. Essas capacidades dependem da integração com o compositor.
+Uma extensão do GNOME não funciona automaticamente no KDE ou em outros compositores;
+as APIs do GNOME também podem mudar entre versões.
+
+Limitamos esta etapa ao GNOME 46 para implementar e testar um caminho concreto,
+com posição, foco, dock e atualização verificáveis. Outros ambientes e versões
+exigiriam uma integração própria ou adaptação, seguida de validação gráfica. Não
+ampliamos a alegação de suporte apenas porque a janela principal pode abrir.
+
+### Caminho de uso e atualização
+
+O .deb local inclui os recursos do aplicativo e da integração GNOME. Dependências
+como GJS/libsecret, PipeWire e Tesseract/idiomas estão declaradas no pacote; a
+instalação por `apt install ./Niko_0.2.0_amd64.deb` resolve essas dependências,
+enquanto `dpkg -i` sozinho não faz essa resolução. Esse artefato é de validação
+local; não é uma distribuição Linux oficial publicada.
+
+Em **Configurações → Ilha**, use a instalação/ativação explícita da integração e
+confira o diagnóstico. Ative o dock em **Configurações → Dock** e escolha seu modo.
+Ilha/dock precisam da integração GNOME ativa para os comportamentos de compositor.
+
+A atualização de um carregador já ativo foi validada sem logout ou reinício da
+sessão. A recarga adota ilha/dock abertos, preserva foco e reaplica a reserva.
+Atualizar o aplicativo pode exigir reabrir somente o Niko. A primeira ativação pelo
+novo canal GNOME ainda depende da publicação autorizada desse canal; não é a mesma
+situação de atualizar uma integração existente. O aplicativo não encerra a sessão.
+
+O cofre requer um serviço Secret Service com coleção persistente configurada e
+acessível. Gmail usa o fluxo OAuth existente, com abertura do navegador por gio;
+no estado atual, exige configurar um cliente OAuth Google do tipo aplicativo para
+computador e autorizar a conta. Não é um login Google pronto para distribuição.
+
+### Desenvolvimento e validação
+
+Com Node 22 ou superior, pnpm, Rust e as dependências de compilação Linux do Tauri:
+
+```bash
+pnpm install --frozen-lockfile
+pnpm test
+python3 scripts/migrar-dados-linux.test.py
+pnpm tauri build --config src-tauri/tauri.linux.conf.json -- --locked
+node linux/validar-pacote.mjs
+```
+
+Os testes gráficos ficam [separados da suíte sem sessão gráfica](linux/gnome/native-tauri/README.md)
+e usam GNOME privado, Tauri/WebKit reais, HOME/XDG, banco e D-Bus isolados. Controles
+com serviços fictícios e OAuth simulado são identificados como tais nas evidências.
+
+A rodada registrada em 07/10/2026 teve **118 testes: 116 passaram, zero falhas e dois
+Windows pulados**. Os três modos do dock passaram no laboratório, incluindo recarga
+com janelas existentes, e 20 ciclos de minimizar/focar. O pacote foi instalado e o
+usuário confirmou funcionamento geral, Chat e conexão de email no uso pessoal.
+Essa confirmação não substitui validação individual de todas as operações.
+
+O histórico de intermitência `stack_position` e foco continua documentado; a
+biblioteca GStreamer MSDK do sistema não foi corrigida. Não declaramos estabilidade
+prolongada, paridade exaustiva Windows, compatibilidade com outras GPUs ou instalação
+limpa validada. Brilho depende do hardware, bandeja depende de watcher e teclado
+virtual depende de habilitação GNOME. Atualização automática/distribuição são
+trabalhos separados.
+
+Leia [o que foi feito e por quê](CONTRIBUTION_LINUX.md), a
+[matriz de evidências](linux/evidencias/MATRIZ_ATUAL.md) e o
+[resultado final da rodada](linux/evidencias/finalizacao-gnome46/RESULTADO.md).
+A licença permanece inalterada; envio/publicação da adaptação aguarda autorização
+escrita do titular. Não houve push, PR ou publicação desta contribuição.
+
 ## Estrutura
 
 ```text

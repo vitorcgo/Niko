@@ -1,5 +1,6 @@
 import { spawn } from "node:child_process";
 import { garantirScript } from "./scriptsTemporarios";
+import { SCRIPT_SEGREDOS_LINUX } from "./segredosLinux";
 
 const CODIGO = `
 using System;
@@ -34,7 +35,7 @@ public static class NikoCredencial {
       return Marshal.PtrToStringUni(c.CredentialBlob, c.CredentialBlobSize / 2);
     } finally { CredFree(p); }
   }
-  public static bool Apagar(string alvo) { return CredDelete(alvo, 1, 0); }
+  public static bool Apagar(string alvo) { return CredDelete(alvo, 1, 0) || Marshal.GetLastWin32Error() == 1168; }
 }
 `;
 
@@ -61,7 +62,10 @@ const leiturasEmAndamento = new Map<string, Promise<string | null>>();
 
 function executar(entrada: Record<string, string>): Promise<{ ok?: boolean; valor?: string | null }> {
   return new Promise((resolver, rejeitar) => {
-    const processo = spawn("powershell.exe", ["-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File", garantirScript("niko-credencial", SCRIPT)], { windowsHide: true });
+    const linux = process.platform === "linux";
+    const processo = linux
+      ? spawn("/usr/bin/gjs", ["-c", SCRIPT_SEGREDOS_LINUX], { windowsHide: true })
+      : spawn("powershell.exe", ["-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File", garantirScript("niko-credencial", SCRIPT)], { windowsHide: true });
     let saida = "";
     let erro = "";
     const relogio = setTimeout(() => {
@@ -72,18 +76,31 @@ function executar(entrada: Record<string, string>): Promise<{ ok?: boolean; valo
     processo.stderr.on("data", (d) => (erro += d.toString()));
     processo.on("error", (e) => {
       clearTimeout(relogio);
-      rejeitar(e);
+      rejeitar(linux ? new Error("cofre_indisponivel") : e);
     });
     processo.on("close", (codigo) => {
       clearTimeout(relogio);
-      if (codigo !== 0) return rejeitar(new Error(erro.trim().split("\n")[0] || "falha_credencial"));
+      if (codigo !== 0) return rejeitar(new Error(linux ? "cofre_indisponivel" : erro.trim().split("\n")[0] || "falha_credencial"));
       try {
-        resolver(JSON.parse(saida.trim().split("\n").pop() ?? "{}"));
+        const resultado = JSON.parse(saida.trim().split("\n").pop() ?? "{}");
+        if (linux && resultado.erro) return rejeitar(new Error(resultado.erro));
+        resolver(resultado);
       } catch {
         rejeitar(new Error("resposta_invalida"));
       }
     });
-    processo.stdin.end(JSON.stringify(entrada));
+    processo.stdin.on("error", () => rejeitar(new Error("falha_credencial")));
+    processo.stdin.end(JSON.stringify(entrada) + "\n");
+  });
+}
+
+const operacoesLinux = new Map<string, Promise<unknown>>();
+function executarLinux(id: string, entrada: Record<string, string>) {
+  const anterior = operacoesLinux.get(id) ?? Promise.resolve();
+  const atual = anterior.catch(() => undefined).then(() => executar(entrada));
+  operacoesLinux.set(id, atual);
+  return atual.finally(() => {
+    if (operacoesLinux.get(id) === atual) operacoesLinux.delete(id);
   });
 }
 
@@ -93,7 +110,12 @@ function validarId(id: string) {
 
 export async function gravarSegredo(id: string, segredo: string) {
   validarId(id);
-  if (!segredo || segredo.length > 4000) throw new Error("segredo_invalido");
+  if (!segredo || segredo.length > 4000 || segredo.includes("\0")) throw new Error("segredo_invalido");
+  if (process.platform === "linux") {
+    const r = await executarLinux(id, { acao: "gravar", alvo: PREFIXO + id, segredo });
+    if (!r.ok) throw new Error("falha_ao_gravar");
+    return;
+  }
   if (process.platform !== "win32") throw new Error("somente_windows");
   const r = await executar({ acao: "gravar", alvo: PREFIXO + id, segredo });
   if (!r.ok) throw new Error("falha_ao_gravar");
@@ -103,6 +125,7 @@ export async function gravarSegredo(id: string, segredo: string) {
 
 export async function lerSegredo(id: string): Promise<string | null> {
   validarId(id);
+  if (process.platform === "linux") return (await executarLinux(id, { acao: "ler", alvo: PREFIXO + id })).valor ?? null;
   if (cache.has(id)) return cache.get(id) ?? null;
   if (process.platform !== "win32") return null;
   const emAndamento = leiturasEmAndamento.get(id);
@@ -122,8 +145,13 @@ export async function lerSegredo(id: string): Promise<string | null> {
 
 export async function apagarSegredo(id: string) {
   validarId(id);
+  if (process.platform === "linux") {
+    await executarLinux(id, { acao: "apagar", alvo: PREFIXO + id });
+    return;
+  }
   cache.delete(id);
   leiturasEmAndamento.delete(id);
   if (process.platform !== "win32") return;
-  await executar({ acao: "apagar", alvo: PREFIXO + id });
+  const resultado = await executar({ acao: "apagar", alvo: PREFIXO + id });
+  if (!resultado.ok) throw new Error("falha_ao_apagar");
 }

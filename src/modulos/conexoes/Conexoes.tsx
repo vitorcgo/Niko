@@ -130,8 +130,12 @@ function Configurar({ servico, aoFechar }: { servico: ServicoId | null; aoFechar
             <Botao
               variante="perigo"
               onClick={async () => {
-                await conexoesPonte.removerChave(servico).catch(() => undefined);
-                atualizar(servico, { chaveSalva: false, ligada: false, status: "sem_chave", resumo: "" });
+                try {
+                  await conexoesPonte.removerChave(servico);
+                  atualizar(servico, { chaveSalva: false, ligada: false, status: "sem_chave", resumo: "" });
+                } catch (e) {
+                  setErro(T.conexoes.falhaRemoverChave((e as Error).message));
+                }
               }}
             >
               {T.conexoes.removerChave}

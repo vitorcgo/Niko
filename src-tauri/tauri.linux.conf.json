@@ -1,0 +1,12 @@
+{
+  "bundle": {
+    "targets": ["deb"],
+    "linux": { "deb": {
+      "depends": ["gjs", "gir1.2-secret-1", "wireplumber", "pipewire-bin", "tesseract-ocr", "tesseract-ocr-eng", "tesseract-ocr-por"],
+      "files": { "/usr/share/niko/gnome/niko-ilha@local": "../linux/gnome/niko-ilha@local/", "/usr/share/niko/gnome/niko-ilha-runtime@local": "../linux/gnome/runtime-build/niko-ilha-runtime@local/" }
+    } },
+    "resources": ["recursos/node", "recursos/ponte.mjs"],
+    "shortDescription": "Niko, seu sistema de vida",
+    "createUpdaterArtifacts": false
+  }
+}

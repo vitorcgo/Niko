@@ -1,0 +1,8 @@
+f7f3a81edb8dd64c60c02a5f491a67300317f51a82b4d7baea553fb366411509  linux/gnome/niko-ilha@local/extension.js
+1133f1248bc31dec0577f112b9a8dee9ae086d552e4fb2a38399812538418995  linux/gnome/extension.test.mjs
+58e8bdc985b7d2aded5b713bfe018cf088953248c89d504b1ac2ea751765238e  linux/gnome/native-tauri/run.sh
+96020332ea10b18c9841affb9b4a981b229578901e952d1e23233ecc07ac0698  linux/gnome/native-tauri/session.sh
+4d15b621a8f00c71126c3760b46be425fa7ec97d910efd322e2007aed3c117fd  linux/gnome/native-tauri/probe.js
+8b4c9b7b946ef6f32df98cf8dfa7ae1c195013e1f810940965f5998122d5734d  linux/gnome/native-tauri/monitors-probe.js
+122d5c2c5a33f2918738475268afbe3fbe514c3d03c3377b7d766d5b33905cf0  linux/gnome/tauri-isolamento-linux.test.mjs
+96ca10bd0430ed1bfbf2406a5cca8cfd097026c41951f481791d6869ddb2ea59  linux/diagnostico-gstreamer/run.sh

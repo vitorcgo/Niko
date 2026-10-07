@@ -20,6 +20,18 @@ export type ModoArmazenamento = "banco" | "local";
 let modo: ModoArmazenamento = "local";
 const cache = new Map<string, string>();
 const pendentes = new Map<string, string | null>();
+const emEnvio = new Set<string>();
+let envio: Promise<boolean> | null = null;
+let tentativaSaida: number | null = null;
+let confirmarSaida: ((tentativa: number, salvo: boolean) => Promise<unknown>) | null = null;
+
+function cancelarSaidaPorEdicao() {
+  if (tentativaSaida === null) return;
+  const tentativa = tentativaSaida;
+  tentativaSaida = null;
+  document.body.inert = false;
+  void confirmarSaida?.(tentativa, false).catch(() => undefined);
+}
 let temporizador = 0;
 const canal = typeof BroadcastChannel !== "undefined" ? new BroadcastChannel("niko-dados") : null;
 const ouvintesDeFora = new Set<(chave: string) => void>();
@@ -57,7 +69,7 @@ function avisarOutrasJanelas(chave: string, valor: string | null) {
 }
 
 function receberDeFora(m: MudancaDeDados) {
-  if (!m || m.origem === ORIGEM || pendentes.has(m.chave)) return;
+  if (!m || m.origem === ORIGEM || (pendentes.has(m.chave) || emEnvio.has(m.chave))) return;
   const atual = cache.get(m.chave) ?? null;
   if (atual === m.valor) return;
   if (m.valor === null) cache.delete(m.chave);
@@ -85,20 +97,31 @@ function localSeguro<T>(fn: () => T, reserva: T): T {
   }
 }
 
-async function enviarPendentes(manterViva = false) {
+function enviarPendentes(manterViva = false): Promise<boolean> {
   window.clearTimeout(temporizador);
   temporizador = 0;
-  if (pendentes.size === 0) return;
-  const itens = Object.fromEntries(pendentes);
-  pendentes.clear();
-  try {
-    const r = await fetch("/ponte/dados", { method: "POST", headers: CABECALHOS, body: JSON.stringify({ itens }), keepalive: manterViva && JSON.stringify(itens).length < 60000 });
-    if (!r.ok) throw new Error(`http_${r.status}`);
-  } catch {
-    for (const [k, v] of Object.entries(itens)) if (!pendentes.has(k)) pendentes.set(k, v);
-    window.dispatchEvent(new CustomEvent("niko:armazenamento-falhou"));
-    agendar(4000);
-  }
+  if (envio) return envio;
+  envio = (async () => {
+    while (pendentes.size > 0) {
+      const itens = Object.fromEntries(pendentes);
+      pendentes.clear();
+      Object.keys(itens).forEach((k) => emEnvio.add(k));
+      try {
+        const corpo = JSON.stringify({ itens });
+        const r = await fetch("/ponte/dados", { method: "POST", headers: CABECALHOS, body: corpo, keepalive: manterViva && new TextEncoder().encode(corpo).length < 60000 });
+        if (!r.ok) throw new Error(`http_${r.status}`);
+      } catch {
+        for (const [k, v] of Object.entries(itens)) if (!pendentes.has(k)) pendentes.set(k, v);
+        window.dispatchEvent(new CustomEvent("niko:armazenamento-falhou"));
+        agendar(4000);
+        return false;
+      } finally {
+        emEnvio.clear();
+      }
+    }
+    return true;
+  })().finally(() => { envio = null; });
+  return envio;
 }
 
 function agendar(ms = 350) {
@@ -114,6 +137,7 @@ const armazenamentoSeguro: StateStorage = {
       if (cache.get(nome) === valor) return;
       cache.set(nome, valor);
       pendentes.set(nome, valor);
+      cancelarSaidaPorEdicao();
       agendar();
       avisarOutrasJanelas(nome, valor);
       return;
@@ -130,6 +154,7 @@ const armazenamentoSeguro: StateStorage = {
     if (modo === "banco") {
       cache.delete(nome);
       pendentes.set(nome, null);
+      cancelarSaidaPorEdicao();
       agendar();
       avisarOutrasJanelas(nome, null);
       return;
@@ -153,7 +178,34 @@ function chavesLocais(): string[] {
   return localSeguro(() => Object.keys(localStorage).filter((k) => k.startsWith(PREFIXO)), []);
 }
 
+let ouvintesDaSaida: Promise<void> | null = null;
+
+async function prepararSaida() {
+    const { listen } = await import("@tauri-apps/api/event");
+    const { invoke } = await import("@tauri-apps/api/core");
+    confirmarSaida = (tentativa, salvo) => invoke("confirmar_saida", { tentativa, salvo });
+    await listen<number>("niko://saindo", async (e) => {
+      tentativaSaida = e.payload;
+      document.body.inert = true;
+      const salvo = await salvarAgora();
+      if (tentativaSaida !== e.payload) return;
+      await confirmarSaida!(e.payload, salvo).catch(() => { tentativaSaida = null; document.body.inert = false; });
+    });
+    await listen("niko://saida-cancelada", () => {
+      tentativaSaida = null;
+      document.body.inert = false;
+      const internos = window as unknown as { __TAURI_INTERNALS__?: { metadata?: { currentWindow?: { label?: string } } } };
+      if (internos.__TAURI_INTERNALS__?.metadata?.currentWindow?.label === "sistema") {
+        window.alert("Não foi possível confirmar o salvamento. O Niko continua aberto; tente sair novamente após a ponte responder.");
+      }
+    });
+}
+
 export async function iniciarArmazenamento(): Promise<ModoArmazenamento> {
+  if (tauriDisponivel()) {
+    ouvintesDaSaida ??= prepararSaida().catch((erro) => { ouvintesDaSaida = null; throw erro; });
+    await ouvintesDaSaida;
+  }
   try {
     const controle = new AbortController();
     const limite = window.setTimeout(() => controle.abort(), 4000);
@@ -180,7 +232,6 @@ export async function iniciarArmazenamento(): Promise<ModoArmazenamento> {
     if (tauriDisponivel()) {
       const { listen } = await import("@tauri-apps/api/event");
       await listen<MudancaDeDados>(EVENTO_DADOS, (e) => receberDeFora(e.payload));
-      await listen("niko://saindo", () => void enviarPendentes());
     }
     window.addEventListener("focus", () => void recarregarDaPonte());
     window.addEventListener("pagehide", () => void enviarPendentes(true));
@@ -204,9 +255,18 @@ let travado = false;
 export async function zerarTudo(apagarChaves: boolean): Promise<void> {
   travado = true;
   window.clearTimeout(temporizador);
-  pendentes.clear();
+  if (!(await salvarAgora())) {
+    travado = false;
+    throw new Error("salvamento_falhou");
+  }
   if (modo === "banco") {
-    const r = await fetch("/ponte/dados/zerar", { method: "POST", headers: CABECALHOS, body: JSON.stringify({ confirmacao: "APAGAR", chaves: apagarChaves }) });
+    let r: Response;
+    try {
+      r = await fetch("/ponte/dados/zerar", { method: "POST", headers: CABECALHOS, body: JSON.stringify({ confirmacao: "APAGAR", chaves: apagarChaves }) });
+    } catch (erro) {
+      travado = false;
+      throw erro;
+    }
     if (!r.ok) {
       travado = false;
       throw new Error(`http_${r.status}`);
@@ -217,7 +277,7 @@ export async function zerarTudo(apagarChaves: boolean): Promise<void> {
   localSeguro(() => localStorage.setItem(`${PREFIXO}migrado`, new Date().toISOString()), undefined);
 }
 
-export function salvarAgora(): Promise<void> {
+export function salvarAgora(): Promise<boolean> {
   return enviarPendentes();
 }
 

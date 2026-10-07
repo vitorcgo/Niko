@@ -1,0 +1,1 @@
+PASS: packaged HTTP bridge; real GNOME nested; readonly GET; denied POST; authenticated update; revision and Shell owner; isolated TCP/filesystem

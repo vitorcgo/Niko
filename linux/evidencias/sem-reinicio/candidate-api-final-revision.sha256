@@ -1,0 +1,5 @@
+62e1819bac7d751a8728b993e349a930d702186a5d48f08da5eb33b142d6436d  linux/gnome/candidato-sem-reinicio/extension.js
+ac8add9ecf9628e3b0fc201bcdb54043300b69d2f4de7e697c3ff5b09c2d8612  linux/gnome/native-sem-reinicio/run.sh
+1912251878e7254751396785d46463876f53f1c1620cbe1e1c5c964d484b9922  linux/gnome/native-sem-reinicio/session.sh
+adbe13416774607123be353f4a59f8bc3e2b5d3b12bc6b6124192a18b0230f1f  linux/gnome/native-sem-reinicio/diagnostico.test.mjs
+327fc396d4ead72522320a6738e309e1670ff53bac5ebe97cd6e86f5abd01372  linux/gnome/native-sem-reinicio/service-client.js

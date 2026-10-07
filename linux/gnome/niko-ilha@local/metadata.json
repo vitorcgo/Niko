@@ -1,0 +1,9 @@
+{
+  "uuid": "niko-ilha@local",
+  "name": "Niko — ilha experimental",
+  "description": "Ponto de acesso experimental à ilha do Niko. Requer o Niko aberto; clique abre a ilha fixa abaixo do painel.",
+  "shell-version": [
+    "46"
+  ],
+  "version": 2
+}

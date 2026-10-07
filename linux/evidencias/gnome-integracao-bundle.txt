@@ -1,0 +1,9 @@
+
+> niko@0.2.0 tauri /caminho/Niko
+> tauri bundle --config src-tauri/tauri.linux.conf.json --bundles deb --ci
+
+        Info Patching /caminho/Niko/src-tauri/target/release/niko with bundle type information: deb
+    Bundling Niko_0.2.0_amd64.deb (/caminho/Niko/src-tauri/target/release/bundle/deb/Niko_0.2.0_amd64.deb)
+    Finished 1 bundle at:
+        /caminho/Niko/src-tauri/target/release/bundle/deb/Niko_0.2.0_amd64.deb (50.65 MiB)
+

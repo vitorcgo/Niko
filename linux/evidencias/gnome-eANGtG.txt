@@ -1,0 +1,11 @@
+Laboratório: /tmp/niko-native.eANGtG
+Resultado:
+PASS: five hide/remap cycles; native Mutter anchor/focus/tablist; attention focus; disable/enable; permission denial; service disappearance/missing
+FAIL: native critical in logs
+
+Críticos encontrados:
+(gnome-shell:139366): libmutter-CRITICAL **: 17:20:58.514: meta_window_set_stack_position_no_sync: assertion 'window->stack_position >= 0' failed
+(gnome-shell:139366): libmutter-CRITICAL **: 17:21:04.472: meta_window_set_stack_position_no_sync: assertion 'window->stack_position >= 0' failed
+(gnome-shell:139366): libmutter-CRITICAL **: 17:21:10.527: meta_window_set_stack_position_no_sync: assertion 'window->stack_position >= 0' failed
+(gnome-shell:139366): libmutter-CRITICAL **: 17:21:16.548: meta_window_set_stack_position_no_sync: assertion 'window->stack_position >= 0' failed
+(gnome-shell:139366): libmutter-CRITICAL **: 17:21:22.543: meta_window_set_stack_position_no_sync: assertion 'window->stack_position >= 0' failed

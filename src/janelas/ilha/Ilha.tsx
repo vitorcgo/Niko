@@ -25,7 +25,7 @@ import { usarClaudeCode, devolverPendentesAoTerminal } from "./claude/usarClaude
 import { abaLigada } from "../../utilitarios/funcoes";
 import { useClaudeCode, sessaoAtiva } from "../../estado/claudeCode";
 import { useAtualizacao } from "../../estado/atualizacao";
-import { NATIVO, usarAreaInterativa, usarCursorFora, usarEstadoDaFrente } from "../../desktop/desktop";
+import { LINUX, NATIVO, dimensionarIlha, usarAreaInterativa, usarCursorFora, usarEstadoDaFrente } from "../../desktop/desktop";
 import { BarraDoTopo, ALTURA_DA_FAIXA } from "./barra/BarraDoTopo";
 import { alternarAbaDaBarra } from "./barra/acoesDaBarra";
 import { EspacoDoPersonagem, PersonagemContinuo } from "./animacoes/PersonagemContinuo";
@@ -83,6 +83,7 @@ const ALTURA_COMPACTA = 30;
 const AGENTE_DA_ABA: Partial<Record<AbaIlha, AgenteId>> = { hoje: "organizador", foco: "tutor", conexoes: "java", claude: "java" };
 const RODIZIO_MS = 8 * 60_000;
 const ABAS_SEM_LATERAL: AbaIlha[] = ["chat", "midia"];
+const ABAS_LOCAIS: AbaIlha[] = ["hoje", "captura", "midia", "foco", "habitos", "calendario", "avisos", "conexoes"];
 
 function agenteDoRodizio(favorito: AgenteId, agora: number): AgenteId {
   const ordem: AgenteId[] = [favorito, ...AGENTES.filter((a) => a !== favorito)];
@@ -127,7 +128,7 @@ export function Ilha() {
   const agentes = useAgentes();
   const pomodoro = usePomodoro();
   const midia = useMidia();
-  usarClaudeCode(cfg.ativa && cfg.blocos.claude);
+  usarClaudeCode(!LINUX && cfg.ativa && cfg.blocos.claude);
   const pedidosClaude = useClaudeCode((s) => s.pedidos);
   const minuto = useAgora(60_000, true);
   const agenteDaVez = agenteDoRodizio(favorito, minuto);
@@ -137,6 +138,7 @@ export function Ilha() {
   const [sobre, setSobre] = useState(false);
   const atualizacao = useAtualizacao();
   useEffect(() => {
+    if (LINUX) return;
     const primeira = window.setTimeout(() => void useAtualizacao.getState().verificar(), 15000);
     const sempre = window.setInterval(() => void useAtualizacao.getState().verificar(), 6 * 3600000);
     return () => {
@@ -163,8 +165,9 @@ export function Ilha() {
   const claudeInstalado = useConfig((s) => s.claudeInstalado);
   const desligadas = useConfig((s) => s.funcoesDesligadas);
   const abas = cfg.ordemAbas.filter((a) => cfg.blocos[a] && (a !== "claude" || claudeInstalado) && abaLigada(a, desligadas));
-  const abaAtual = abas.includes(aba) ? aba : abas[0] ?? "hoje";
-  const frente = usarEstadoDaFrente(cfg.ativa);
+  const disponiveis = LINUX ? abas.filter((a) => ABAS_LOCAIS.includes(a)) : abas;
+  const abaAtual = disponiveis.includes(aba) ? aba : disponiveis[0] ?? "hoje";
+  const frente = usarEstadoDaFrente(!LINUX && cfg.ativa);
   const [lateraisLivresNativo, setLateraisLivresNativo] = useState(true);
   useEffect(() => {
     if (frente.frente !== "sobreposta") setLateraisLivresNativo(!frente.maximizada && !frente.telaCheia);
@@ -181,10 +184,10 @@ export function Ilha() {
   const trabalhando = AGENTES.filter((a) => ["pensando", "escrevendo"].includes(estadoDoAgente(agentes, a)));
 
   const pedidoPendente = pedidosClaude.length > 0;
-  const estadoEfetivo = coberta && estado !== "expandida" && !revelacao && !pedidoPendente ? "escondida" : (cfg.modo === "fixo" || pedidoPendente) && estado === "escondida" ? "compacta" : estado;
+  const estadoEfetivo = LINUX && estado === "escondida" ? "compacta" : coberta && estado !== "expandida" && !revelacao && !pedidoPendente ? "escondida" : (cfg.modo === "fixo" || pedidoPendente) && estado === "escondida" ? "compacta" : estado;
 
   useEffect(() => {
-    if (cfg.modo !== "esconder" || estadoEfetivo !== "compacta" || sobre || barraEmUso || revelacao || frescos > 0 || pomodoro.rodando || atualizacao.fase !== "nada" || pedidoPendente) return;
+    if (LINUX || cfg.modo !== "esconder" || estadoEfetivo !== "compacta" || sobre || barraEmUso || revelacao || frescos > 0 || pomodoro.rodando || atualizacao.fase !== "nada" || pedidoPendente) return;
     const t = window.setTimeout(() => definirEstado("escondida"), cfg.esconderSeg * 1000);
     return () => window.clearTimeout(t);
   }, [cfg.modo, cfg.esconderSeg, estadoEfetivo, sobre, barraEmUso, revelacao, frescos, pomodoro.rodando, definirEstado, atualizacao.fase, pedidoPendente]);
@@ -259,6 +262,15 @@ export function Ilha() {
     return { tipo: "nada" as const, largura: 120 };
   }, [revelacao, pomodoroIniciado, midia.tocando, Boolean(midia.faixa), trabalhando.length, cfg.repouso, cfg.blocos.midia, atualizacao.fase, pedidosClaude.length, Boolean(claudeAtivo)]);
 
+  useEffect(() => {
+    if (!LINUX || !cfg.ativa || estadoEfetivo !== "expandida") return;
+    const escala = ESCALA[cfg.tamanho];
+    const w = LARGURA_EXPANDIDA;
+    const h = ALTURA_ABA[abaAtual];
+    void dimensionarIlha(Math.ceil(w * escala + 32), Math.ceil(h * escala + 16))
+      .catch((erro) => console.error("Falha ao dimensionar a ilha", erro));
+  }, [cfg.ativa, cfg.tamanho, estadoEfetivo, abaAtual]);
+
   if (!cfg.ativa || frente.telaCheia) return null;
 
   const escala = ESCALA[cfg.tamanho];
@@ -277,7 +289,7 @@ export function Ilha() {
   const agenteCompacto = ["agente", "pomodoro", "relogio", "nada"].includes(compacta.tipo) ? agenteDaVez : compacta.tipo === "trabalho" ? trabalhando[0] : compacta.tipo === "revelacao" && !revelacao?.marca ? revelacao?.agente : undefined;
   const agenteContinuo = estadoEfetivo === "expandida" ? agenteLateral : agenteCompacto ?? agenteDaVez;
   const restantePomodoro = restanteAtual(pomodoro, agora);
-  const barraVisivel = cfg.laterais && estadoEfetivo !== "escondida" && lateraisLivres;
+  const barraVisivel = !LINUX && cfg.laterais && estadoEfetivo !== "escondida" && lateraisLivres;
 
   const abaDaCompacta = (): AbaIlha | undefined =>
     compacta.tipo === "revelacao" ? revelacao?.aba : compacta.tipo === "pomodoro" ? "foco" : compacta.tipo === "midia" ? "midia" : compacta.tipo === "trabalho" ? "chat" : compacta.tipo === "claude" || compacta.tipo === "claudePedido" ? "claude" : undefined;
@@ -409,7 +421,7 @@ export function Ilha() {
 
   return (
     <>
-      {cfg.laterais && (
+      {!LINUX && cfg.laterais && (
         <BarraDoTopo
           visivel={barraVisivel}
           escala={escala}
@@ -452,6 +464,7 @@ export function Ilha() {
           window.clearTimeout(relogioRevelada.current);
         }}
         onDragEnter={(e) => {
+          if (LINUX) return;
           if (!Array.from(e.dataTransfer.types).includes("Files")) return;
           if (useIlha.getState().estado !== "expandida" || useIlha.getState().aba !== "chat") {
             abrir("chat");
@@ -471,7 +484,7 @@ export function Ilha() {
           style={{ ["--fundo-ilha" as string]: aparencia.fundo }}
           initial={false}
           animate={{ width: alvo.w, height: alvo.h, borderBottomLeftRadius: alvo.r, borderBottomRightRadius: alvo.r }}
-          transition={transicao}
+          transition={LINUX ? { duration: 0 } : transicao}
         >
           <div className="ilha-recorte">
             <AnimatePresence mode="popLayout" initial={false}>
@@ -529,7 +542,8 @@ export function Ilha() {
                             className="ilha-aba"
                             aria-selected={a === abaAtual}
                             aria-label={T.ilha.abas[a]}
-                            title={T.ilha.abas[a]}
+                            title={LINUX && !ABAS_LOCAIS.includes(a) ? `${T.ilha.abas[a]}: indisponível no Linux nesta etapa` : T.ilha.abas[a]}
+                            disabled={LINUX && !ABAS_LOCAIS.includes(a)}
                             initial={{ opacity: 0, y: -4 }}
                             animate={{ opacity: 1, y: 0, transition: { delay: 0.3 + i * 0.035 } }}
                             onClick={() => {

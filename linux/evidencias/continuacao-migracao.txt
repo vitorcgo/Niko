@@ -1,0 +1,1 @@
+OK: WAL ativo, integridade, backup independente, recusas e arquivos preservados

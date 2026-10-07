@@ -1,4 +1,5 @@
 import { useEffect, useId, useImperativeHandle, useRef, useState, forwardRef } from "react";
+import { LINUX } from "../desktop/desktop";
 import { motion, useAnimate } from "motion/react";
 import { Heart } from "lucide-react";
 import type { AgenteId, EstadoAgente } from "../tipos";
@@ -186,6 +187,8 @@ export const Personagem = forwardRef<ControlePersonagem, Props>(function Persona
     });
   }, [podeOlhar, agente, tamanho]);
 
+  const olharVisual = olhar ?? (LINUX && podeOlhar && estado === "ocioso" ? { x: 0, y: 0 } : null);
+
   const estadoExibido: EstadoAgente = reacao === "feliz" ? "sucesso" : reacao === "tonto" ? "erro" : sobre && interativo && estado === "ocioso" ? "ouvindo" : estado;
   const corHalo = reacao === "tonto" ? "#a855f7" : COR_ESTADO[estado];
   const mostrarHalo = halo && tamanho >= 32 && reacao === "tonto";
@@ -216,7 +219,7 @@ export const Personagem = forwardRef<ControlePersonagem, Props>(function Persona
       {mostrarHalo && <span className="personagem-halo" style={{ background: corHalo }} />}
       <motion.div className="personagem-corpo" animate={{ scale: sobre && interativo ? 1.08 : 1 }} transition={{ type: "spring", visualDuration: 0.3, bounce: 0.35 }}>
         <div ref={escopo} className="personagem-giro">
-          {visivel && olhar && rosto ? (
+          {visivel && olharVisual && rosto ? (
             <svg viewBox="66 78 380 380" width={tamanho} height={tamanho} aria-hidden="true" className="personagem-imagem">
               <defs>
                 <path id={`c-${idClip}`} d={rosto.corpo.d} />
@@ -232,8 +235,8 @@ export const Personagem = forwardRef<ControlePersonagem, Props>(function Persona
                   <ellipse cx={o.branco.cx} cy={o.branco.cy} rx={o.branco.rx} ry={o.branco.ry} transform={o.branco.transform} fill={o.branco.fill} />
                   <g clipPath={`url(#o-${idClip}-${i})`}>
                     <ellipse
-                      cx={o.branco.cx + olhar.x * (o.branco.rx - o.pupila.rx) * 0.95}
-                      cy={o.branco.cy + olhar.y * (o.branco.ry - o.pupila.ry) * 0.95}
+                      cx={o.branco.cx + olharVisual.x * (o.branco.rx - o.pupila.rx) * 0.95}
+                      cy={o.branco.cy + olharVisual.y * (o.branco.ry - o.pupila.ry) * 0.95}
                       rx={o.pupila.rx}
                       ry={o.pupila.ry}
                       transform={o.pupila.transform}
@@ -253,7 +256,7 @@ export const Personagem = forwardRef<ControlePersonagem, Props>(function Persona
           ) : (
             <span style={{ width: tamanho, height: tamanho, display: "block" }} />
           )}
-          {visivel && !semArte && tamanho >= 24 && <span className="personagem-textura" style={{ maskImage: `url(${caminhoPersonagem(agente, estadoExibido)})`, WebkitMaskImage: `url(${caminhoPersonagem(agente, estadoExibido)})` }} aria-hidden="true" />}
+          {!LINUX && visivel && !semArte && tamanho >= 24 && <span className="personagem-textura" style={{ maskImage: `url(${caminhoPersonagem(agente, estadoExibido)})`, WebkitMaskImage: `url(${caminhoPersonagem(agente, estadoExibido)})` }} aria-hidden="true" />}
         </div>
       </motion.div>
       {coracoes > 0 && reacao === "feliz" && tamanho >= 28 && (

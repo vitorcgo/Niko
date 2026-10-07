@@ -1,3 +1,4 @@
+import { LINUX } from "../../desktop/desktop";
 import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import {
@@ -253,7 +254,7 @@ export function VisaoMidia() {
           <Music size={18} color="#8e939c" />
           <div className="coluna" style={{ gap: 2 }}>
             <span className="ilha-titulo">{T.ilha.semMidia}</span>
-            <span className="ilha-sub">{midia.disponivel ? T.ilha.semMidiaDica : T.ilha.midiaSemPonte}</span>
+            <span className="ilha-sub">{midia.disponivel ? T.ilha.semMidiaDica : (LINUX ? "Não foi possível consultar a mídia do Linux." : T.ilha.midiaSemPonte)}</span>
           </div>
         </div>
       </Cartao>
@@ -285,7 +286,8 @@ export function VisaoMidia() {
           <div
             className="ilha-trilho"
             role="slider"
-            tabIndex={0}
+            tabIndex={midia.podeBuscar && faixa.duracao > 0 ? 0 : -1}
+            aria-disabled={!midia.podeBuscar || faixa.duracao <= 0}
             aria-label={T.ilha.midia}
             aria-valuemin={0}
             aria-valuemax={faixa.duracao}
@@ -311,7 +313,7 @@ export function VisaoMidia() {
           <button type="button" className="ilha-botao ilha-botao-redondo" aria-label={T.ilha.anterior} disabled={!midia.podeVoltar} onClick={midia.anterior}>
             <SkipBack size={15} />
           </button>
-          <button type="button" className="ilha-botao ilha-botao-primario ilha-botao-grande" aria-label={midia.tocando ? T.ilha.pausar : T.ilha.tocar} onClick={midia.alternar}>
+          <button type="button" className="ilha-botao ilha-botao-primario ilha-botao-grande" aria-label={midia.tocando ? T.ilha.pausar : T.ilha.tocar} disabled={!midia.podeAlternar} onClick={midia.alternar}>
             {midia.tocando ? <Pause size={18} /> : <Play size={18} />}
           </button>
           <button type="button" className="ilha-botao ilha-botao-redondo" aria-label={T.ilha.proxima} disabled={!midia.podeAvancar} onClick={midia.proxima}>

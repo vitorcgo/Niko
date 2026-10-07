@@ -1,0 +1,4 @@
+1e954423360149850addfa0f290d2c221294e3b22e6e68580adcfb8055f8ecd2  servidor/gnomeIlhaRuntimeLinux.ts
+1434a4e8137d761f4cbbe8a077c5da21eb20e479d0c38b6c08cee333907701f4  linux/gnome/candidato-sem-reinicio/extension.js
+d4dbf4db6c3881761eb79fd792ad39b3e8492a24bef7f028f1282a544f7f7aa8  linux/gnome/runtime-owner-loss-linux.test.mjs
+71f3adfe8f54a6acfdd5f52ddf5765ee2fb5699eb33815734a3550d1cc919d4a  linux/gnome/native-sem-reinicio/runtime-helper.test.mjs

@@ -1,0 +1,1 @@
+RegisterStatusNotifierItem ('/org/ayatana/NotificationItem/tray_icon_tray_app_niko',)

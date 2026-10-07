@@ -1,0 +1,19 @@
+   Compiling niko v0.2.0 (/caminho/Niko/src-tauri)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 13.56s
+     Running unittests src/lib.rs (src-tauri/target/debug/deps/niko_lib-e3e571ae574e26a5)
+
+running 11 tests
+test atalho_ilha_linux::tests::configuracoes_concorrentes_nao_intercalam_transacoes ... ok
+test atalho_ilha_linux::tests::falha_de_restauracao_e_reportada ... ok
+test atalho_ilha_linux::tests::falhas_de_gravacao_ou_confirmacao_restauram_anterior ... ok
+test atalho_ilha_linux::tests::atalho_real_persiste_em_backend_keyfile_isolado ... ok
+test atalho_ilha_linux::tests::valida_apenas_combinacoes_limitadas_sem_sintaxe_executavel ... ok
+test tests::ativacao_da_ilha_distingue_foco ... ok
+test tests::links_invalidos_nao_chegam_ao_programa_externo ... ok
+test tests::saida_aguarda_todas_janelas_e_ignora_confirmacoes_atrasadas ... ok
+test tests::tamanho_ilha_linux_rejeita_valores_fora_dos_limites ... ok
+test tests::token_linux_tem_32_bytes_em_hexadecimal ... ok
+test tests::abridor_linux_reporta_sucesso_e_falhas ... ok
+
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.18s
+

@@ -1,0 +1,83 @@
+name: Compatibilidade Linux e Windows
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Instalar dependências com lockfile
+        run: pnpm install --frozen-lockfile
+      - name: Verificar TypeScript
+        run: pnpm verificar
+      - name: Testar arquivos existentes
+        run: pnpm test
+      - name: Construir interface
+        run: pnpm build
+      - name: Construir ponte e incluir Node Windows
+        run: pnpm ponte:build
+      - name: Testar persistência e autenticação da ponte
+        run: node --test servidor/ponte.test.mjs
+      - name: Verificar Rust Windows
+        run: cargo check --locked --manifest-path src-tauri/Cargo.toml
+      - name: Testar Rust Windows
+        run: cargo test --locked --manifest-path src-tauri/Cargo.toml --lib
+      - name: Construir executável Windows
+        run: cargo build --locked --manifest-path src-tauri/Cargo.toml --bin niko
+
+  linux:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Instalar dependências Linux declaradas
+        run: sudo apt-get update && sudo apt-get install -y build-essential curl wget file libssl-dev libwebkit2gtk-4.1-dev libxdo-dev libayatana-appindicator3-dev librsvg2-dev gjs dbus-daemon gnome-keyring gir1.2-secret-1 gnome-settings-daemon-common
+      - name: Instalar dependências com lockfile
+        run: pnpm install --frozen-lockfile
+      - name: Verificar TypeScript
+        run: pnpm verificar
+      - name: Testar contratos e integrações isoladas (sem sessão gráfica)
+        run: pnpm test
+      - name: Testar migração com bancos temporários
+        run: python3 scripts/migrar-dados-linux.test.py
+      - name: Construir interface e ponte
+        run: pnpm build && pnpm ponte:build
+      - name: Verificar e testar Rust com lockfile
+        run: cargo check --locked --manifest-path src-tauri/Cargo.toml && cargo test --locked --manifest-path src-tauri/Cargo.toml --lib
+      - name: Empacotar Linux com lockfile
+        run: pnpm tauri build --config src-tauri/tauri.linux.conf.json -- --locked
+      - name: Conferir payload e dependências do pacote sem instalar
+        run: node linux/validar-pacote.mjs
+      - name: Preservar pacote e evidências
+        uses: actions/upload-artifact@v4
+        with:
+          name: niko-linux-deb
+          path: src-tauri/target/release/bundle/deb/*.deb
+          if-no-files-found: error

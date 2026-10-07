@@ -1,0 +1,32 @@
+TAP version 13
+# TAP version 13
+# \# Subtest: lê players sem whitelist, prefere Playing e distingue erro de ausência
+# ok 1 - lê players sem whitelist, prefere Playing e distingue erro de ausência
+#   ---
+#   duration_ms: 10168.680519
+#   type: 'test'
+#   ...
+# 1..1
+# \# tests 1
+# \# suites 0
+# \# pass 1
+# \# fail 0
+# \# cancelled 0
+# \# skipped 0
+# \# todo 0
+# \# duration_ms 10182.104837
+# Subtest: MPRIS genérico em D-Bus privado
+ok 1 - MPRIS genérico em D-Bus privado
+  ---
+  duration_ms: 11161.7197
+  type: 'test'
+  ...
+1..1
+# tests 1
+# suites 0
+# pass 1
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 11873.343793

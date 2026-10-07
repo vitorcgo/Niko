@@ -16,7 +16,14 @@ function base64url(b: Buffer): string {
   return b.toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 }
 
-function abrirNoNavegador(url: string) {
+function abrirNoNavegador(url: string, falhou: (e: Error) => void) {
+  if (process.platform === "linux") {
+    const filho = spawn("/usr/bin/gio", ["open", url], { detached: true, stdio: "ignore" });
+    filho.on("error", () => falhou(new Error("navegador_indisponivel")));
+    filho.on("exit", codigo => { if (codigo !== 0) falhou(new Error("navegador_indisponivel")); });
+    filho.unref();
+    return;
+  }
   if (process.platform !== "win32") throw new Error("somente_windows");
   const filho = spawn("rundll32.exe", ["url.dll,FileProtocolHandler", url], { detached: true, stdio: "ignore", windowsHide: true });
   filho.on("error", () => undefined);
@@ -29,8 +36,9 @@ export function lerCredencialGmail(texto: string): CredencialGmail {
   return c;
 }
 
-export async function autorizarGmail(clienteId: string, segredo: string): Promise<CredencialGmail> {
+export async function autorizarGmail(clienteId: string, segredo: string, sinal?: AbortSignal): Promise<CredencialGmail> {
   if (!/\.apps\.googleusercontent\.com$/.test(clienteId)) throw new Error("cliente_id_invalido");
+  sinal?.throwIfAborted();
   const verificador = base64url(randomBytes(48));
   const desafio = base64url(createHash("sha256").update(verificador).digest());
   const estado = base64url(randomBytes(16));
@@ -47,14 +55,18 @@ export async function autorizarGmail(clienteId: string, segredo: string): Promis
       const ok = Boolean(codigoRecebido);
       res.writeHead(200, { "content-type": "text/html; charset=utf-8" });
       res.end(`<!doctype html><meta charset="utf-8"><title>Niko</title><body style="font-family:system-ui;padding:40px;background:#0e0e10;color:#f1f2f4"><h2>${ok ? "Gmail conectado." : "Não deu certo."}</h2><p>${ok ? "Pode fechar esta aba e voltar ao Niko." : "Volte ao Niko e tente de novo."}</p></body>`);
+      sinal?.removeEventListener("abort", cancelar);
       clearTimeout(relogio);
       servidor.close();
       if (ok) resolver({ codigo: codigoRecebido!, redirecionamento: `http://127.0.0.1:${(servidor.address() as AddressInfo | null)?.port ?? porta}` });
       else rejeitar(new Error(url.searchParams.get("error") ?? "autorizacao_negada"));
     });
     let porta = 0;
+    const cancelar = () => { clearTimeout(relogio); servidor.close(); sinal?.removeEventListener("abort", cancelar); rejeitar(new Error("autorizacao_cancelada")); };
+    sinal?.addEventListener("abort", cancelar, {once: true});
     const relogio = setTimeout(() => {
       servidor.close();
+      sinal?.removeEventListener("abort", cancelar);
       rejeitar(new Error("tempo_esgotado"));
     }, 180000);
     servidor.listen(0, "127.0.0.1", () => {
@@ -71,8 +83,11 @@ export async function autorizarGmail(clienteId: string, segredo: string): Promis
         state: estado,
       });
       try {
-        abrirNoNavegador(`https://accounts.google.com/o/oauth2/v2/auth?${parametros}`);
+        abrirNoNavegador(`https://accounts.google.com/o/oauth2/v2/auth?${parametros}`, erro => {
+          sinal?.removeEventListener("abort", cancelar); clearTimeout(relogio); servidor.close(); rejeitar(erro);
+        });
       } catch (e) {
+        sinal?.removeEventListener("abort", cancelar);
         clearTimeout(relogio);
         servidor.close();
         rejeitar(e as Error);

@@ -1007,3 +1007,10 @@ button.ilha-rapido-icone:hover:not(:disabled),
   line-height: 1.4;
   color: var(--i-dim);
 }
+.ilha-pop[data-embutido] {
+  position: relative;
+  inset: auto;
+  width: min(100%, 420px);
+  margin-inline: auto;
+  max-height: none;
+}

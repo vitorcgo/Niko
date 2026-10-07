@@ -144,7 +144,7 @@ function Midia() {
         <button type="button" className="ilha-rapido-icone" disabled={!midia.podeVoltar} aria-label={T.ilha.anterior} title={T.ilha.anterior} onClick={midia.anterior}>
           <SkipBack size={14} />
         </button>
-        <button type="button" className="ilha-rapido-icone ilha-rapido-tocar" aria-label={midia.tocando ? T.ilha.pausar : T.ilha.tocar} title={midia.tocando ? T.ilha.pausar : T.ilha.tocar} onClick={midia.alternar}>
+        <button type="button" className="ilha-rapido-icone ilha-rapido-tocar" aria-label={midia.tocando ? T.ilha.pausar : T.ilha.tocar} title={midia.tocando ? T.ilha.pausar : T.ilha.tocar} disabled={!midia.podeAlternar} onClick={midia.alternar}>
           {midia.tocando ? <Pause size={14} /> : <Play size={14} />}
         </button>
         <button type="button" className="ilha-rapido-icone" disabled={!midia.podeAvancar} aria-label={T.ilha.proxima} title={T.ilha.proxima} onClick={midia.proxima}>
@@ -359,7 +359,7 @@ function MenuDeEnergia({ aoFechar }: { aoFechar: () => void }) {
   );
 }
 
-export function PainelRapido({ topo, aoFechar }: { topo: number; aoFechar: () => void }) {
+export function PainelRapido({ topo, aoFechar, embutido = false }: { topo: number; aoFechar: () => void; embutido?: boolean }) {
   const nome = useConfig((s) => s.nome);
   const foto = useConfig((s) => s.foto);
   const naoPerturbe = useConfig((s) => s.naoPerturbe);
@@ -388,8 +388,9 @@ export function PainelRapido({ topo, aoFechar }: { topo: number; aoFechar: () =>
   return (
     <motion.div
       className="ilha-pop ilha-rapido"
-      style={{ top: topo, maxHeight: `calc(100vh - ${topo + 12}px)` }}
-      role="dialog"
+      data-embutido={embutido || undefined}
+      style={embutido ? undefined : { top: topo, maxHeight: `calc(100vh - ${topo + 12}px)` }}
+      role={embutido ? "group" : "dialog"}
       aria-label={B.painel}
       data-privacidade={privacidade ? "sim" : "nao"}
       initial={{ opacity: 0, y: -8, scale: 0.98 }}

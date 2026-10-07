@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { X } from "lucide-react";
-import { NATIVO, usarAreaInterativa, usarCursorFora, usarAppsAbertos, agirNaJanela, alternarSistemaNativo, mostrarMiniaturas, ocultarBarraDoWindows, reservarEspacoDoDock, usarEstadoDaFrente, type AppAberto } from "../../desktop/desktop";
+import { LINUX, janelaAtual, NATIVO, usarAreaInterativa, usarCursorFora, usarAppsAbertos, agirNaJanela, alternarSistemaNativo, mostrarMiniaturas, ocultarBarraDoWindows, reservarEspacoDoDock, usarEstadoDaFrente, type AppAberto } from "../../desktop/desktop";
 import { AnimatePresence, motion, useMotionValue, useSpring, useTransform, type MotionValue } from "motion/react";
 import { useConfig } from "../../estado/configuracoes";
 import { useInterface } from "../../estado/interface";
@@ -8,7 +8,7 @@ import { useAgentes } from "../../estado/agentes";
 import { LogoNiko } from "../../componentes/LogoNiko";
 import { Marca } from "../../marcas/Marca";
 import { T } from "../../textos/textos";
-import { tocarSom } from "../../ponte/sons";
+import { tocarSom, definirPreferenciasSom } from "../../ponte/sons";
 import { ALTURA_DOCK, alguemCobre } from "../geometria";
 import { ICONE_ROTA } from "../sistema/rotas";
 import { COR_AGENTE } from "../../personagens/cores";
@@ -67,7 +67,7 @@ const ESPACO_PREVIA = 8;
 
 function usarMiniaturasDaPrevia(aberta: boolean, chave: string | null) {
   useEffect(() => {
-    if (!aberta) return;
+    if (LINUX || !aberta) return;
     let anterior = "";
     const medir = () => {
       const itens = [...document.querySelectorAll<HTMLElement>(".dock-previa-miniatura")].map((el) => {
@@ -86,6 +86,28 @@ function usarMiniaturasDaPrevia(aberta: boolean, chave: string | null) {
       void mostrarMiniaturas([]);
     };
   }, [aberta, chave]);
+}
+
+function MiniaturaLinux({ janela }: { janela: AppAberto }) {
+  const [imagem, setImagem] = useState<string | null>(null);
+  useEffect(() => {
+    setImagem(null);
+    if (janela.minimizada) return;
+    const controller = new AbortController();
+    let timer = 0;
+    const ler = async () => {
+      try {
+        const resposta = await fetch("/ponte/janelas/miniatura", { method: "POST", headers: { "x-niko": "1", "content-type": "application/json" }, body: JSON.stringify({ janela: janela.id }), signal: controller.signal });
+        const dados = resposta.ok ? await resposta.json() as { imagem?: string | null } : null;
+        if (!controller.signal.aborted) setImagem(dados?.imagem ?? null);
+      } catch { if (!controller.signal.aborted) setImagem(null); }
+      if (!controller.signal.aborted) timer = window.setTimeout(ler, 500);
+    };
+    void ler();
+    return () => { controller.abort(); window.clearTimeout(timer); };
+  }, [janela.id, janela.minimizada]);
+  return imagem ? <img className="dock-previa-miniatura" src={imagem} alt={`Prévia de ${janela.titulo}`} draggable={false} style={{ objectFit: "contain" }} /> :
+    <span className="dock-previa-miniatura" style={{ display: "grid", placeItems: "center", fontSize: 11 }}>Prévia indisponível</span>;
 }
 
 function PreviaJanelas({ lista, esquerda, aoEntrar, aoSair, aoFocar, aoFechar }: { lista: AppAberto[]; esquerda: number; aoEntrar: () => void; aoSair: () => void; aoFocar: (j: AppAberto) => void; aoFechar: (j: AppAberto) => void }) {
@@ -110,7 +132,7 @@ function PreviaJanelas({ lista, esquerda, aoEntrar, aoSair, aoFocar, aoFechar }:
               <X size={14} />
             </button>
           </div>
-          <div className="dock-previa-miniatura" data-janela={j.id} />
+          {LINUX ? <MiniaturaLinux janela={j} /> : <div className="dock-previa-miniatura" data-janela={j.id} />}
         </div>
       ))}
       </div>
@@ -225,6 +247,9 @@ function AppsDoWindows({ mouseX, ampliar, ativo }: { mouseX: MotionValue<number>
 
 export function Dock() {
   const cfg = useConfig((s) => s.dock);
+  const sons = useConfig((s) => s.sons);
+  const silencioFoco = useConfig((s) => s.naoPerturbe);
+  useEffect(() => { if (LINUX) definirPreferenciasSom({ ...sons, silencioFoco }); }, [sons, silencioFoco]);
   const aparencia = usarAparenciaDeBorda(cfg.fundo, cfg.opacidade);
   const nomesBarra = useConfig((s) => s.barraLateral);
   const aberto = useInterface((s) => s.sistemaAberto);
@@ -249,15 +274,19 @@ export function Dock() {
   const frente = usarEstadoDaFrente(cfg.ativo);
 
   useEffect(() => {
-    if (NATIVO) void ocultarBarraDoWindows(cfg.ativo);
+    if (NATIVO && !LINUX) void ocultarBarraDoWindows(cfg.ativo);
   }, [cfg.ativo]);
 
   useEffect(() => {
-    if (NATIVO) void reservarEspacoDoDock(cfg.ativo && cfg.modo === "fixo");
-  }, [cfg.ativo, cfg.modo]);
+    if (NATIVO && (!LINUX || frente.geracao)) void reservarEspacoDoDock(cfg.ativo && cfg.modo === "fixo");
+  }, [cfg.ativo, cfg.modo, frente.geracao]);
 
   useEffect(() => {
-    if (cfg.modo === "fixo") return;
+    if (LINUX && cfg.modo !== "fixo") setPerto(Boolean(frente.cursorNoDock));
+  }, [cfg.modo, frente.cursorNoDock]);
+
+  useEffect(() => {
+    if (LINUX || cfg.modo === "fixo") return;
     const aoMover = (e: PointerEvent) => {
       const dentro = caixa.current?.contains(e.target as Node);
       const limite = window.innerHeight;
@@ -270,6 +299,53 @@ export function Dock() {
   useEffect(() => {
     if (frente.telaCheia) setPerto(false);
   }, [frente.telaCheia]);
+
+  useEffect(() => {
+    if (!LINUX) return;
+    let vivo = true;
+    let fila = Promise.resolve();
+    let agendado = false;
+    let tamanhoAnterior = "";
+    let proximaVerificacao = 0;
+    const medir = () => {
+      if (!vivo || agendado) return;
+      agendado = true;
+      fila = fila.then(async () => {
+        agendado = false;
+        if (!vivo) return;
+        const janela = await janelaAtual();
+        if (!cfg.ativo) { await janela.hide(); return; }
+        const dock = caixa.current;
+        if (!dock) return;
+        // Janela justa ao conteúdo; não intercepta toda a borda da tela Wayland.
+        const previa = dock.querySelector<HTMLElement>(".dock-previa");
+        const largura = Math.max(60, Math.ceil(Math.max(dock.scrollWidth, previa?.scrollWidth ?? 0) + 32));
+        const altura = Math.max(60, Math.ceil(dock.offsetHeight + (previa?.offsetHeight ?? 0) + 16));
+        const tamanho = `${largura}/${altura}`;
+        if (tamanho !== tamanhoAnterior) {
+          const { invoke } = await import("@tauri-apps/api/core");
+          await invoke("dimensionar_dock", { largura, altura });
+          tamanhoAnterior = tamanho;
+        }
+        if (Date.now() < proximaVerificacao) return;
+        proximaVerificacao = Date.now() + 2000;
+        // Medições frequentes só precisam do estado leve, não da lista com ícones.
+        const resposta = await fetch("/ponte/janelas/estado", { headers: { "x-niko": "1" } });
+        if (!vivo) return;
+        const visivel = await janela.isVisible();
+        if (!vivo) return;
+        if (resposta.ok && !visivel) await janela.show();
+        else if (!resposta.ok && visivel) await janela.hide();
+      }).catch((erro) => console.error("Falha ao preparar dock Linux", erro));
+    };
+    medir();
+    const observer = new ResizeObserver(medir);
+    const children = new MutationObserver(medir);
+    if (caixa.current) children.observe(caixa.current, { childList: true, subtree: true });
+    if (caixa.current) observer.observe(caixa.current);
+    const timer = window.setInterval(medir, 2000);
+    return () => { vivo = false; observer.disconnect(); children.disconnect(); window.clearInterval(timer); };
+  }, [cfg.ativo]);
 
   if (!cfg.ativo || frente.telaCheia) return null;
 

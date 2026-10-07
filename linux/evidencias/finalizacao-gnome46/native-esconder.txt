@@ -1,0 +1,7 @@
+PASS: dock Tauri/WebKit real, âncora, tamanho, AltTab, modo=esconder, reserva, fullscreen sem foco; Node/GJS ações nativas e stale ID
+
+GNOME Shell-Message: 13:18:50.668: PASS: um cliente GJS persistente por ponte, sem processo novo a cada consulta
+Amostra CPU privada de 30s após 20s (Tauri, filhos e CPU reaproveitada de filhos encerrados): 6.7% de um núcleo; GNOME software=0; não mede estabilidade
+CPU GNOME privado: 2.5% de um núcleo
+PASS: PNG nativo limitado, minimizada sem imagem; backend Node/GJS/D-Bus real; lista/foco/minimizar/restaurar/fechar; ID stale recusado; Tauri/WebKit privado
+PASS: app process group ended

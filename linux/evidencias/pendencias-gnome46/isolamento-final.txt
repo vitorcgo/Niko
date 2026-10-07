@@ -1,0 +1,46 @@
+PASS: wpctl/pw-dump/PipeWire nativos somente em null sinks privados; nenhum dispositivo físico ou amostra de mídia
+✔ PipeWire nativo privado: dispositivos virtuais, volume e mudo, sem áudio pessoal (451.652087ms)
+PASS: consumo Linux com credenciais e sessões fictícias; nenhuma API real consultada
+✔ leitura portátil, cache e sessão deduplicada; APIs remotas simuladas (116.713179ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 1
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 157.236671
+✔ consumo Linux somente em HOME fictício (444.027252ms)
+PASS: APIs Gio reais em serviço privado fictício; nenhum controle executado em hardware ou sessão pessoal
+✔ Gio nativo com UPower/NM/BlueZ/logind fictícios; PipeWire simulado (1463.316897ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 1
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1469.591826
+✔ controles Linux em HOME e D-Bus privados (1724.637059ms)
+PASS: abertura Gio nativa e callback local; Google e credenciais inteiramente fictícios
+✔ Gio real abre handler privado; PKCE/state/loopback e troca fictícia (238.808426ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 1
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 246.508866
+✔ Gmail Linux usa navegador fictício em rede e D-Bus privados (515.568925ms)
+✔ OCR Linux valida tamanho/formato/idiomas e preserva erros (96.105037ms)
+PASS: Tesseract nativo privado reconheceu NIKO/OCR/123 na imagem gerada
+✔ Tesseract real lê PNG sintético; nenhuma imagem pessoal (403.673276ms)
+ℹ tests 6
+ℹ suites 0
+ℹ pass 6
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 4957.40206

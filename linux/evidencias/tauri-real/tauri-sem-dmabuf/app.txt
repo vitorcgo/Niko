@@ -1,0 +1,4 @@
+
+** (gst-plugin-scanner:197587): CRITICAL **: 18:39:51.178: _dma_fmt_to_dma_drm_fmts: assertion 'fmt != GST_VIDEO_FORMAT_UNKNOWN' failed
+
+** (gst-plugin-scanner:197618): CRITICAL **: 18:39:51.586: _dma_fmt_to_dma_drm_fmts: assertion 'fmt != GST_VIDEO_FORMAT_UNKNOWN' failed

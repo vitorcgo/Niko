@@ -1,4 +1,5 @@
 import { criarProcessoPowerShell } from "./processoPowerShell";
+import { pedirMidiaLinux, type AlvoMidia } from "./midiaLinux";
 
 const SCRIPT = String.raw`
 $ErrorActionPreference = 'Stop'
@@ -92,7 +93,10 @@ while ($true) {
 
 const midia = criarProcessoPowerShell("niko-midia", SCRIPT, "midia_encerrada");
 
-export function pedirMidia(acao: "estado" | "alternar" | "proxima" | "anterior" | "posicao", segundos?: number): Promise<unknown> {
+export function pedirMidia(acao: "estado" | "alternar" | "proxima" | "anterior" | "posicao", segundos?: number, alvo?: AlvoMidia): Promise<unknown> {
+  if (process.platform === "linux") {
+    return pedirMidiaLinux(acao, segundos, alvo);
+  }
   return midia.pedir({ acao, segundos: Number(segundos) || 0 });
 }
 

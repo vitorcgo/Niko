@@ -1,0 +1,19 @@
+PASS: abertura Gio nativa e callback local; Google e credenciais inteiramente fictícios
+✔ Gio real abre handler privado; PKCE/state/loopback e troca fictícia (313.029811ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 1
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 325.481799
+✔ Gmail Linux usa navegador fictício em rede e D-Bus privados (672.836611ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 1
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 696.500375

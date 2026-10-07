@@ -1,0 +1,19 @@
+{
+  "pass": true,
+  "results": {
+    "audio": {
+      "duration": 1,
+      "currentTime": 1,
+      "ended": true
+    },
+    "video": {
+      "duration": 1,
+      "currentTime": 1,
+      "ended": true,
+      "width": 160,
+      "height": 90,
+      "frames": 0,
+      "distinctPixelFrames": 27
+    }
+  }
+}

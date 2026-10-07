@@ -1,0 +1,70 @@
+libmutter-Message: 18:15:06.485: Running GNOME Shell (using mutter 46.2) as a Wayland display server
+** Message: 18:15:06.747: Obtained a high priority EGL context
+** Message: 18:15:06.752: Obtained a high priority EGL context
+libmutter-Message: 18:15:06.776: Using Wayland display name 'niko-native-169323'
+Window manager warning: Failed to set environment variable WAYLAND_DISPLAY for gnome-session: GDBus.Error:org.freedesktop.DBus.Error.NameHasNoOwner: Name "org.gnome.SessionManager" does not exist
+GNOME Shell-Message: 18:15:08.301: Unset XDG_SESSION_ID, getCurrentSessionProxy() called outside a user session. Asking logind directly.
+GNOME Shell-Message: 18:15:08.301: Will monitor session 69
+
+** (gnome-shell:169329): WARNING **: 18:15:08.773: Could not issue 'GetUnit' systemd call
+
+(gnome-shell:169329): Gjs-WARNING **: 18:15:08.937: Gio.UnixInputStream has been moved to a separate platform-specific library. Please update your code to use GioUnix.InputStream instead.
+0 inhibit() ["resource:///org/gnome/shell/misc/loginManager.js":209:8]
+1 InterpretGeneratorResume() ["self-hosted":1461:33]
+2 AsyncFunctionNext() ["self-hosted":852:26]
+3 anonymous() ["resource:///org/gnome/shell/ui/init.js":21:19]
+
+
+(gnome-shell:169329): GNOME Shell-CRITICAL **: 18:15:08.941: Gio.DBusError: GDBus.Error:org.freedesktop.DBus.Error.ServiceUnknown: The name org.gnome.Shell.CalendarServer was not provided by any .service files
+
+Stack trace:
+  asyncCallback@resource:///org/gnome/gjs/modules/core/overrides/Gio.js:114:23
+  @resource:///org/gnome/shell/ui/init.js:21:20
+  
+
+(gnome-shell:169329): GNOME Shell-CRITICAL **: 18:15:08.941: Gio.DBusError: GDBus.Error:org.freedesktop.DBus.Error.ServiceUnknown: The name org.gnome.Shell.CalendarServer was not provided by any .service files
+
+Stack trace:
+  asyncCallback@resource:///org/gnome/gjs/modules/core/overrides/Gio.js:114:23
+  @resource:///org/gnome/shell/ui/init.js:21:20
+  
+invoking IsSupported() failed for remote volume monitor with dbus name org.gtk.vfs.UDisks2VolumeMonitor:: GDBus.Error:org.freedesktop.DBus.Error.ServiceUnknown: The name org.gtk.vfs.UDisks2VolumeMonitor was not provided by any .service files (g-dbus-error-quark, 2)
+invoking IsSupported() failed for remote volume monitor with dbus name org.gtk.vfs.GoaVolumeMonitor:: GDBus.Error:org.freedesktop.DBus.Error.ServiceUnknown: The name org.gtk.vfs.GoaVolumeMonitor was not provided by any .service files (g-dbus-error-quark, 2)
+invoking IsSupported() failed for remote volume monitor with dbus name org.gtk.vfs.MTPVolumeMonitor:: GDBus.Error:org.freedesktop.DBus.Error.ServiceUnknown: The name org.gtk.vfs.MTPVolumeMonitor was not provided by any .service files (g-dbus-error-quark, 2)
+invoking IsSupported() failed for remote volume monitor with dbus name org.gtk.vfs.GPhoto2VolumeMonitor:: GDBus.Error:org.freedesktop.DBus.Error.ServiceUnknown: The name org.gtk.vfs.GPhoto2VolumeMonitor was not provided by any .service files (g-dbus-error-quark, 2)
+invoking IsSupported() failed for remote volume monitor with dbus name org.gtk.vfs.AfcVolumeMonitor:: GDBus.Error:org.freedesktop.DBus.Error.ServiceUnknown: The name org.gtk.vfs.AfcVolumeMonitor was not provided by any .service files (g-dbus-error-quark, 2)
+GNOME Shell-Message: 18:15:08.979: Failed to register AuthenticationAgent
+** Message: 18:15:09.136: Failed to start camera monitor
+
+(gnome-shell:169329): St-WARNING **: 18:15:09.395: Failed to open sliced image: Operation was cancelled
+
+(gnome-shell:169329): libmutter-WARNING **: 18:15:09.744: (../src/backends/meta-barrier.c:258):init_barrier_impl: runtime check failed: (priv->impl)
+
+(gnome-shell:169329): libmutter-WARNING **: 18:15:09.744: (../src/backends/meta-barrier.c:258):init_barrier_impl: runtime check failed: (priv->impl)
+
+(gnome-shell:169329): libmutter-WARNING **: 18:15:09.744: (../src/backends/meta-barrier.c:258):init_barrier_impl: runtime check failed: (priv->impl)
+/usr/share/ibus-table/engine/main.py:232: DeprecationWarning: Testing an element's truth value will raise an exception in future versions.  Use specific 'len(elem)' or 'elem is not None' test instead.
+  if element:
+portal is not running: GDBus.Error:org.freedesktop.DBus.Error.ServiceUnknown: The name org.freedesktop.portal.IBus was not provided by any .service files
+GNOME Shell-Message: 18:15:11.426: GNOME Shell started at Tue Oct 06 2026 18:15:08 GMT-0300 (Brasilia Standard Time)
+GNOME Shell-Message: 18:15:11.448: Registering session with GDM
+GNOME Shell-Message: 18:15:19.051: TEST show step=3 locked=false greeter=false fullscreen=false button=true
+
+(gnome-shell:169329): libmutter-CRITICAL **: 18:15:19.080: meta_window_set_stack_position_no_sync: assertion 'window->stack_position >= 0' failed
+GNOME Shell-Message: 18:15:25.052: TEST show step=6 locked=false greeter=false fullscreen=false button=true
+
+(gnome-shell:169329): libmutter-CRITICAL **: 18:15:25.071: meta_window_set_stack_position_no_sync: assertion 'window->stack_position >= 0' failed
+GNOME Shell-Message: 18:15:31.056: TEST show step=9 locked=false greeter=false fullscreen=false button=true
+
+(gnome-shell:169329): libmutter-CRITICAL **: 18:15:31.064: meta_window_set_stack_position_no_sync: assertion 'window->stack_position >= 0' failed
+GNOME Shell-Message: 18:15:37.062: TEST show step=12 locked=false greeter=false fullscreen=false button=true
+
+(gnome-shell:169329): libmutter-CRITICAL **: 18:15:37.077: meta_window_set_stack_position_no_sync: assertion 'window->stack_position >= 0' failed
+GNOME Shell-Message: 18:15:43.072: TEST show step=15 locked=false greeter=false fullscreen=false button=true
+
+(gnome-shell:169329): libmutter-CRITICAL **: 18:15:43.095: meta_window_set_stack_position_no_sync: assertion 'window->stack_position >= 0' failed
+
+(gnome-shell:169329): GNOME Shell-CRITICAL **: 18:15:51.085: Niko: falha D-Bus: GDBus.Error:org.freedesktop.DBus.Error.AccessDenied: fictitious permission denied
+
+(gnome-shell:169329): GNOME Shell-CRITICAL **: 18:15:55.080: Niko: falha D-Bus: GDBus.Error:org.freedesktop.DBus.Error.NameHasNoOwner: Name "com.niko.desktop.SingleInstance" does not exist
+** Message: 18:15:57.224: Shutting down GNOME Shell

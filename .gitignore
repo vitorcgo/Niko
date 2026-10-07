@@ -9,6 +9,7 @@ dist-ssr/
 src-tauri/target/
 src-tauri/gen/
 src-tauri/recursos/node.exe
+src-tauri/recursos/node
 src-tauri/recursos/ponte.mjs
 
 # Documentos internos
@@ -17,7 +18,14 @@ PENDENCIAS.md
 IDEIAS.md
 
 # Scripts e testes
-scripts/
+scripts/*
+!scripts/testar.mjs
+!scripts/ilha-aviso.test.mjs
+!scripts/ilha-visibilidade.test.mjs
+!scripts/midia.test.mjs
+!scripts/armazenamento.test.mjs
+!scripts/migrar-dados-linux.py
+!scripts/migrar-dados-linux.test.py
 testes/
 
 # Vídeo e material de divulgação
@@ -67,3 +75,8 @@ logs/
 Thumbs.db
 desktop.ini
 .DS_Store
+
+# Payload GNOME gerado durante o build
+linux/gnome/runtime-build/
+!scripts/preparar-gnome-runtime.mjs
+!scripts/preparar-gnome-runtime.test.mjs

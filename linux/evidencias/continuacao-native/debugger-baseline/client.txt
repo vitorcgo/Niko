@@ -1,0 +1,6 @@
+client active, owner 1
+ExecuteCallback (['niko', '--mostrar-ilha'], '')
+Test ('hide',)
+Test ('other',)
+ExecuteCallback (['niko', '--mostrar-ilha'], '')
+Gdk-Message: 18:20:06.465: Error reading events from display: Broken pipe

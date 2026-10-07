@@ -1,0 +1,59 @@
+libmutter-Message: 18:37:28.725: Running GNOME Shell (using mutter 46.2) as a Wayland display server
+** Message: 18:37:28.994: Obtained a high priority EGL context
+** Message: 18:37:29.009: Obtained a high priority EGL context
+libmutter-Message: 18:37:29.148: Using Wayland display name 'niko-tauri-194258'
+Window manager warning: Failed to set environment variable WAYLAND_DISPLAY for gnome-session: GDBus.Error:org.freedesktop.DBus.Error.NameHasNoOwner: Name "org.gnome.SessionManager" does not exist
+GNOME Shell-Message: 18:37:30.008: Unset XDG_SESSION_ID, getCurrentSessionProxy() called outside a user session. Asking logind directly.
+GNOME Shell-Message: 18:37:30.009: Will monitor session 69
+
+** (gnome-shell:194264): WARNING **: 18:37:30.400: Could not issue 'GetUnit' systemd call
+
+(gnome-shell:194264): Gjs-WARNING **: 18:37:30.519: Gio.UnixInputStream has been moved to a separate platform-specific library. Please update your code to use GioUnix.InputStream instead.
+0 inhibit() ["resource:///org/gnome/shell/misc/loginManager.js":209:8]
+1 InterpretGeneratorResume() ["self-hosted":1461:33]
+2 AsyncFunctionNext() ["self-hosted":852:26]
+3 anonymous() ["resource:///org/gnome/shell/ui/init.js":21:19]
+
+
+(gnome-shell:194264): GNOME Shell-CRITICAL **: 18:37:30.532: Gio.DBusError: GDBus.Error:org.freedesktop.DBus.Error.ServiceUnknown: The name org.gnome.Shell.CalendarServer was not provided by any .service files
+
+Stack trace:
+  asyncCallback@resource:///org/gnome/gjs/modules/core/overrides/Gio.js:114:23
+  @resource:///org/gnome/shell/ui/init.js:21:20
+  
+
+(gnome-shell:194264): GNOME Shell-CRITICAL **: 18:37:30.535: Gio.DBusError: GDBus.Error:org.freedesktop.DBus.Error.ServiceUnknown: The name org.gnome.Shell.CalendarServer was not provided by any .service files
+
+Stack trace:
+  asyncCallback@resource:///org/gnome/gjs/modules/core/overrides/Gio.js:114:23
+  @resource:///org/gnome/shell/ui/init.js:21:20
+  
+invoking IsSupported() failed for remote volume monitor with dbus name org.gtk.vfs.UDisks2VolumeMonitor:: GDBus.Error:org.freedesktop.DBus.Error.ServiceUnknown: The name org.gtk.vfs.UDisks2VolumeMonitor was not provided by any .service files (g-dbus-error-quark, 2)
+invoking IsSupported() failed for remote volume monitor with dbus name org.gtk.vfs.GoaVolumeMonitor:: GDBus.Error:org.freedesktop.DBus.Error.ServiceUnknown: The name org.gtk.vfs.GoaVolumeMonitor was not provided by any .service files (g-dbus-error-quark, 2)
+invoking IsSupported() failed for remote volume monitor with dbus name org.gtk.vfs.MTPVolumeMonitor:: GDBus.Error:org.freedesktop.DBus.Error.ServiceUnknown: The name org.gtk.vfs.MTPVolumeMonitor was not provided by any .service files (g-dbus-error-quark, 2)
+invoking IsSupported() failed for remote volume monitor with dbus name org.gtk.vfs.GPhoto2VolumeMonitor:: GDBus.Error:org.freedesktop.DBus.Error.ServiceUnknown: The name org.gtk.vfs.GPhoto2VolumeMonitor was not provided by any .service files (g-dbus-error-quark, 2)
+invoking IsSupported() failed for remote volume monitor with dbus name org.gtk.vfs.AfcVolumeMonitor:: GDBus.Error:org.freedesktop.DBus.Error.ServiceUnknown: The name org.gtk.vfs.AfcVolumeMonitor was not provided by any .service files (g-dbus-error-quark, 2)
+GNOME Shell-Message: 18:37:30.609: Failed to register AuthenticationAgent
+/usr/share/ibus-table/engine/main.py:232: DeprecationWarning: Testing an element's truth value will raise an exception in future versions.  Use specific 'len(elem)' or 'elem is not None' test instead.
+  if element:
+portal is not running: GDBus.Error:org.freedesktop.DBus.Error.ServiceUnknown: The name org.freedesktop.portal.IBus was not provided by any .service files
+
+(gnome-shell:194264): libmutter-WARNING **: 18:37:30.991: (../src/backends/meta-barrier.c:258):init_barrier_impl: runtime check failed: (priv->impl)
+
+(gnome-shell:194264): libmutter-WARNING **: 18:37:30.992: (../src/backends/meta-barrier.c:258):init_barrier_impl: runtime check failed: (priv->impl)
+
+(gnome-shell:194264): libmutter-WARNING **: 18:37:30.992: (../src/backends/meta-barrier.c:258):init_barrier_impl: runtime check failed: (priv->impl)
+** Message: 18:37:32.041: Failed to start camera monitor
+GNOME Shell-Message: 18:37:33.343: GNOME Shell started at Tue Oct 06 2026 18:37:30 GMT-0300 (Brasilia Standard Time)
+GNOME Shell-Message: 18:37:33.360: Registering session with GDM
+GNOME Shell-Message: 18:37:44.677: TAURI cycle=0 mapped focus=true pid=194326 size={}
+Window manager warning: Tried to ping window W1 with a bad serial! Not allowed.
+GNOME Shell-Message: 18:37:50.681: TAURI cycle=1 mapped focus=true pid=194326 size={}
+Window manager warning: Tried to ping window W2 with a bad serial! Not allowed.
+GNOME Shell-Message: 18:37:56.691: TAURI cycle=2 mapped focus=true pid=194326 size={}
+Window manager warning: Tried to ping window W3 with a bad serial! Not allowed.
+GNOME Shell-Message: 18:38:02.695: TAURI cycle=3 mapped focus=true pid=194326 size={}
+Window manager warning: Tried to ping window W4 with a bad serial! Not allowed.
+GNOME Shell-Message: 18:38:08.701: TAURI cycle=4 mapped focus=true pid=194326 size={}
+Window manager warning: Tried to ping window W5 with a bad serial! Not allowed.
+** Message: 18:38:10.744: Shutting down GNOME Shell

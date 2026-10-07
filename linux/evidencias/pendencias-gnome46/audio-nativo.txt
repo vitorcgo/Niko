@@ -1,0 +1,10 @@
+PASS: wpctl/pw-dump/PipeWire nativos somente em null sinks privados; nenhum dispositivo físico ou amostra de mídia
+✔ PipeWire nativo privado: dispositivos virtuais, volume e mudo, sem áudio pessoal (872.286778ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 1
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 879.396427

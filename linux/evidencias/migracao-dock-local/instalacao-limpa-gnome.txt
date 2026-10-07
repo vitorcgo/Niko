@@ -1,0 +1,13 @@
+Evidence directory: /tmp/niko-sem-reinicio.oIgf5w
+dbus-daemon[72789]: [session uid=1000 pid=72789] Activating service name='org.gnome.Shell.Extensions' requested by ':1.4' (uid=1000 pid=73137 comm="gjs /caminho/Niko/linux/gnome/native-sem-reini" label="chatgpt (unconfined)")
+dbus-daemon[72789]: [session uid=1000 pid=72789] Successfully activated service 'org.gnome.Shell.Extensions'
+Clean startup unknown UUID: canal_gnome readonly; no copying or settings.
+✔ helper GNOME real atualiza payload e preserva sessão, manifesto e legado (807.210258ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 1
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1533.627936

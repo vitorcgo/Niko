@@ -1,0 +1,19 @@
+Gio/D-Bus privados reais; GNOME Shell inteiramente simulado.
+✔ Gio real e GNOME fictício: instalação, backup, habilitação e falhas (9267.612856ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 1
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 9274.499313
+✔ instalação GNOME simulada usa bus privado e diretórios temporários (9576.872793ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 1
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 9606.372427

@@ -1,0 +1,210 @@
+
+> niko@0.2.0 tauri /caminho/Niko
+> tauri build --config src-tauri/tauri.linux.conf.json -- --locked --offline
+
+        Info Looking up installed tauri packages to check mismatched versions...
+     Running beforeBuildCommand `pnpm build && pnpm ponte:build`
+
+> niko@0.2.0 build /caminho/Niko
+> tsc && vite build
+
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - import "./servidor/ponte" without a file extension (vite.config.ts:3:28). Add the file extension
+  - import "./tiposVite" without a file extension (servidor/ponte.ts:1:38). Add the file extension
+  - import "./ia" without a file extension (servidor/ponte.ts:4:132). Add the file extension
+  - import "./consumo" without a file extension (servidor/ponte.ts:5:28). Add the file extension
+  - import "./atualizacoes" without a file extension (servidor/ponte.ts:6:33). Add the file extension
+  - import "./banco" without a file extension (servidor/ponte.ts:7:59). Add the file extension
+  - import "./midia" without a file extension (servidor/ponte.ts:8:28). Add the file extension
+  - import "./janelasWindows" without a file extension (servidor/ponte.ts:9:30). Add the file extension
+  - import "./conexoes" without a file extension (servidor/ponte.ts:10:139). Add the file extension
+  - import "./gmail" without a file extension (servidor/ponte.ts:11:62). Add the file extension
+  - import "./controleRapido" without a file extension (servidor/ponte.ts:12:163). Add the file extension
+  - import "./ocr" without a file extension (servidor/ponte.ts:13:33). Add the file extension
+  - import "./claude" without a file extension (servidor/ponte.ts:14:171). Add the file extension
+  - import "./arquivos" without a file extension (servidor/ponte.ts:15:145). Add the file extension
+  - import "./sistema" without a file extension (servidor/ponte.ts:16:197). Add the file extension
+  - import "./processoPowerShell" without a file extension (servidor/janelasWindows.ts:1:41). Add the file extension
+  - import "./scriptsTemporarios" without a file extension (servidor/ocr.ts:7:32). Add the file extension
+  - import "./segredos" without a file extension (servidor/conexoes.ts:3:58). Add the file extension
+  - import "./ia" without a file extension (servidor/arquivos.ts:7:28). Add the file extension
+  - import "./segredos" without a file extension (servidor/ia.ts:5:58). Add the file extension
+  - import "./processoPowerShell" without a file extension (servidor/controleRapido.ts:1:41). Add the file extension
+  - import "./ia" without a file extension (servidor/banco.ts:4:28). Add the file extension
+  - import "./processoPowerShell" without a file extension (servidor/midia.ts:1:41). Add the file extension
+  - import "./ia" without a file extension (servidor/claude.ts:7:28). Add the file extension
+  - import "./scriptsTemporarios" without a file extension (servidor/sistema.ts:2:32). Add the file extension
+  - import "./ia" without a file extension (servidor/conexoes.ts:4:44). Add the file extension
+  - import "./midiaLinux" without a file extension (servidor/midia.ts:2:49). Add the file extension
+  - import "./processoPowerShell" without a file extension (servidor/sistema.ts:3:41). Add the file extension
+  - import "./gmail" without a file extension (servidor/conexoes.ts:5:42). Add the file extension
+  - import "./scriptsTemporarios" without a file extension (servidor/processoPowerShell.ts:3:32). Add the file extension
+  - import "./scriptsTemporarios" without a file extension (servidor/segredos.ts:2:32). Add the file extension
+  - import "./segredosLinux" without a file extension (servidor/segredos.ts:3:39). Add the file extension
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+vite v8.3.2 building client environment for production...
+(node:103) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+transforming...
+✓ 3884 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                                                       1.42 kB │ gzip:   0.74 kB
+dist/assets/inter-vietnamese-400-normal-DMkecbls.woff2                4.97 kB
+dist/assets/inter-vietnamese-600-normal-Cc8MFFhd.woff2                5.10 kB
+dist/assets/inter-vietnamese-500-normal-DOriooB6.woff2                5.11 kB
+dist/assets/inter-greek-ext-400-normal-DGGRlc-M.woff2                 5.26 kB
+dist/assets/inter-greek-ext-500-normal-C4iEst2y.woff2                 5.42 kB
+dist/assets/inter-greek-ext-600-normal-DRtmH8MT.woff2                 5.43 kB
+dist/assets/ibm-plex-mono-vietnamese-500-normal-C8zxqsMH.woff         5.61 kB
+dist/assets/ibm-plex-mono-vietnamese-400-normal-DDuiU_S-.woff         5.62 kB
+dist/assets/ibm-plex-mono-vietnamese-600-normal-iLQfcSjf.woff         5.71 kB
+dist/assets/ibm-plex-mono-cyrillic-ext-500-normal-BIfNGwUT.woff       5.77 kB
+dist/assets/ibm-plex-mono-cyrillic-ext-600-normal-9HEixskS.woff       5.79 kB
+dist/assets/ibm-plex-mono-cyrillic-ext-400-normal-DMdlQ8Kv.woff       5.82 kB
+dist/assets/ibm-plex-mono-vietnamese-400-normal-BulugwFq.woff2        5.86 kB
+dist/assets/ibm-plex-mono-vietnamese-500-normal-DZ4AoWbu.woff2        6.04 kB
+dist/assets/inter-vietnamese-400-normal-Bbgyi5SW.woff                 6.50 kB
+dist/assets/inter-vietnamese-500-normal-mJboJaSs.woff                 6.59 kB
+dist/assets/inter-vietnamese-600-normal-BuLX-rYi.woff                 6.64 kB
+dist/assets/ibm-plex-mono-cyrillic-ext-400-normal-xuaO2J-f.woff2      6.91 kB
+dist/assets/ibm-plex-mono-vietnamese-600-normal-D2EvbN8M.woff2        6.93 kB
+dist/assets/ibm-plex-mono-cyrillic-ext-500-normal-BqneJy0T.woff2      6.97 kB
+dist/assets/inter-greek-ext-400-normal-KugGGMne.woff                  7.06 kB
+dist/assets/inter-greek-ext-500-normal-2j5mBUwD.woff                  7.19 kB
+dist/assets/ibm-plex-mono-cyrillic-400-normal-CEL4l2ZJ.woff           7.20 kB
+dist/assets/ibm-plex-mono-cyrillic-500-normal-Ael50iVv.woff           7.20 kB
+dist/assets/inter-greek-ext-600-normal-B8X0CLgF.woff                  7.21 kB
+dist/assets/ibm-plex-mono-cyrillic-600-normal-fLZuRloM.woff           7.26 kB
+dist/assets/ibm-plex-mono-cyrillic-ext-600-normal-V-xxqcpd.woff2      7.69 kB
+dist/assets/inter-cyrillic-400-normal-obahsSVq.woff2                  7.71 kB
+dist/assets/inter-greek-400-normal-B4URO6DV.woff2                     7.77 kB
+dist/assets/inter-cyrillic-500-normal-BasfLYem.woff2                  7.90 kB
+dist/assets/inter-greek-500-normal-BIZE56-Y.woff2                     7.92 kB
+dist/assets/inter-greek-600-normal-plRanbMR.woff2                     7.94 kB
+dist/assets/inter-cyrillic-600-normal-CWCymEST.woff2                  7.97 kB
+dist/assets/ibm-plex-mono-cyrillic-400-normal-BSMlKf0J.woff2          8.35 kB
+dist/assets/ibm-plex-mono-cyrillic-500-normal-Bq9vWWag.woff2          8.46 kB
+dist/assets/ibm-plex-mono-cyrillic-600-normal-CTOM6hUh.woff2          9.35 kB
+dist/assets/inter-cyrillic-400-normal-HOLc17fK.woff                   9.78 kB
+dist/assets/inter-greek-400-normal-q2sYcFCs.woff                      9.92 kB
+dist/assets/inter-cyrillic-600-normal-4D_pXhcN.woff                   9.93 kB
+dist/assets/inter-cyrillic-500-normal-CxZf_p3X.woff                   9.94 kB
+dist/assets/inter-greek-500-normal-Xzm54t5V.woff                      9.98 kB
+dist/assets/inter-greek-600-normal-BZpKdvQh.woff                     10.03 kB
+dist/assets/inter-cyrillic-ext-400-normal-BQZuk6qB.woff2             10.23 kB
+dist/assets/inter-cyrillic-ext-500-normal-B0yAr1jD.woff2             10.43 kB
+dist/assets/inter-cyrillic-ext-600-normal-Dfes3d0z.woff2             10.48 kB
+dist/assets/ibm-plex-mono-latin-ext-400-normal-D3D2R8hC.woff         11.76 kB
+dist/assets/ibm-plex-mono-latin-ext-500-normal-CZ70TYgx.woff         11.76 kB
+dist/assets/ibm-plex-mono-latin-ext-600-normal-DmB0ttJJ.woff         11.83 kB
+dist/assets/ibm-plex-mono-latin-400-normal-CvHOgSBP.woff             13.14 kB
+dist/assets/ibm-plex-mono-latin-500-normal-CB9ihrfo.woff             13.15 kB
+dist/assets/ibm-plex-mono-latin-600-normal-DWFSQ4vo.woff             13.20 kB
+dist/assets/inter-cyrillic-ext-400-normal-DQukG94-.woff              13.33 kB
+dist/assets/ibm-plex-mono-latin-ext-400-normal-BmRBH3aV.woff2        13.34 kB
+dist/assets/ibm-plex-mono-latin-ext-500-normal-CAhNIIs5.woff2        13.43 kB
+dist/assets/inter-cyrillic-ext-500-normal-BmqWE9Dz.woff              13.45 kB
+dist/assets/inter-cyrillic-ext-600-normal-Bcila6Z-.woff              13.46 kB
+dist/assets/ibm-plex-mono-latin-ext-600-normal-D38SheWl.woff2        14.32 kB
+dist/assets/ibm-plex-mono-latin-400-normal-DMJ8VG8y.woff2            14.70 kB
+dist/assets/ibm-plex-mono-latin-500-normal-DSY6xOcd.woff2            14.88 kB
+dist/assets/ibm-plex-mono-latin-600-normal-BgSNZQsw.woff2            15.62 kB
+dist/assets/inter-latin-400-normal-C38fXH4l.woff2                    23.66 kB
+dist/assets/inter-latin-500-normal-Cerq10X2.woff2                    24.27 kB
+dist/assets/inter-latin-600-normal-LgqL8muc.woff2                    24.45 kB
+dist/assets/inter-latin-400-normal-CyCys3Eg.woff                     30.69 kB
+dist/assets/inter-latin-600-normal-CiBQ2DWP.woff                     31.26 kB
+dist/assets/inter-latin-500-normal-BL9OpVg8.woff                     31.28 kB
+dist/assets/inter-latin-ext-400-normal-C1nco2VV.woff2                35.00 kB
+dist/assets/inter-latin-ext-500-normal-CV4jyFjo.woff2                36.02 kB
+dist/assets/inter-latin-ext-600-normal-D2bJ5OIk.woff2                36.26 kB
+dist/assets/inter-latin-ext-400-normal-77YHD8bZ.woff                 47.56 kB
+dist/assets/inter-latin-ext-500-normal-BxGbmqWO.woff                 48.49 kB
+dist/assets/inter-latin-ext-600-normal-CIVaiw4L.woff                 48.66 kB
+dist/assets/pdf.worker.min-CjEcRF4W.mjs                           1,264.34 kB
+dist/assets/AnexosChat-Bkus4Zy5.css                                   1.35 kB │ gzip:   0.59 kB
+dist/assets/Personagem-DoLfHhnL.css                                   2.02 kB │ gzip:   0.79 kB
+dist/assets/servicos-CRcm7Bfh.css                                    50.70 kB │ gzip:  10.08 kB
+dist/assets/index-nf3rwlbW.css                                      107.70 kB │ gzip:  19.82 kB
+dist/assets/pdf.worker.min--Ao2iAXA.js                                0.06 kB │ gzip:   0.08 kB
+dist/assets/dist-js-DPdEhrnf.js                                       0.11 kB │ gzip:   0.12 kB
+dist/assets/chevron-down-BJCzYv36.js                                  0.16 kB │ gzip:   0.16 kB
+dist/assets/app-DcOHke3j.js                                           0.25 kB │ gzip:   0.21 kB
+dist/assets/dist-js-CEXM9t53.js                                       0.26 kB │ gzip:   0.16 kB
+dist/assets/upload-C2kfqRtJ.js                                        0.26 kB │ gzip:   0.21 kB
+dist/assets/maximize-2-CfItYAk-.js                                    0.27 kB │ gzip:   0.21 kB
+dist/assets/pencil-BKRt_8sv.js                                        0.31 kB │ gzip:   0.24 kB
+dist/assets/users-DmeKfkz5.js                                         0.34 kB │ gzip:   0.24 kB
+dist/assets/key-round-DBffAzZM.js                                     0.38 kB │ gzip:   0.28 kB
+dist/assets/bell-ring-Dp0t8QiG.js                                     0.43 kB │ gzip:   0.30 kB
+dist/assets/scan-text-Ch9dFmrR.js                                     0.43 kB │ gzip:   0.26 kB
+dist/assets/layers-CIke7KHt.js                                        0.47 kB │ gzip:   0.27 kB
+dist/assets/setDate-DkVNhz9S.js                                       0.50 kB │ gzip:   0.28 kB
+dist/assets/dinheiro-CiMpVFo-.js                                      0.51 kB │ gzip:   0.32 kB
+dist/assets/image-D8s7bVH3.js                                         0.60 kB │ gzip:   0.31 kB
+dist/assets/CabecalhoAba-IXy75euM.js                                  0.63 kB │ gzip:   0.31 kB
+dist/assets/layout-dashboard-y54zj3mp.js                              0.63 kB │ gzip:   0.34 kB
+dist/assets/flag-iv2Zs_Yj.js                                          0.64 kB │ gzip:   0.38 kB
+dist/assets/cpu-5HVLt5yq.js                                           0.67 kB │ gzip:   0.31 kB
+dist/assets/AreaDeTrabalho-BYzyFc8C.js                                0.70 kB │ gzip:   0.41 kB
+dist/assets/isSameMonth-8FGzQJd0.js                                   0.78 kB │ gzip:   0.44 kB
+dist/assets/dist-js-DalkZdvY.js                                       0.85 kB │ gzip:   0.44 kB
+dist/assets/dist-js-Dh2wGoy1.js                                       1.02 kB │ gzip:   0.50 kB
+dist/assets/event-BI15D1fz.js                                         1.41 kB │ gzip:   0.67 kB
+dist/assets/with-selector-DVQNYzVS.js                                 1.65 kB │ gzip:   0.73 kB
+dist/assets/organizacao-YS9gaAOZ.js                                   1.69 kB │ gzip:   0.68 kB
+dist/assets/Conquistas-Tjinc6TY.js                                    2.04 kB │ gzip:   0.88 kB
+dist/assets/linguagem-BV4EzeaV.js                                     2.08 kB │ gzip:   1.07 kB
+dist/assets/comunicacao-DNa_larh.js                                   2.26 kB │ gzip:   0.95 kB
+dist/assets/rotina-B0EV58ld.js                                        2.41 kB │ gzip:   0.98 kB
+dist/assets/core-Dh-kMFJs.js                                          2.73 kB │ gzip:   1.20 kB
+dist/assets/Aplicativos-Be8mLxXt.js                                   2.75 kB │ gzip:   1.27 kB
+dist/assets/pomodoro-DBpSej4-.js                                      2.85 kB │ gzip:   1.05 kB
+dist/assets/ponteLocal-C4AN1wqz.js                                    2.88 kB │ gzip:   1.21 kB
+dist/assets/MapaDeCalor-BYCLmyh-.js                                   3.09 kB │ gzip:   1.35 kB
+dist/assets/ItemTarefa-BtJkg7Lo.js                                    3.69 kB │ gzip:   1.65 kB
+dist/assets/conexoesReais-Dl1cw2Uz.js                                 4.51 kB │ gzip:   1.53 kB
+dist/assets/contextoIa-D_zlHVyc.js                                    4.68 kB │ gzip:   2.33 kB
+dist/assets/Atualizacao-51ZYBun9.js                                   5.24 kB │ gzip:   1.61 kB
+dist/assets/sortable.esm-B3ac2FfN.js                                  5.67 kB │ gzip:   2.40 kB
+dist/assets/ConsumoIa-r3zrSZy-.js                                     8.27 kB │ gzip:   2.57 kB
+dist/assets/Conexoes-B8FPx989.js                                      8.63 kB │ gzip:   3.04 kB
+dist/assets/financas-B1REn7PG.js                                      9.01 kB │ gzip:   3.03 kB
+dist/assets/basicos-Cp_svcn4.js                                      11.46 kB │ gzip:   4.44 kB
+dist/assets/Escritorio-DYRxyooB.js                                   12.18 kB │ gzip:   4.81 kB
+dist/assets/window---FDAggm.js                                       12.65 kB │ gzip:   2.99 kB
+dist/assets/Metas-jWnzQyX7.js                                        15.02 kB │ gzip:   4.29 kB
+dist/assets/Chat-DPsW8wn0.js                                         15.13 kB │ gzip:   5.22 kB
+dist/assets/ProvedoresIa-CQza_8Nc.js                                 15.19 kB │ gzip:   4.84 kB
+dist/assets/Calendario-BKgZaNcv.js                                   16.24 kB │ gzip:   5.09 kB
+dist/assets/estudos-D3ozzCaM.js                                      25.36 kB │ gzip:   8.06 kB
+dist/assets/Inicio-BQ1V_eAV.js                                       28.62 kB │ gzip:   7.76 kB
+dist/assets/datas-DNvZ4Kiw.js                                        28.91 kB │ gzip:   8.35 kB
+dist/assets/Journal-O6jvtlb-.js                                      32.96 kB │ gzip:  10.70 kB
+dist/assets/core.esm-KKuhRu3f.js                                     37.50 kB │ gzip:  12.31 kB
+dist/assets/Configuracoes-CnLZExFO.js                                40.78 kB │ gzip:  10.63 kB
+dist/assets/Estudos-DBbVwCOf.js                                      50.41 kB │ gzip:  13.07 kB
+dist/assets/Financas-ndCiYOGu.js                                     60.30 kB │ gzip:  14.38 kB
+dist/assets/AnexosChat-DpU4OXN2.js                                   92.36 kB │ gzip:  31.44 kB
+dist/assets/Personagem-cEZOyufr.js                                  164.94 kB │ gzip:  55.38 kB
+dist/assets/servicos-CzeEyJAL.js                                    265.29 kB │ gzip:  82.11 kB
+dist/assets/index-DMk5RWNN.js                                       332.26 kB │ gzip: 109.60 kB
+dist/assets/Editor-4l1Q_QLF.js                                      395.64 kB │ gzip: 125.19 kB
+dist/assets/pdf-BShIoVXg.js                                         430.86 kB │ gzip: 129.35 kB
+dist/assets/Cena3D-C8VKSkxK.js                                      962.44 kB │ gzip: 254.70 kB
+
+✓ built in 5.66s
+
+> niko@0.2.0 ponte:build /caminho/Niko
+> node scripts/construir-ponte.mjs
+
+ponte pronta em /caminho/Niko/src-tauri/recursos
+   Compiling niko v0.2.0 (/caminho/Niko/src-tauri)
+    Finished `release` profile [optimized] target(s) in 4m 00s
+       Built application at: /caminho/Niko/src-tauri/target/release/niko
+        Info Patching /caminho/Niko/src-tauri/target/release/niko with bundle type information: deb
+    Bundling Niko_0.2.0_amd64.deb (/caminho/Niko/src-tauri/target/release/bundle/deb/Niko_0.2.0_amd64.deb)
+    Finished 1 bundle at:
+        /caminho/Niko/src-tauri/target/release/bundle/deb/Niko_0.2.0_amd64.deb (50.65 MiB)
+

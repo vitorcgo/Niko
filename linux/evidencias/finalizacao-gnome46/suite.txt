@@ -1,0 +1,189 @@
+✔ gatilho GNOME abre somente por clique, ancora e restaura recursos (16.751809ms)
+✔ laboratório GNOME usa bus privado e dados exclusivos, sem iniciar serviços (64.222544ms)
+✔ janelas GNOME: filtros, identidade stale, ações, sessão bloqueada e dock (75.34584ms)
+✔ perda do nome após ativação encerra implementação; cleanup falha=false (26.359839ms)
+✔ perda do nome após ativação encerra implementação; cleanup falha=true (11.641562ms)
+✔ laboratório recusa iniciar app se namespace não estiver disponível (208.503396ms)
+✔ primeira abertura mostra o histórico atual sem reproduzir animações antigas (5.438503ms)
+✔ atualizações em rajada entram em fila sem sobrepor etapas (0.807158ms)
+✔ repetir a mesma atualização não enfileira a etapa duas vezes (0.45663ms)
+✔ mesmo texto com identificadores diferentes continua sendo uma nova etapa (0.343068ms)
+✔ trocar de sessão limpa a fila e não mistura projetos (0.531893ms)
+✔ fila é limitada e termina na informação mais recente (0.597429ms)
+✔ histórico reiniciado ou cortado não mantém uma animação obsoleta (0.606562ms)
+✔ a animação não transforma etapa anterior em confirmação de sucesso (0.438332ms)
+✔ destino do personagem respeita escala e não muda seu centro ao aumentar (3.705524ms)
+✔ destino inválido não produz NaN nem posiciona personagem fora da tela (1.321403ms)
+✔ arquivo viaja do ponto de soltura ao personagem em coordenadas locais (0.694123ms)
+✔ soltar fora da zona ou com coordenadas inválidas não inicia o efeito (0.268755ms)
+✔ salvamento serial preserva edição nova, aguarda envio e informa falha recuperável (598.959554ms)
+✔ reconhece controles naturais e não executa perguntas, negações ou pedidos ambíguos (30.111255ms)
+✔ detecta capacidades e relatório sem consultar um modelo (0.764254ms)
+✔ não inventa um timer em andamento (1.901356ms)
+✔ pausa e retoma o tempo real sem reiniciar a duração (1.519593ms)
+✔ encerrar mantém o timer parado mesmo com próxima etapa automática (2.745401ms)
+✔ continuar não inicia uma sessão expirada (1.027631ms)
+✔ iniciar pela ferramenta não sobrescreve um timer ativo ou pausado (1.137459ms)
+✔ ferramentas de controle validam a ação (0.739605ms)
+✔ capacidades vêm das definições reais e respeitam conexões e privacidade (3.487609ms)
+✔ relatório vazio informa ausência de registros, sem inventar uma semana perfeita (4.180784ms)
+✔ relatório usa datas de conclusão e separa foco interrompido (2.10226ms)
+✔ anexos não viram instruções de ferramentas nem entram inteiros sem aviso (1.57099ms)
+✔ não apresenta uma execução inventada pelo modelo (42.781779ms)
+✔ resposta comum aparece aos poucos, só com frases completas (2.788654ms)
+✔ texto parcial some quando o modelo decide usar uma ferramenta (11.535062ms)
+✔ cartão pendente não é anunciado como tarefa salva (2.553878ms)
+✔ ação indisponível não vira sucesso depois de um erro de ferramenta (3.819836ms)
+✔ modo análise não disponibiliza ferramentas de alteração (1.387415ms)
+✔ pergunta do print sobre Cloudflare vai para o Java, sem mudar menção explícita (1.493267ms)
+✔ não encena outro agente no começo da resposta (6.167992ms)
+✔ resposta do print fica atribuída ao Java na conversa real (1109.345173ms)
+✔ comandos locais e 'pare isso' funcionam sem provedor e não chamam a rede (1436.634161ms)
+✔ comando pomodoro desconhecido não inicia foco e não reinicia sessão existente (1.379677ms)
+✔ modelo não executa ferramenta de e-mail desconectada (4.933476ms)
+✔ extrair anexo funciona sem IA e sem executar seu conteúdo (288.268865ms)
+✔ tentar novamente uma análise mantém ferramentas bloqueadas (659.054337ms)
+✔ aprovação automática anuncia resultado real e não pede confirmação já feita (1142.688848ms)
+✔ IA não altera os números calculados do relatório semanal (5.934478ms)
+✔ função desligada some das ferramentas, do banco, dos comandos e do prompt (156.202759ms)
+✔ religar a função devolve tudo sem perder dados (1.145447ms)
+✔ ajuda e conquistas escondem o que pertence a funções desligadas (1.803563ms)
+✔ instala os ganchos num settings.json que ainda não existe (15.342617ms)
+✔ preserva o que já existia, faz cópia e não duplica ao reinstalar (5.790783ms)
+✔ remover tira só as entradas do Niko (1.962888ms)
+✔ recusa mexer num settings.json inválido e não altera o arquivo (1.843003ms)
+✔ exige confirmação explícita (0.685447ms)
+✔ a prévia esconde o segredo (0.775399ms)
+✔ rejeita evento sem o segredo certo (73.03936ms)
+✔ sem a ilha ouvindo, o pedido de permissão volta vazio na hora (14.840036ms)
+✔ com a ilha ouvindo, Permitir devolve a decisão no formato documentado (44.458403ms)
+✔ descarta campos enormes e recorta textos longos (42.908828ms)
+✔ corta objetos aninhados fundo demais em vez de guardar tudo na memória (27.162084ms)
+✔ recusa hooks com formato inesperado em vez de apagar (5.544299ms)
+✔ detecta conexão desatualizada quando o segredo não bate (4.631117ms)
+✔ devolver ao terminal responde vazio para o Claude Code perguntar lá (31.773172ms)
+✔ sempre permitir só aceita a regra sugerida pelo Claude Code (28.972629ms)
+✔ abrir projeto recusa pastas que não vieram de uma sessão (3.314663ms)
+✔ abrir projeto recusa caminho relativo mesmo vindo de uma sessão (19.303701ms)
+✔ diff marca linhas removidas e adicionadas (3.78061ms)
+✔ evento repetido numa reconexão não duplica a atividade (1.578866ms)
+✔ pedido que sai da ilha sem decisão deixa o motivo na atividade (1.073606ms)
+✔ Linux: alerta de consumo respeita preferência e não duplica (13846.355293ms)
+✔ textos de plataforma em SSR não abrem canal de browser (934.452314ms)
+✔ aviso GNOME limita a promessa de sessão e aparece somente no Linux com ilha ativa (11.629437ms)
+✔ cancelamento durante unminimize, desativar=false, não reabre nem rouba foco (134.717245ms)
+✔ cancelamento durante show, desativar=false, não reabre nem rouba foco (11.582595ms)
+✔ cancelamento durante show, desativar=true, não reabre nem rouba foco (6.09396ms)
+✔ clicar novamente na mesma aba recolhe a ilha (21.829818ms)
+✔ trocar de aba não recolhe uma ilha expandida (3.881541ms)
+✔ Iniciar usa o estado capturado antes de o clique roubar o foco (1.620637ms)
+✔ cliques rápidos não acumulam comandos para o Iniciar (26.981522ms)
+✔ falha na leitura do Iniciar não inventa um estado aberto (3.566036ms)
+✔ segundo clique usa a confirmação real do Windows mesmo sem mover o mouse (0.500562ms)
+✔ ponte preserva estado real do Bluetooth e o estado anterior do Iniciar (17.199578ms)
+﹣ leitura nativa do Bluetooth não usa status do driver como conexão (0.186932ms) # SKIP
+﹣ detecção nativa do Iniciar compila e retorna um booleano sem abrir janelas (0.908366ms) # SKIP
+✔ música pausada não toma a ilha, mesmo tocando há poucos segundos (3.885999ms)
+✔ consulta antiga não desfaz uma pausa confirmada pelo Windows (10.256899ms)
+✔ atualizações periódicas não acumulam consultas simultâneas (1.434594ms)
+✔ falha ao tocar não inventa uma reprodução (0.795932ms)
+✔ leitura Linux não envia controles indisponíveis (1.099527ms)
+✔ comandos usam o player exibido e não se sobrepõem (1.874624ms)
+✔ runtime usa loader e implementação atuais; rebuild remove revisões obsoletas (8.735664ms)
+✔ exige versão explícita e mantém as notas separadas (6.306587ms)
+✔ recusa versões inválidas, argumentos desconhecidos e versões duplicadas (0.893408ms)
+✔ identifica divergências nos quatro arquivos e valida a tag (5.067664ms)
+✔ planeja sem escrever e sincroniza preservando conteúdo, dependências e chave (5.581691ms)
+✔ bloqueia redução da versão e compara números, não texto (2.524844ms)
+✔ preserva tokens de substituição no conteúdo original (5.13362ms)
+✔ reverte escrita parcial sem apagar um temporário preexistente (3.698278ms)
+✔ não escreve nada quando um arquivo está inválido (6.145919ms)
+✔ recusa aplicar um plano se algum arquivo mudou após a leitura (3.201127ms)
+✔ bloqueia release já publicada, admite ausência e recusa falhas de rede (3.143487ms)
+✔ exige instalador e assinatura da versão certa e do build atual (3.647756ms)
+PASS: wpctl/pw-dump/PipeWire nativos somente em null sinks privados; nenhum dispositivo físico ou amostra de mídia
+✔ PipeWire nativo privado: dispositivos virtuais, volume e mudo, sem áudio pessoal (1233.526425ms)
+PASS: consumo Linux com credenciais e sessões fictícias; nenhuma API real consultada
+✔ leitura portátil, cache e sessão deduplicada; APIs remotas simuladas (313.696208ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 1
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 324.947476
+✔ consumo Linux somente em HOME fictício (950.920424ms)
+PASS: APIs Gio reais em serviço privado fictício; nenhum controle executado em hardware ou sessão pessoal
+✔ Gio nativo com UPower/NM/BlueZ/logind fictícios; PipeWire simulado (5982.118487ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 1
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 5995.418522
+✔ controles Linux em HOME e D-Bus privados (7032.409969ms)
+PASS: abertura Gio nativa e callback local; Google e credenciais inteiramente fictícios
+✔ Gio real abre handler privado; PKCE/state/loopback e troca fictícia (718.473646ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 1
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 750.875219
+✔ Gmail Linux usa navegador fictício em rede e D-Bus privados (3510.016588ms)
+Gio/D-Bus privados reais; GNOME Shell inteiramente simulado.
+✔ Gio real e GNOME fictício: instalação, backup, habilitação e falhas (17615.206713ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 1
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 17633.056324
+✔ instalação GNOME simulada usa bus privado e diretórios temporários (18927.788811ms)
+✔ ilha Linux dimensiona a janela, preserva tarefas e mantém serviços locais e consulta mídia Linux (14546.592167ms)
+✔ cliente reiniciado ignora saída e exit tardios do GJS anterior (processos simulados) (566.298298ms)
+✔ lê players sem whitelist, prefere Playing e distingue erro de ausência (15351.925982ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 1
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 15365.448248
+✔ MPRIS genérico em D-Bus privado (16690.135531ms)
+✔ OCR Linux valida tamanho/formato/idiomas e preserva erros (574.527153ms)
+PASS: Tesseract nativo com HOME/XDG privados reconheceu NIKO/OCR/123 na imagem gerada
+✔ Tesseract real lê PNG sintético; nenhuma imagem pessoal (1170.7485ms)
+✔ janela Linux encaminha fetch à ponte com token nativo (501.70045ms)
+✔ ponte autentica a janela nativa e mantém SQLite após reiniciar (964.471221ms)
+✔ contrato simulado do cofre linux sem serviço pessoal (714.380501ms)
+✔ contrato simulado do cofre win32 sem serviço pessoal (188.364428ms)
+Native: SQLite temporário + middleware real preservam dados/metadata quando cofre ausente; requisição/resposta simuladas.
+Simulated: Secret Service retorna AccessDenied e ausência de coleção; locked validado no keyring real.
+Native: keyring real, store/lookup/delete/restart/concurrency; argv verificados; environ bloqueado pelo kernel em 56 snapshots.
+✔ Secret Service real: persistência, concorrência, ausência e entradas inválidas (13009.454779ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 1
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 13026.09894
+✔ cofre Linux em bus privado sem ativação automática e HOME temporário (14259.038506ms)
+ℹ tests 118
+ℹ suites 0
+ℹ pass 116
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 2
+ℹ todo 0
+ℹ duration_ms 148232.92885

@@ -3,7 +3,7 @@ import { DndContext, closestCenter, type DragEndEvent } from "@dnd-kit/core";
 import { SortableContext, useSortable, verticalListSortingStrategy, arrayMove } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import {
-  Settings, Palette, PanelTop, PanelBottom, Timer, Users, Volume2, Gauge, Maximize, Keyboard, ShieldCheck, Database, Info, Wrench,
+  Settings, SlidersHorizontal, Palette, PanelTop, PanelBottom, Timer, Users, Volume2, Gauge, Maximize, Keyboard, ShieldCheck, Database, Info, Wrench,
   GripVertical, Download, Upload, RotateCcw, Trash2, DatabaseBackup, SquareTerminal,
 } from "lucide-react";
 import { CabecalhoAba } from "../../componentes/CabecalhoAba";
@@ -26,11 +26,19 @@ import { EditorFoto } from "../../componentes/FotoPerfil";
 import { SeletorDeFundo } from "./SeletorDeFundo";
 import { SecaoClaudeCode } from "./SecaoClaudeCode";
 import type { EstadoAgente, Rota } from "../../tipos";
+import { LINUX } from "../../desktop/desktop";
+import { invoke } from "@tauri-apps/api/core";
+import { PainelRapido } from "../../janelas/ilha/barra/PainelRapido";
+import { Bandeja } from "../../janelas/ilha/barra/Bandeja";
+import { usarAudio, usarRede } from "../../estado/controleRapido";
+import "../../janelas/ilha/barra/barra.css";
+import { integracaoIlhaGnome } from "../../ponte/ponteLocal";
 
 type Secao = keyof typeof T.configuracoes.secoes;
 
 const ICONES: Record<Secao, React.ReactNode> = {
   geral: <Settings size={15} />,
+  sistema: <SlidersHorizontal size={15} />,
   aparencia: <Palette size={15} />,
   ilha: <PanelTop size={15} />,
   dock: <PanelBottom size={15} />,
@@ -179,7 +187,7 @@ function SecaoDados() {
           disabled={modoArmazenamento() !== "banco"}
           onClick={async () => {
             try {
-              await salvarAgora();
+              if (!(await salvarAgora())) throw new Error("salvamento_falhou");
               const r = await fetch("/ponte/dados/backup", { method: "POST", headers: { "x-niko": "1" } });
               const j = (await r.json()) as { pasta?: string; erro?: string };
               avisar(j.pasta ? T.configuracoes.backupFeito(j.pasta) : T.configuracoes.backupFalhou);
@@ -212,7 +220,10 @@ function SecaoDados() {
                   exportar(`niko-antes-de-restaurar-${hojeISO()}.json`);
                   for (const [k, v] of Object.entries(previa.dados)) gravarChave(k, v);
                   avisar(T.configuracoes.restaurado);
-                  void salvarAgora().then(() => window.setTimeout(() => window.location.reload(), 400));
+                  void salvarAgora().then((salvo) => {
+                    if (salvo) window.location.reload();
+                    else avisar(T.configuracoes.backupFalhou);
+                  });
                 }}
               >
                 {T.configuracoes.restaurar}
@@ -269,7 +280,7 @@ export default function Configuracoes() {
   const [busca, setBusca] = useState("");
   const secoesVisiveis = useMemo(() => {
     const termo = normalizarTexto(busca.trim());
-    const todas = Object.keys(T.configuracoes.secoes) as Secao[];
+    const todas = (Object.keys(T.configuracoes.secoes) as Secao[]).filter(s => LINUX || s !== "sistema");
     if (!termo) return todas;
     return todas.filter((s) => normalizarTexto(`${T.configuracoes.secoes[s]} ${T.configuracoes.palavrasChave[s]}`).includes(termo));
   }, [busca]);
@@ -304,6 +315,7 @@ export default function Configuracoes() {
   );
 
   const conteudo: Record<Secao, React.ReactNode> = {
+    sistema: <ControlesSistemaLinux />,
     geral: (
       <>
         <div className="campo-grupo">
@@ -314,7 +326,7 @@ export default function Configuracoes() {
           <input id="cf-nome" className="campo" value={cfg.nome} maxLength={40} onChange={(e) => cfg.definir({ nome: e.target.value })} />
         </Campo>
         <LinhaAlternador rotulo={T.configuracoes.viradaDia} dica={T.configuracoes.viradaDiaDica} ligado={cfg.viradaAs4h} aoMudar={(v) => cfg.definir({ viradaAs4h: v })} />
-        <LinhaAlternador rotulo={T.configuracoes.iniciarComWindows} dica={T.configuracoes.iniciarComWindowsDica} ligado={cfg.iniciarComWindows} aoMudar={(v) => cfg.definir({ iniciarComWindows: v })} />
+        <LinhaAlternador rotulo={LINUX ? "Iniciar com a sessão" : T.configuracoes.iniciarComWindows} dica={LINUX ? "Abre o Niko automaticamente ao entrar na sessão, com a ilha e o dock conforme suas preferências." : T.configuracoes.iniciarComWindowsDica} ligado={cfg.iniciarComWindows} aoMudar={(v) => cfg.definir({ iniciarComWindows: v })} />
         <LinhaAlternador rotulo={T.configuracoes.manterSegundoPlano} dica={`${T.configuracoes.manterDica} ${T.configuracoes.somenteDesktop}.`} ligado={false} desativado aoMudar={() => undefined} />
         <LinhaAlternador rotulo={T.configuracoes.conquistasAtivas} ligado={cfg.conquistasAtivas} aoMudar={(v) => cfg.definir({ conquistasAtivas: v })} />
       </>
@@ -425,6 +437,9 @@ export default function Configuracoes() {
     ilha: (
       <>
         <LinhaAlternador rotulo={T.configuracoes.ilhaAtiva} ligado={cfg.ilha.ativa} aoMudar={(v) => cfg.definirIlha({ ativa: v })} />
+        {LINUX && cfg.ilha.ativa && <AvisoFaixa>{T.configuracoes.ilhaGnomeSessao}</AvisoFaixa>}
+        {LINUX && cfg.ilha.ativa && <IntegracaoIlhaGnome />}
+        {LINUX && <AtalhoIlhaLinux />}
         <div className="campo-grupo">
           <span className="campo-rotulo">{T.configuracoes.modo}</span>
           {segModo(cfg.ilha.modo, (modo) => cfg.definirIlha({ modo }))}
@@ -483,6 +498,8 @@ export default function Configuracoes() {
     ),
     dock: (
       <>
+        <>{LINUX && <AvisoFaixa>Dock Linux experimental para GNOME 46. Prévia indisponível para janelas minimizadas ou fora da área de trabalho atual. Requer a integração GNOME 46 ativa.</AvisoFaixa>}</>
+        {LINUX && <IntegracaoIlhaGnome />}
         <LinhaAlternador rotulo={T.configuracoes.dockAtivo} ligado={cfg.dock.ativo} aoMudar={(v) => cfg.definir({ dock: { ...cfg.dock, ativo: v } })} />
         <div className="campo-grupo">
           <span className="campo-rotulo">{T.configuracoes.modo}</span>
@@ -726,4 +743,103 @@ function AbaIlhaOrdenavel({ aba }: { aba: AbaIlha }) {
       <Alternador ligado={ligado} rotulo={T.ilha.abas[aba]} desativado={ligado && ativos <= 1} aoMudar={(v) => definirIlha({ blocos: { ...blocos, [aba]: v } })} />
     </div>
   );
+}
+
+const COMBINACOES_ILHA = [
+  ["<Control><Alt>", "Ctrl + Alt"],
+  ["<Control><Shift>", "Ctrl + Shift"],
+  ["<Super><Alt>", "Super + Alt"],
+  ["<Super><Shift>", "Super + Shift"],
+] as const;
+
+function IntegracaoIlhaGnome() {
+  const [estado, setEstado] = useState<keyof typeof T.configuracoes.gnomeIlhaEstados | null>(null);
+  const [ocupado, setOcupado] = useState(true);
+  useEffect(() => {
+    let vivo = true;
+    void integracaoIlhaGnome().then(r => { if (vivo) setEstado(r.estado); })
+      .catch(() => { if (vivo) setEstado("erro"); })
+      .finally(() => { if (vivo) setOcupado(false); });
+    return () => { vivo = false; };
+  }, []);
+  const verificar = async (instalar: boolean) => {
+    setOcupado(true);
+    try { setEstado((await integracaoIlhaGnome(instalar)).estado); }
+    catch { setEstado("erro"); }
+    finally { setOcupado(false); }
+  };
+  return (
+    <div className="campo-grupo">
+      <span className="campo-rotulo">{T.configuracoes.gnomeIlhaTitulo}</span>
+      <span className="campo-dica" role="status">{estado ? T.configuracoes.gnomeIlhaEstados[estado] : T.geral.carregando}</span>
+      <div className="linha">
+        {(estado === "instalar" || estado === "habilitar" || estado === "recuperar" || estado === "recuperada") && <Botao disabled={ocupado} onClick={() => void verificar(true)}>{estado === "recuperar" ? T.configuracoes.gnomeIlhaRecuperar : T.configuracoes.gnomeIlhaAtivar}</Botao>}
+        <Botao disabled={ocupado} onClick={() => void verificar(false)}>{T.configuracoes.gnomeIlhaVerificar}</Botao>
+      </div>
+    </div>
+  );
+}
+
+function AtalhoIlhaLinux() {
+  const [salvo, setSalvo] = useState<string | null>(null);
+  const [modificadores, setModificadores] = useState<string>("<Control><Alt>");
+  const [tecla, setTecla] = useState("i");
+  const [ocupado, setOcupado] = useState(true);
+  const [mensagem, setMensagem] = useState("");
+  const [erro, setErro] = useState("");
+  useEffect(() => {
+    let vivo = true;
+    void invoke<string>("atalho_ilha_linux").then((valor) => {
+      if (!vivo) return;
+      setSalvo(valor);
+      const combo = COMBINACOES_ILHA.find(([m]) => valor.startsWith(m));
+      if (combo && /^[a-z0-9]$/.test(valor.slice(combo[0].length))) {
+        setModificadores(combo[0]);
+        setTecla(valor.slice(combo[0].length));
+      }
+    }).catch((e) => { if (vivo) setErro(String(e)); })
+      .finally(() => { if (vivo) setOcupado(false); });
+    return () => { vivo = false; };
+  }, []);
+  const salvar = async () => {
+    setOcupado(true);
+    setErro("");
+    setMensagem("");
+    try {
+      const valor = await invoke<string>("atalho_ilha_linux", { atalho: modificadores + tecla });
+      setSalvo(valor);
+      setMensagem("Atalho salvo no Ubuntu. Teste com outro aplicativo em foco.");
+    } catch (e) { setErro(String(e)); }
+    finally { setOcupado(false); }
+  };
+  const apresentar = (valor: string) => valor.replaceAll("<Control>", "Ctrl + ").replaceAll("<Alt>", "Alt + ").replaceAll("<Shift>", "Shift + ").replaceAll("<Super>", "Super + ").toUpperCase();
+  return (
+    <div className="campo-grupo">
+      <span className="campo-rotulo">Atalho global para abrir a ilha</span>
+      <span className="campo-dica">{salvo === null ? (ocupado ? "Lendo atalho do Ubuntu…" : "Atalho indisponível") : `Atual: ${salvo ? apresentar(salvo) : "desativado"}`}</span>
+      <div className="formulario-linha">
+        <select className="seletor" aria-label="Modificadores do atalho da ilha" value={modificadores} disabled={ocupado || salvo === null} onChange={(e) => { setModificadores(e.target.value); setMensagem(""); }}>
+          {COMBINACOES_ILHA.map(([valor, nome]) => <option key={valor} value={valor}>{nome}</option>)}
+        </select>
+        <select className="seletor" aria-label="Tecla do atalho da ilha" value={tecla} disabled={ocupado || salvo === null} onChange={(e) => { setTecla(e.target.value); setMensagem(""); }}>
+          {Array.from("abcdefghijklmnopqrstuvwxyz0123456789").map((t) => <option key={t} value={t}>{t.toUpperCase()}</option>)}
+        </select>
+        <Botao disabled={ocupado || salvo === null} onClick={() => void salvar()}>{ocupado ? "Aguarde…" : "Salvar atalho"}</Botao>
+      </div>
+      <span className="campo-dica">Requer o Niko aberto. Escolha uma combinação livre; o Ubuntu pode reservar atalhos para outras ações.</span>
+      {mensagem && <span role="status" className="campo-dica">{mensagem}</span>}
+      {erro && <span role="alert" className="campo-erro">{erro}</span>}
+    </div>
+  );
+}
+
+function ControlesSistemaLinux() {
+  usarAudio(true, 3000);
+  usarRede(true, 8000);
+  return <>
+    <p className="campo-dica">Controles do GNOME. O brilho depende do hardware; o teclado virtual precisa estar habilitado no GNOME.</p>
+    <PainelRapido embutido topo={0} aoFechar={() => undefined} />
+    <span className="campo-rotulo">Aplicativos da bandeja</span>
+    <Bandeja embutido topo={0} direita={0} aoFechar={() => undefined} />
+  </>;
 }

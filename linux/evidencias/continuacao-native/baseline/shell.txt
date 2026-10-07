@@ -1,0 +1,61 @@
+libmutter-Message: 18:15:17.231: Running GNOME Shell (using mutter 46.2) as a Wayland display server
+** Message: 18:15:17.422: Obtained a high priority EGL context
+** Message: 18:15:17.465: Obtained a high priority EGL context
+libmutter-Message: 18:15:17.571: Using Wayland display name 'niko-native-169702'
+Window manager warning: Failed to set environment variable WAYLAND_DISPLAY for gnome-session: GDBus.Error:org.freedesktop.DBus.Error.NameHasNoOwner: Name "org.gnome.SessionManager" does not exist
+GNOME Shell-Message: 18:15:18.690: Unset XDG_SESSION_ID, getCurrentSessionProxy() called outside a user session. Asking logind directly.
+GNOME Shell-Message: 18:15:18.690: Will monitor session 69
+
+** (gnome-shell:169709): WARNING **: 18:15:19.816: Could not issue 'GetUnit' systemd call
+
+(gnome-shell:169709): Gjs-WARNING **: 18:15:20.002: Gio.UnixInputStream has been moved to a separate platform-specific library. Please update your code to use GioUnix.InputStream instead.
+0 inhibit() ["resource:///org/gnome/shell/misc/loginManager.js":209:8]
+1 InterpretGeneratorResume() ["self-hosted":1461:33]
+2 AsyncFunctionNext() ["self-hosted":852:26]
+3 anonymous() ["resource:///org/gnome/shell/ui/init.js":21:19]
+
+
+(gnome-shell:169709): GNOME Shell-CRITICAL **: 18:15:20.026: Gio.DBusError: GDBus.Error:org.freedesktop.DBus.Error.ServiceUnknown: The name org.gnome.Shell.CalendarServer was not provided by any .service files
+
+Stack trace:
+  asyncCallback@resource:///org/gnome/gjs/modules/core/overrides/Gio.js:114:23
+  @resource:///org/gnome/shell/ui/init.js:21:20
+  
+
+(gnome-shell:169709): GNOME Shell-CRITICAL **: 18:15:20.028: Gio.DBusError: GDBus.Error:org.freedesktop.DBus.Error.ServiceUnknown: The name org.gnome.Shell.CalendarServer was not provided by any .service files
+
+Stack trace:
+  asyncCallback@resource:///org/gnome/gjs/modules/core/overrides/Gio.js:114:23
+  @resource:///org/gnome/shell/ui/init.js:21:20
+  
+invoking IsSupported() failed for remote volume monitor with dbus name org.gtk.vfs.UDisks2VolumeMonitor:: GDBus.Error:org.freedesktop.DBus.Error.ServiceUnknown: The name org.gtk.vfs.UDisks2VolumeMonitor was not provided by any .service files (g-dbus-error-quark, 2)
+invoking IsSupported() failed for remote volume monitor with dbus name org.gtk.vfs.GoaVolumeMonitor:: GDBus.Error:org.freedesktop.DBus.Error.ServiceUnknown: The name org.gtk.vfs.GoaVolumeMonitor was not provided by any .service files (g-dbus-error-quark, 2)
+invoking IsSupported() failed for remote volume monitor with dbus name org.gtk.vfs.MTPVolumeMonitor:: GDBus.Error:org.freedesktop.DBus.Error.ServiceUnknown: The name org.gtk.vfs.MTPVolumeMonitor was not provided by any .service files (g-dbus-error-quark, 2)
+invoking IsSupported() failed for remote volume monitor with dbus name org.gtk.vfs.GPhoto2VolumeMonitor:: GDBus.Error:org.freedesktop.DBus.Error.ServiceUnknown: The name org.gtk.vfs.GPhoto2VolumeMonitor was not provided by any .service files (g-dbus-error-quark, 2)
+invoking IsSupported() failed for remote volume monitor with dbus name org.gtk.vfs.AfcVolumeMonitor:: GDBus.Error:org.freedesktop.DBus.Error.ServiceUnknown: The name org.gtk.vfs.AfcVolumeMonitor was not provided by any .service files (g-dbus-error-quark, 2)
+
+(gnome-shell:169709): libmutter-WARNING **: 18:15:20.125: Failed to create colord device for 'xrandr-MetaProducts Inc.-MetaMonitor-0xC0FFEE-1': device id 'xrandr-MetaProducts Inc.-MetaMonitor-0xC0FFEE-1' already exists
+GNOME Shell-Message: 18:15:20.148: Failed to register AuthenticationAgent
+/usr/share/ibus-table/engine/main.py:232: DeprecationWarning: Testing an element's truth value will raise an exception in future versions.  Use specific 'len(elem)' or 'elem is not None' test instead.
+  if element:
+portal is not running: GDBus.Error:org.freedesktop.DBus.Error.ServiceUnknown: The name org.freedesktop.portal.IBus was not provided by any .service files
+
+(gnome-shell:169709): libmutter-WARNING **: 18:15:20.516: (../src/backends/meta-barrier.c:258):init_barrier_impl: runtime check failed: (priv->impl)
+
+(gnome-shell:169709): libmutter-WARNING **: 18:15:20.516: (../src/backends/meta-barrier.c:258):init_barrier_impl: runtime check failed: (priv->impl)
+
+(gnome-shell:169709): libmutter-WARNING **: 18:15:20.516: (../src/backends/meta-barrier.c:258):init_barrier_impl: runtime check failed: (priv->impl)
+** Message: 18:15:21.009: Failed to start camera monitor
+
+(gnome-shell:169709): St-WARNING **: 18:15:21.290: Failed to open sliced image: Operation was cancelled
+GNOME Shell-Message: 18:15:22.141: GNOME Shell started at Tue Oct 06 2026 18:15:19 GMT-0300 (Brasilia Standard Time)
+GNOME Shell-Message: 18:15:22.159: Registering session with GDM
+
+(gnome-shell:169709): libmutter-CRITICAL **: 18:15:28.205: meta_window_set_stack_position_no_sync: assertion 'window->stack_position >= 0' failed
+
+(gnome-shell:169709): libmutter-CRITICAL **: 18:15:34.197: meta_window_set_stack_position_no_sync: assertion 'window->stack_position >= 0' failed
+
+(gnome-shell:169709): libmutter-CRITICAL **: 18:15:40.210: meta_window_set_stack_position_no_sync: assertion 'window->stack_position >= 0' failed
+
+(gnome-shell:169709): libmutter-CRITICAL **: 18:15:46.223: meta_window_set_stack_position_no_sync: assertion 'window->stack_position >= 0' failed
+** Message: 18:15:50.276: Shutting down GNOME Shell

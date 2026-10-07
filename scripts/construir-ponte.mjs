@@ -1,4 +1,5 @@
 import { build } from "vite";
+import { prepararRuntime } from "./preparar-gnome-runtime.mjs";
 import { copyFileSync, mkdirSync, existsSync, statSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -6,6 +7,8 @@ import { fileURLToPath } from "node:url";
 const raiz = join(dirname(fileURLToPath(import.meta.url)), "..");
 const destino = join(raiz, "src-tauri", "recursos");
 mkdirSync(destino, { recursive: true });
+
+if (process.platform === "linux") prepararRuntime(raiz);
 
 await build({
   configFile: false,
@@ -24,6 +27,6 @@ await build({
 });
 
 const node = process.execPath;
-const copia = join(destino, "node.exe");
+const copia = join(destino, process.platform === "win32" ? "node.exe" : "node");
 if (!existsSync(copia) || statSync(copia).size !== statSync(node).size) copyFileSync(node, copia);
 console.log("ponte pronta em", destino);

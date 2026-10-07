@@ -2,13 +2,13 @@ import test, { after, beforeEach } from "node:test";
 import assert from "node:assert/strict";
 import { createServer } from "vite";
 
-const servidor = await createServer({ configFile: false, server: { middlewareMode: true, hmr: false, watch: null }, appType: "custom", optimizeDeps: { noDiscovery: true } });
+const servidor = await createServer({ configFile: false, server: { middlewareMode: true, hmr: false, ws: false, watch: null }, appType: "custom", optimizeDeps: { noDiscovery: true } });
 after(() => servidor.close());
 const { useMidia, midiaAtivaNaIlha } = await servidor.ssrLoadModule("/src/estado/midia.ts");
 const faixa = { titulo: "Faixa de teste", artista: "Artista", app: "Spotify", duracao: 180, capa: null };
 const estado = (tocando) => ({ sessao: true, titulo: faixa.titulo, artista: faixa.artista, app: "Spotify.exe", duracao: 180, tocando, posicao: 30 });
 beforeEach(() => {
-  useMidia.setState({ disponivel: true, faixa: null, tocando: false, tocouPorUltimoEm: 0, lidoEm: 0, posicao: 0, podeAvancar: false, podeVoltar: false, podeBuscar: false });
+  useMidia.setState({ disponivel: true, podeAlternar: true, faixa: null, tocando: false, tocouPorUltimoEm: 0, lidoEm: 0, posicao: 0, podeAvancar: false, podeVoltar: false, podeBuscar: false });
 });
 
 test("música pausada não toma a ilha, mesmo tocando há poucos segundos", () => {
@@ -48,4 +48,35 @@ test("falha ao tocar não inventa uma reprodução", async () => {
   globalThis.fetch = async () => new Response(null, { status: 503 });
   await useMidia.getState().alternar();
   assert.equal(useMidia.getState().tocando, false);
+});
+
+
+test("leitura Linux não envia controles indisponíveis", async () => {
+  let chamadas = 0;
+  globalThis.fetch = async () => { chamadas++; return Response.json({}); };
+  useMidia.setState({ podeAlternar: false, podeAvancar: false, podeVoltar: false, podeBuscar: false });
+  await useMidia.getState().alternar();
+  await useMidia.getState().proxima();
+  await useMidia.getState().anterior();
+  await useMidia.getState().buscar(10);
+  assert.equal(chamadas, 0);
+});
+
+ test("comandos usam o player exibido e não se sobrepõem", async () => {
+  const alvo = {player: "org.mpris.MediaPlayer2.firefox", dono: ":1.42", faixaId: "/track/test"};
+  let resolver;
+  const pedidos = [];
+  globalThis.fetch = async (url, options) => {
+    pedidos.push({url, body: JSON.parse(options.body)});
+    return new Promise(r => { resolver = r; });
+  };
+  useMidia.setState({alvo, faixa, podeAlternar: true, podeAvancar: true});
+  const primeira = useMidia.getState().alternar();
+  await useMidia.getState().proxima();
+  assert.equal(pedidos.length, 1);
+  assert.deepEqual(pedidos[0].body, alvo);
+  resolver(Response.json({sessao: false}));
+  await primeira;
+  assert.equal(useMidia.getState().faixa, null);
+  assert.equal(useMidia.getState().podeAlternar, false);
 });

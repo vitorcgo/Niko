@@ -1,0 +1,4 @@
+FAIL step 19: fullscreen did not hide island actor: assert@file:///tmp/niko-native.HeuZPo/data/gnome-shell/extensions/niko-ilha@local/extension.js:12:72
+enable/this._probe<@file:///tmp/niko-native.HeuZPo/data/gnome-shell/extensions/niko-ilha@local/extension.js:55:27
+@resource:///org/gnome/shell/ui/init.js:21:20
+

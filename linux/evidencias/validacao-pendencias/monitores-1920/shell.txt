@@ -1,0 +1,121 @@
+libmutter-Message: 18:52:59.405: Running GNOME Shell (using mutter 46.2) as a Wayland display server
+libmutter-Message: 18:52:59.406: Enabling experimental feature 'scale-monitor-framebuffer'
+** Message: 18:52:59.561: Obtained a high priority EGL context
+** Message: 18:52:59.575: Obtained a high priority EGL context
+libmutter-Message: 18:52:59.674: Using Wayland display name 'niko-tauri-208130'
+Window manager warning: Failed to set environment variable WAYLAND_DISPLAY for gnome-session: GDBus.Error:org.freedesktop.DBus.Error.NameHasNoOwner: Name "org.gnome.SessionManager" does not exist
+GNOME Shell-Message: 18:53:00.549: Unset XDG_SESSION_ID, getCurrentSessionProxy() called outside a user session. Asking logind directly.
+GNOME Shell-Message: 18:53:00.550: Will monitor session 69
+
+** (gnome-shell:208139): WARNING **: 18:53:00.926: Could not issue 'GetUnit' systemd call
+
+(gnome-shell:208139): Gjs-WARNING **: 18:53:01.060: Gio.UnixInputStream has been moved to a separate platform-specific library. Please update your code to use GioUnix.InputStream instead.
+0 inhibit() ["resource:///org/gnome/shell/misc/loginManager.js":209:8]
+1 InterpretGeneratorResume() ["self-hosted":1461:33]
+2 AsyncFunctionNext() ["self-hosted":852:26]
+3 anonymous() ["resource:///org/gnome/shell/ui/init.js":21:19]
+
+
+(gnome-shell:208139): GNOME Shell-CRITICAL **: 18:53:01.069: Gio.DBusError: GDBus.Error:org.freedesktop.DBus.Error.ServiceUnknown: The name org.gnome.Shell.CalendarServer was not provided by any .service files
+
+Stack trace:
+  asyncCallback@resource:///org/gnome/gjs/modules/core/overrides/Gio.js:114:23
+  @resource:///org/gnome/shell/ui/init.js:21:20
+  
+
+(gnome-shell:208139): GNOME Shell-CRITICAL **: 18:53:01.069: Gio.DBusError: GDBus.Error:org.freedesktop.DBus.Error.ServiceUnknown: The name org.gnome.Shell.CalendarServer was not provided by any .service files
+
+Stack trace:
+  asyncCallback@resource:///org/gnome/gjs/modules/core/overrides/Gio.js:114:23
+  @resource:///org/gnome/shell/ui/init.js:21:20
+  
+invoking IsSupported() failed for remote volume monitor with dbus name org.gtk.vfs.UDisks2VolumeMonitor:: GDBus.Error:org.freedesktop.DBus.Error.ServiceUnknown: The name org.gtk.vfs.UDisks2VolumeMonitor was not provided by any .service files (g-dbus-error-quark, 2)
+invoking IsSupported() failed for remote volume monitor with dbus name org.gtk.vfs.GoaVolumeMonitor:: GDBus.Error:org.freedesktop.DBus.Error.ServiceUnknown: The name org.gtk.vfs.GoaVolumeMonitor was not provided by any .service files (g-dbus-error-quark, 2)
+invoking IsSupported() failed for remote volume monitor with dbus name org.gtk.vfs.MTPVolumeMonitor:: GDBus.Error:org.freedesktop.DBus.Error.ServiceUnknown: The name org.gtk.vfs.MTPVolumeMonitor was not provided by any .service files (g-dbus-error-quark, 2)
+invoking IsSupported() failed for remote volume monitor with dbus name org.gtk.vfs.GPhoto2VolumeMonitor:: GDBus.Error:org.freedesktop.DBus.Error.ServiceUnknown: The name org.gtk.vfs.GPhoto2VolumeMonitor was not provided by any .service files (g-dbus-error-quark, 2)
+invoking IsSupported() failed for remote volume monitor with dbus name org.gtk.vfs.AfcVolumeMonitor:: GDBus.Error:org.freedesktop.DBus.Error.ServiceUnknown: The name org.gtk.vfs.AfcVolumeMonitor was not provided by any .service files (g-dbus-error-quark, 2)
+GNOME Shell-Message: 18:53:01.116: Failed to register AuthenticationAgent
+/usr/share/ibus-table/engine/main.py:232: DeprecationWarning: Testing an element's truth value will raise an exception in future versions.  Use specific 'len(elem)' or 'elem is not None' test instead.
+  if element:
+
+(gnome-shell:208139): libmutter-WARNING **: 18:53:01.275: (../src/backends/meta-barrier.c:258):init_barrier_impl: runtime check failed: (priv->impl)
+
+(gnome-shell:208139): libmutter-WARNING **: 18:53:01.275: (../src/backends/meta-barrier.c:258):init_barrier_impl: runtime check failed: (priv->impl)
+
+(gnome-shell:208139): libmutter-WARNING **: 18:53:01.275: (../src/backends/meta-barrier.c:258):init_barrier_impl: runtime check failed: (priv->impl)
+portal is not running: GDBus.Error:org.freedesktop.DBus.Error.ServiceUnknown: The name org.freedesktop.portal.IBus was not provided by any .service files
+** Message: 18:53:03.236: Failed to start camera monitor
+GNOME Shell-Message: 18:53:04.500: GNOME Shell started at Tue Oct 06 2026 18:53:00 GMT-0300 (Brasilia Standard Time)
+GNOME Shell-Message: 18:53:04.515: Registering session with GDM
+GNOME Shell-Message: 18:53:13.135: MONITORS anchored index=0 x=614 y=40 width=692 height=302 primaryX=0 monitors=2
+
+(gnome-shell:208139): libmutter-WARNING **: 18:53:13.208: (../src/backends/meta-barrier.c:258):init_barrier_impl: runtime check failed: (priv->impl)
+
+(gnome-shell:208139): libmutter-WARNING **: 18:53:13.208: (../src/backends/meta-barrier.c:258):init_barrier_impl: runtime check failed: (priv->impl)
+
+(gnome-shell:208139): libmutter-WARNING **: 18:53:13.209: (../src/backends/meta-barrier.c:258):init_barrier_impl: runtime check failed: (priv->impl)
+
+(gnome-shell:208139): libmutter-WARNING **: 18:53:13.209: (../src/backends/meta-barrier.c:258):init_barrier_impl: runtime check failed: (priv->impl)
+GNOME Shell-Message: 18:53:13.318: MONITORS apply fractional=false single=false config=[[0,0,1,0,false,[["LVDS1","1920x1080@60.000",{}]]],[1920,0,2,0,true,[["LVDS2","1920x1080@60.000",{}]]]]
+
+(gnome-shell:208139): libmutter-WARNING **: 18:53:13.334: (../src/backends/meta-barrier.c:258):init_barrier_impl: runtime check failed: (priv->impl)
+
+(gnome-shell:208139): libmutter-WARNING **: 18:53:13.336: (../src/backends/meta-barrier.c:258):init_barrier_impl: runtime check failed: (priv->impl)
+
+(gnome-shell:208139): libmutter-WARNING **: 18:53:13.337: (../src/backends/meta-barrier.c:258):init_barrier_impl: runtime check failed: (priv->impl)
+
+(gnome-shell:208139): libmutter-WARNING **: 18:53:13.337: (../src/backends/meta-barrier.c:258):init_barrier_impl: runtime check failed: (priv->impl)
+
+(gnome-shell:208139): libmutter-WARNING **: 18:53:13.337: (../src/backends/meta-barrier.c:258):init_barrier_impl: runtime check failed: (priv->impl)
+
+(gnome-shell:208139): Clutter-WARNING **: 18:53:13.351: Can't update stage views actor unnamed [ClutterActor] is on because it needs an allocation.
+
+(gnome-shell:208139): Clutter-WARNING **: 18:53:13.352: Can't update stage views actor unnamed [ClutterActor] is on because it needs an allocation.
+
+(gnome-shell:208139): Clutter-WARNING **: 18:53:13.352: Can't update stage views actor unnamed [ClutterActor] is on because it needs an allocation.
+GNOME Shell-Message: 18:53:16.135: MONITORS anchored index=1 x=2054 y=40 width=692 height=302 primaryX=1920 monitors=2
+
+(gnome-shell:208139): libmutter-WARNING **: 18:53:16.167: (../src/backends/meta-barrier.c:258):init_barrier_impl: runtime check failed: (priv->impl)
+
+(gnome-shell:208139): libmutter-WARNING **: 18:53:16.167: (../src/backends/meta-barrier.c:258):init_barrier_impl: runtime check failed: (priv->impl)
+
+(gnome-shell:208139): libmutter-WARNING **: 18:53:16.169: (../src/backends/meta-barrier.c:258):init_barrier_impl: runtime check failed: (priv->impl)
+
+(gnome-shell:208139): libmutter-WARNING **: 18:53:16.170: (../src/backends/meta-barrier.c:258):init_barrier_impl: runtime check failed: (priv->impl)
+
+(gnome-shell:208139): libmutter-WARNING **: 18:53:16.189: (../src/backends/meta-barrier.c:258):init_barrier_impl: runtime check failed: (priv->impl)
+
+(gnome-shell:208139): libmutter-WARNING **: 18:53:16.189: (../src/backends/meta-barrier.c:258):init_barrier_impl: runtime check failed: (priv->impl)
+
+(gnome-shell:208139): libmutter-WARNING **: 18:53:16.189: (../src/backends/meta-barrier.c:258):init_barrier_impl: runtime check failed: (priv->impl)
+
+(gnome-shell:208139): libmutter-WARNING **: 18:53:16.189: (../src/backends/meta-barrier.c:258):init_barrier_impl: runtime check failed: (priv->impl)
+
+(gnome-shell:208139): libmutter-WARNING **: 18:53:16.189: (../src/backends/meta-barrier.c:258):init_barrier_impl: runtime check failed: (priv->impl)
+GNOME Shell-Message: 18:53:16.209: MONITORS apply fractional=true single=false config=[[0,0,1,0,false,[["LVDS1","1920x1080@60.000",{}]]],[1920,0,1.25,0,true,[["LVDS2","1920x1080@60.000",{}]]]]
+GNOME Shell-Message: 18:53:19.136: MONITORS anchored index=1 x=2342 y=40 width=692 height=302 primaryX=1920 monitors=2
+
+(gnome-shell:208139): libmutter-CRITICAL **: 18:53:19.201: meta_display_get_monitor_in_fullscreen: assertion 'monitor >= 0 && monitor < n_logical_monitors' failed
+
+(gnome-shell:208139): libmutter-WARNING **: 18:53:19.204: (../src/backends/meta-barrier.c:258):init_barrier_impl: runtime check failed: (priv->impl)
+
+(gnome-shell:208139): libmutter-WARNING **: 18:53:19.204: (../src/backends/meta-barrier.c:258):init_barrier_impl: runtime check failed: (priv->impl)
+GNOME Shell-Message: 18:53:19.221: MONITORS apply fractional=false single=true config=[[0,0,1,0,true,[["LVDS1","1920x1080@60.000",{}]]]]
+
+(gnome-shell:208139): libmutter-WARNING **: 18:53:19.228: (../src/backends/meta-barrier.c:258):init_barrier_impl: runtime check failed: (priv->impl)
+
+(gnome-shell:208139): libmutter-WARNING **: 18:53:19.228: (../src/backends/meta-barrier.c:258):init_barrier_impl: runtime check failed: (priv->impl)
+
+(gnome-shell:208139): libmutter-WARNING **: 18:53:19.228: (../src/backends/meta-barrier.c:258):init_barrier_impl: runtime check failed: (priv->impl)
+
+(gnome-shell:208139): Clutter-WARNING **: 18:53:19.233: Can't update stage views actor unnamed [ClutterActor] is on because it needs an allocation.
+
+(gnome-shell:208139): Clutter-WARNING **: 18:53:19.233: Can't update stage views actor unnamed [ClutterActor] is on because it needs an allocation.
+
+(gnome-shell:208139): Clutter-WARNING **: 18:53:19.233: Can't update stage views actor unnamed [ClutterActor] is on because it needs an allocation.
+
+(gnome-shell:208139): Clutter-WARNING **: 18:53:19.233: Can't update stage views actor unnamed [ClutterActor] is on because it needs an allocation.
+
+(gnome-shell:208139): Clutter-WARNING **: 18:53:19.233: Can't update stage views actor unnamed [ClutterActor] is on because it needs an allocation.
+GNOME Shell-Message: 18:53:22.150: MONITORS anchored index=0 x=614 y=40 width=692 height=302 primaryX=0 monitors=1
+** Message: 18:53:22.248: Shutting down GNOME Shell

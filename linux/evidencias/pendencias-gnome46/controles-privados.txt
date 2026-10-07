@@ -1,0 +1,19 @@
+PASS: APIs Gio reais em serviço privado fictício; nenhum controle executado em hardware ou sessão pessoal
+✔ Gio nativo com UPower/NM/BlueZ/logind fictícios; PipeWire simulado (1510.193619ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 1
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1516.551755
+✔ controles Linux em HOME e D-Bus privados (1801.867993ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 1
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1810.605892

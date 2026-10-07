@@ -1,3 +1,4 @@
+
 export type TipoProvedor = "anthropic" | "openai_compativel";
 
 export interface Provedor {
@@ -83,6 +84,11 @@ export interface EventoIa {
 }
 
 const CABECALHOS = { "x-niko": "1", "content-type": "application/json" };
+
+export function integracaoIlhaGnome(instalar = false) {
+  return pedir<{ estado: import("../../servidor/gnomeIlhaLinux").EstadoIntegracaoIlha }>("/ilha/gnome", instalar
+    ? { method: "POST", body: JSON.stringify({ confirmacao: "ATIVAR_ILHA" }) } : {});
+}
 
 async function pedir<T>(caminho: string, opcoes: RequestInit = {}): Promise<T> {
   const r = await fetch(`/ponte${caminho}`, { ...opcoes, headers: { ...CABECALHOS, ...(opcoes.headers ?? {}) } });

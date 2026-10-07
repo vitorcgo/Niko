@@ -1,0 +1,2 @@
+PASS: Tauri/WebKit real, controles embutidos em Configurações → Sistema; inspeção visual privada
+PASS: app process group ended

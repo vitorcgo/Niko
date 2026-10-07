@@ -1,0 +1,2 @@
+PASS: five real Tauri/WebKit show/hide/remap cycles; native Tauri fullscreen hide/restore/no-focus; hide during fullscreen; baseline=false
+FAIL: native critical in logs

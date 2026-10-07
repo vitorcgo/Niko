@@ -1,0 +1,7 @@
+0:00:00.008020665 202852 0x6241eaddffe0 DEBUG            msdkcontext gstmsdkcontext.c:144:get_device_path: Opened the drm device node /dev/dri/renderD128
+0:00:00.012851761 202852 0x6241eaddffe0 INFO                    msdk msdk.c:384:msdk_init_msdk_session: Use the Intel(R) Media SDK to create MFX session
+0:00:00.014883586 202852 0x6241eaddffe0 INFO                    msdk msdk.c:471:msdk_open_session: MFX implementation: 0x0402 (HARDWARE)
+0:00:00.014915159 202852 0x6241eaddffe0 INFO                    msdk msdk.c:473:msdk_open_session: MFX version: 1.35
+0:00:00.014934029 202852 0x6241eaddffe0 INFO             msdkcontext gstmsdkcontext.c:342:gst_msdk_context_open: Detected MFX platform with device code 32
+
+** (gst-plugin-scanner:202852): CRITICAL **: 18:48:18.624: _dma_fmt_to_dma_drm_fmts: assertion 'fmt != GST_VIDEO_FORMAT_UNKNOWN' failed

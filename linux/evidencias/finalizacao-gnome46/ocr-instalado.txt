@@ -1,0 +1,11 @@
+✔ OCR Linux valida tamanho/formato/idiomas e preserva erros (175.688377ms)
+PASS: Tesseract nativo com HOME/XDG privados reconheceu NIKO/OCR/123 na imagem gerada
+✔ Tesseract real lê PNG sintético; nenhuma imagem pessoal (1401.076947ms)
+ℹ tests 2
+ℹ suites 0
+ℹ pass 2
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1980.561245

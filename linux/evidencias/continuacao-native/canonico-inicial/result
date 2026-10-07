@@ -1,0 +1,2 @@
+PASS: five hide/remap cycles; native Mutter anchor/focus/tablist; attention focus; disable/enable; permission denial; service disappearance/missing
+FAIL: native critical in logs

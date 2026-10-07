@@ -1,3 +1,4 @@
+import { pedirSistemaLinux } from "./sistemaLinux";
 import { criarProcessoPowerShell } from "./processoPowerShell";
 
 const CODIGO = String.raw`
@@ -449,7 +450,7 @@ while ($true) {
 `;
 
 const controle = criarProcessoPowerShell("niko-controle", SCRIPT, "controle_encerrado");
-const pedir = controle.pedir;
+const pedir = (dados: Record<string, unknown>, limite?: number) => process.platform === "linux" ? pedirSistemaLinux(dados) : controle.pedir(dados, limite);
 
 const FLUXOS = { saida: 0, entrada: 1 } as const;
 const FERRAMENTAS = ["captura", "teclado", "iniciar", "papelDeParede"] as const;
@@ -495,7 +496,12 @@ export const agirNaEnergia = (d: Record<string, unknown>) => {
   return pedir({ acao: "energia", tipo: d.tipo });
 };
 export const lerBandeja = () => pedir({ acao: "bandeja" }, 20000);
-export const abrirDaBandeja = (d: Record<string, unknown>) => pedir({ acao: "abrirDaBandeja", caminho: caminhoDeApp(d.caminho) });
+export const abrirDaBandeja = (d: Record<string, unknown>) => {
+  if (process.platform !== "linux") return pedir({acao: "abrirDaBandeja", caminho: caminhoDeApp(d.caminho)});
+  if (typeof d.caminho !== "string" || !d.caminho || d.caminho.length > 1024 || /[\u0000-\u001f]/.test(d.caminho)) throw new Error("valor_invalido");
+  // A identidade opaca será conferida contra os itens atualmente registrados no barramento.
+  return pedir({acao: "abrirDaBandeja", caminho: d.caminho});
+};
 
 export function encerrarControle() {
   controle.encerrar();

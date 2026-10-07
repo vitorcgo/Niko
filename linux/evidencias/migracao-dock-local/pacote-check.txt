@@ -1,0 +1,3 @@
+PASS: pacote 0.2.0, dependências, binário/ponte/Node integrados, Node executável e bibliotecas presentes.
+SHA256: b6f6f80ff2f6525259102e7dc1cedd0553fd755b75281e233e724f4520b8d46d
+Não instala nem inicia Niko; relocação Tauri e confirmação manual seguem pendentes.

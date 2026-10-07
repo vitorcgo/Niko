@@ -1,3 +1,4 @@
+import { pedirSistemaLinux } from "./sistemaLinux";
 import { spawn } from "node:child_process";
 import { garantirScript } from "./scriptsTemporarios";
 import { criarProcessoPowerShell } from "./processoPowerShell";
@@ -239,6 +240,7 @@ function caminhoScript() {
 }
 
 function executar<T>(entrada: Record<string, unknown>, limiteMs = 20000): Promise<T> {
+  if (process.platform === "linux") return pedirSistemaLinux(entrada) as Promise<T>;
   if (process.platform !== "win32") return Promise.reject(new Error("somente_windows"));
   return new Promise((resolver, rejeitar) => {
     const processo = spawn("powershell.exe", ["-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File", caminhoScript()], { windowsHide: true });
@@ -274,7 +276,7 @@ export function tipoDoComputador() {
 
 const leitorContinuo = criarProcessoPowerShell("niko-sistema", SCRIPT, "sistema_encerrado", ["-Continuo"]);
 
-export const estadoDoSistema = async () => ((await leitorContinuo.pedir({ acao: "estado" }, 20000)) as { r: unknown }).r;
+export const estadoDoSistema = async () => process.platform === "linux" ? pedirSistemaLinux({acao: "estado"}) : ((await leitorContinuo.pedir({ acao: "estado" }, 20000)) as { r: unknown }).r;
 
 export function encerrarSistema() {
   leitorContinuo.encerrar();

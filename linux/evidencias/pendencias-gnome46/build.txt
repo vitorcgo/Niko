@@ -1,0 +1,9 @@
+        Info Looking up installed tauri packages to check mismatched versions...
+   Compiling niko v0.2.0 (/caminho/Niko/src-tauri)
+    Finished `release` profile [optimized] target(s) in 2m 29s
+       Built application at: /caminho/Niko/src-tauri/target/release/niko
+        Info Patching /caminho/Niko/src-tauri/target/release/niko with bundle type information: deb
+    Bundling Niko_0.2.0_amd64.deb (/caminho/Niko/src-tauri/target/release/bundle/deb/Niko_0.2.0_amd64.deb)
+    Finished 1 bundle at:
+        /caminho/Niko/src-tauri/target/release/bundle/deb/Niko_0.2.0_amd64.deb (51.08 MiB)
+

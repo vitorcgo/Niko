@@ -1,0 +1,79 @@
+{
+  "sha": "236d6714ec7777dd83d8955ca188328369393283",
+  "node_id": "C_kwDOAtCDWdoAKDIzNmQ2NzE0ZWM3Nzc3ZGQ4M2Q4OTU1Y2ExODgzMjgzNjkzOTMyODM",
+  "commit": {
+    "author": {
+      "name": "Víctor Manuel Jáquez Leal",
+      "date": "2024-05-15T10:48:43Z"
+    },
+    "committer": {
+      "name": "GStreamer Marge Bot",
+      "date": "2024-05-29T13:08:55Z"
+    },
+    "message": "msdkcaps: fix ill-format string\n\nThis patch fixes this critical warning when registering MSDK:\n\n_dma_fmt_to_dma_drm_fmts: assertion 'fmt != GST_VIDEO_FORMAT_UNKNOWN' failed\n\nIt was because the HEVC string with possible output formats has an extra space\nthat could not be parsed correctly.\n\nPart-of: <https://gitlab.freedesktop.org/gstreamer/gstreamer/-/merge_requests/6853>",
+    "tree": {
+      "sha": "6517513a348ca90fb9d3622a81ba31c3c93d2d3c",
+      "url": "https://api.github.com/repos/GStreamer/gstreamer/git/trees/6517513a348ca90fb9d3622a81ba31c3c93d2d3c"
+    },
+    "url": "https://api.github.com/repos/GStreamer/gstreamer/git/commits/236d6714ec7777dd83d8955ca188328369393283",
+    "comment_count": 0,
+    "verification": {
+      "verified": false,
+      "reason": "unsigned",
+      "signature": null,
+      "payload": null,
+      "verified_at": null
+    }
+  },
+  "url": "https://api.github.com/repos/GStreamer/gstreamer/commits/236d6714ec7777dd83d8955ca188328369393283",
+  "html_url": "https://github.com/GStreamer/gstreamer/commit/236d6714ec7777dd83d8955ca188328369393283",
+  "comments_url": "https://api.github.com/repos/GStreamer/gstreamer/commits/236d6714ec7777dd83d8955ca188328369393283/comments",
+  "author": {
+    "login": "ceyusa",
+    "id": 12832,
+    "node_id": "MDQ6VXNlcjEyODMy",
+    "avatar_url": "https://avatars.githubusercontent.com/u/12832?v=4",
+    "gravatar_id": "",
+    "url": "https://api.github.com/users/ceyusa",
+    "html_url": "https://github.com/ceyusa",
+    "followers_url": "https://api.github.com/users/ceyusa/followers",
+    "following_url": "https://api.github.com/users/ceyusa/following{/other_user}",
+    "gists_url": "https://api.github.com/users/ceyusa/gists{/gist_id}",
+    "starred_url": "https://api.github.com/users/ceyusa/starred{/owner}{/repo}",
+    "subscriptions_url": "https://api.github.com/users/ceyusa/subscriptions",
+    "organizations_url": "https://api.github.com/users/ceyusa/orgs",
+    "repos_url": "https://api.github.com/users/ceyusa/repos",
+    "events_url": "https://api.github.com/users/ceyusa/events{/privacy}",
+    "received_events_url": "https://api.github.com/users/ceyusa/received_events",
+    "type": "User",
+    "user_view_type": "public",
+    "site_admin": false
+  },
+  "committer": null,
+  "parents": [
+    {
+      "sha": "94646c642d150f28e6e168b22d86d5e5076703d1",
+      "url": "https://api.github.com/repos/GStreamer/gstreamer/commits/94646c642d150f28e6e168b22d86d5e5076703d1",
+      "html_url": "https://github.com/GStreamer/gstreamer/commit/94646c642d150f28e6e168b22d86d5e5076703d1"
+    }
+  ],
+  "stats": {
+    "total": 2,
+    "additions": 1,
+    "deletions": 1
+  },
+  "files": [
+    {
+      "sha": "80c353bf6dfd6974e14c2ffbd2e557c9c3b44e98",
+      "filename": "subprojects/gst-plugins-bad/sys/msdk/gstmsdkcaps.c",
+      "status": "modified",
+      "additions": 1,
+      "deletions": 1,
+      "changes": 2,
+      "blob_url": "https://github.com/GStreamer/gstreamer/blob/236d6714ec7777dd83d8955ca188328369393283/subprojects%2Fgst-plugins-bad%2Fsys%2Fmsdk%2Fgstmsdkcaps.c",
+      "raw_url": "https://github.com/GStreamer/gstreamer/raw/236d6714ec7777dd83d8955ca188328369393283/subprojects%2Fgst-plugins-bad%2Fsys%2Fmsdk%2Fgstmsdkcaps.c",
+      "contents_url": "https://api.github.com/repos/GStreamer/gstreamer/contents/subprojects%2Fgst-plugins-bad%2Fsys%2Fmsdk%2Fgstmsdkcaps.c?ref=236d6714ec7777dd83d8955ca188328369393283",
+      "patch": "@@ -1777,7 +1777,7 @@ _dec_get_static_dma_formats (guint codec_id)\n     case MFX_CODEC_AVC:\n       return \"NV12, BGRA, BGRx\";\n     case MFX_CODEC_HEVC:\n-      return \"NV12, P010_10LE, YUY2, Y210,  VUYA, Y410, P012_LE, \"\n+      return \"NV12, P010_10LE, YUY2, Y210, VUYA, Y410, P012_LE, \"\n           \"Y212_LE, Y412_LE, BGRA, BGRx\";\n     case MFX_CODEC_MPEG2:\n       return \"NV12\";"
+    }
+  ]
+}

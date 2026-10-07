@@ -1,0 +1,40 @@
+TAP version 13
+# Subtest: gatilho GNOME abre somente por clique, ancora e restaura recursos
+ok 1 - gatilho GNOME abre somente por clique, ancora e restaura recursos
+  ---
+  duration_ms: 13.17117
+  type: 'test'
+  ...
+# Subtest: laboratório recusa iniciar app se namespace não estiver disponível
+ok 2 - laboratório recusa iniciar app se namespace não estiver disponível
+  ---
+  duration_ms: 42.290098
+  type: 'test'
+  ...
+# Subtest: cancelamento durante unminimize, desativar=false, não reabre nem rouba foco
+ok 3 - cancelamento durante unminimize, desativar=false, não reabre nem rouba foco
+  ---
+  duration_ms: 14.401081
+  type: 'test'
+  ...
+# Subtest: cancelamento durante show, desativar=false, não reabre nem rouba foco
+ok 4 - cancelamento durante show, desativar=false, não reabre nem rouba foco
+  ---
+  duration_ms: 4.281206
+  type: 'test'
+  ...
+# Subtest: cancelamento durante show, desativar=true, não reabre nem rouba foco
+ok 5 - cancelamento durante show, desativar=true, não reabre nem rouba foco
+  ---
+  duration_ms: 4.416692
+  type: 'test'
+  ...
+1..5
+# tests 5
+# suites 0
+# pass 5
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 632.970943

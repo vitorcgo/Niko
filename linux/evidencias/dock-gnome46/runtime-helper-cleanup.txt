@@ -1,0 +1,1 @@
+PASS: compositor and client groups ended

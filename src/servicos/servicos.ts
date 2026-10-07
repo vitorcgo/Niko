@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { LINUX } from "../desktop/desktop";
 import { useConfig } from "../estado/configuracoes";
 import { usePomodoro } from "../estado/pomodoro";
 import { useAgentes } from "../estado/agentes";
@@ -95,7 +96,7 @@ function verificarDatas() {
   }
 }
 
-async function verificarLimitesPlanos() {
+export async function verificarLimitesPlanos() {
   if (!useConfig.getState().consumo.lerPlanos || document.hidden) return;
   try {
     const dados = await lerConsumo();
@@ -267,10 +268,12 @@ export function useServicos() {
   }, [virada]);
 
   useEffect(() => {
-    const limpouExemplos = limparExemplos();
-    const limpouSimulacoes = limparSimulacoes();
-    if (limpouExemplos || limpouSimulacoes) useInterface.getState().avisar(T.configuracoes.exemplosRemovidos);
-    void acertarConexoes();
+    if (!LINUX) {
+      const limpouExemplos = limparExemplos();
+      const limpouSimulacoes = limparSimulacoes();
+      if (limpouExemplos || limpouSimulacoes) useInterface.getState().avisar(T.configuracoes.exemplosRemovidos);
+      void acertarConexoes();
+    }
     useRotina.getState().marcarAbertura();
     useFinancas.getState().garantirCategorias();
     useOrganizacao.getState().garantirPilares();
@@ -285,27 +288,28 @@ export function useServicos() {
     let lento: number | undefined;
     let planos: number | undefined;
     let midia: number | undefined;
+    const verificarLocais = () => {
+      verificarLembretes();
+      verificarOrcamento();
+      verificarConquistas();
+      lembrarHabitos();
+      verificarDatas();
+      useAgentes.getState().verificarSono(inatividade);
+      useRotina.getState().marcarAbertura();
+      useFinancas.getState().gerarRecorrentes();
+    };
     const iniciar = () => {
       parar();
       planos = window.setInterval(() => void verificarLimitesPlanos(), 5 * 60000);
+      void verificarLimitesPlanos();
       void useMidia.getState().sincronizar();
       midia = window.setInterval(() => void useMidia.getState().sincronizar(), 2500);
-      void verificarLimitesPlanos();
       verificarDatas();
       rapido = window.setInterval(() => {
         verificarPomodoro();
         lerConexoes();
       }, 1000);
-      lento = window.setInterval(() => {
-        verificarLembretes();
-        verificarOrcamento();
-        verificarConquistas();
-        lembrarHabitos();
-        verificarDatas();
-        useAgentes.getState().verificarSono(inatividade);
-        useRotina.getState().marcarAbertura();
-        useFinancas.getState().gerarRecorrentes();
-      }, 20000);
+      lento = window.setInterval(verificarLocais, 20000);
       verificarLembretes();
       verificarOrcamento();
     };
@@ -319,6 +323,7 @@ export function useServicos() {
       if (document.hidden) {
         parar();
         rapido = window.setInterval(verificarPomodoro, 5000);
+        if (LINUX) lento = window.setInterval(verificarLocais, 20000);
       } else iniciar();
     };
     iniciar();

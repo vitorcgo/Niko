@@ -1,0 +1,699 @@
+
+> niko@0.2.0 test /caminho/Niko
+> pnpm ponte:build && node scripts/testar.mjs
+
+
+> niko@0.2.0 ponte:build /caminho/Niko
+> node scripts/construir-ponte.mjs
+
+ponte pronta em /caminho/Niko/src-tauri/recursos
+TAP version 13
+# Subtest: gatilho GNOME abre somente por clique, ancora e restaura recursos
+ok 1 - gatilho GNOME abre somente por clique, ancora e restaura recursos
+  ---
+  duration_ms: 95.100048
+  type: 'test'
+  ...
+# Subtest: laboratório GNOME usa bus privado e dados exclusivos, sem iniciar serviços
+ok 2 - laboratório GNOME usa bus privado e dados exclusivos, sem iniciar serviços
+  ---
+  duration_ms: 117.248625
+  type: 'test'
+  ...
+# Subtest: primeira abertura mostra o histórico atual sem reproduzir animações antigas
+ok 3 - primeira abertura mostra o histórico atual sem reproduzir animações antigas
+  ---
+  duration_ms: 19.520102
+  type: 'test'
+  ...
+# Subtest: atualizações em rajada entram em fila sem sobrepor etapas
+ok 4 - atualizações em rajada entram em fila sem sobrepor etapas
+  ---
+  duration_ms: 4.910951
+  type: 'test'
+  ...
+# Subtest: repetir a mesma atualização não enfileira a etapa duas vezes
+ok 5 - repetir a mesma atualização não enfileira a etapa duas vezes
+  ---
+  duration_ms: 15.298337
+  type: 'test'
+  ...
+# Subtest: mesmo texto com identificadores diferentes continua sendo uma nova etapa
+ok 6 - mesmo texto com identificadores diferentes continua sendo uma nova etapa
+  ---
+  duration_ms: 10.978969
+  type: 'test'
+  ...
+# Subtest: trocar de sessão limpa a fila e não mistura projetos
+ok 7 - trocar de sessão limpa a fila e não mistura projetos
+  ---
+  duration_ms: 12.274954
+  type: 'test'
+  ...
+# Subtest: fila é limitada e termina na informação mais recente
+ok 8 - fila é limitada e termina na informação mais recente
+  ---
+  duration_ms: 0.529405
+  type: 'test'
+  ...
+# Subtest: histórico reiniciado ou cortado não mantém uma animação obsoleta
+ok 9 - histórico reiniciado ou cortado não mantém uma animação obsoleta
+  ---
+  duration_ms: 24.801223
+  type: 'test'
+  ...
+# Subtest: a animação não transforma etapa anterior em confirmação de sucesso
+ok 10 - a animação não transforma etapa anterior em confirmação de sucesso
+  ---
+  duration_ms: 0.874115
+  type: 'test'
+  ...
+# Subtest: destino do personagem respeita escala e não muda seu centro ao aumentar
+ok 11 - destino do personagem respeita escala e não muda seu centro ao aumentar
+  ---
+  duration_ms: 12.520994
+  type: 'test'
+  ...
+# Subtest: destino inválido não produz NaN nem posiciona personagem fora da tela
+ok 12 - destino inválido não produz NaN nem posiciona personagem fora da tela
+  ---
+  duration_ms: 8.619445
+  type: 'test'
+  ...
+# Subtest: arquivo viaja do ponto de soltura ao personagem em coordenadas locais
+ok 13 - arquivo viaja do ponto de soltura ao personagem em coordenadas locais
+  ---
+  duration_ms: 28.212991
+  type: 'test'
+  ...
+# Subtest: soltar fora da zona ou com coordenadas inválidas não inicia o efeito
+ok 14 - soltar fora da zona ou com coordenadas inválidas não inicia o efeito
+  ---
+  duration_ms: 0.331256
+  type: 'test'
+  ...
+# Subtest: salvamento serial preserva edição nova, aguarda envio e informa falha recuperável
+ok 15 - salvamento serial preserva edição nova, aguarda envio e informa falha recuperável
+  ---
+  duration_ms: 814.069065
+  type: 'test'
+  ...
+# Subtest: reconhece controles naturais e não executa perguntas, negações ou pedidos ambíguos
+ok 16 - reconhece controles naturais e não executa perguntas, negações ou pedidos ambíguos
+  ---
+  duration_ms: 86.38606
+  type: 'test'
+  ...
+# Subtest: detecta capacidades e relatório sem consultar um modelo
+ok 17 - detecta capacidades e relatório sem consultar um modelo
+  ---
+  duration_ms: 6.339943
+  type: 'test'
+  ...
+# Subtest: não inventa um timer em andamento
+ok 18 - não inventa um timer em andamento
+  ---
+  duration_ms: 16.627441
+  type: 'test'
+  ...
+# Subtest: pausa e retoma o tempo real sem reiniciar a duração
+ok 19 - pausa e retoma o tempo real sem reiniciar a duração
+  ---
+  duration_ms: 6.467819
+  type: 'test'
+  ...
+# Subtest: encerrar mantém o timer parado mesmo com próxima etapa automática
+ok 20 - encerrar mantém o timer parado mesmo com próxima etapa automática
+  ---
+  duration_ms: 7.546152
+  type: 'test'
+  ...
+# Subtest: continuar não inicia uma sessão expirada
+ok 21 - continuar não inicia uma sessão expirada
+  ---
+  duration_ms: 4.025006
+  type: 'test'
+  ...
+# Subtest: iniciar pela ferramenta não sobrescreve um timer ativo ou pausado
+ok 22 - iniciar pela ferramenta não sobrescreve um timer ativo ou pausado
+  ---
+  duration_ms: 4.775084
+  type: 'test'
+  ...
+# Subtest: ferramentas de controle validam a ação
+ok 23 - ferramentas de controle validam a ação
+  ---
+  duration_ms: 0.763919
+  type: 'test'
+  ...
+# Subtest: capacidades vêm das definições reais e respeitam conexões e privacidade
+ok 24 - capacidades vêm das definições reais e respeitam conexões e privacidade
+  ---
+  duration_ms: 8.324332
+  type: 'test'
+  ...
+# Subtest: relatório vazio informa ausência de registros, sem inventar uma semana perfeita
+ok 25 - relatório vazio informa ausência de registros, sem inventar uma semana perfeita
+  ---
+  duration_ms: 50.938012
+  type: 'test'
+  ...
+# Subtest: relatório usa datas de conclusão e separa foco interrompido
+ok 26 - relatório usa datas de conclusão e separa foco interrompido
+  ---
+  duration_ms: 12.707976
+  type: 'test'
+  ...
+# Subtest: anexos não viram instruções de ferramentas nem entram inteiros sem aviso
+ok 27 - anexos não viram instruções de ferramentas nem entram inteiros sem aviso
+  ---
+  duration_ms: 8.170192
+  type: 'test'
+  ...
+# Subtest: não apresenta uma execução inventada pelo modelo
+ok 28 - não apresenta uma execução inventada pelo modelo
+  ---
+  duration_ms: 76.694539
+  type: 'test'
+  ...
+# Subtest: resposta comum aparece aos poucos, só com frases completas
+ok 29 - resposta comum aparece aos poucos, só com frases completas
+  ---
+  duration_ms: 17.058039
+  type: 'test'
+  ...
+# Subtest: texto parcial some quando o modelo decide usar uma ferramenta
+ok 30 - texto parcial some quando o modelo decide usar uma ferramenta
+  ---
+  duration_ms: 16.560328
+  type: 'test'
+  ...
+# Subtest: cartão pendente não é anunciado como tarefa salva
+ok 31 - cartão pendente não é anunciado como tarefa salva
+  ---
+  duration_ms: 14.246289
+  type: 'test'
+  ...
+# Subtest: ação indisponível não vira sucesso depois de um erro de ferramenta
+ok 32 - ação indisponível não vira sucesso depois de um erro de ferramenta
+  ---
+  duration_ms: 16.784236
+  type: 'test'
+  ...
+# Subtest: modo análise não disponibiliza ferramentas de alteração
+ok 33 - modo análise não disponibiliza ferramentas de alteração
+  ---
+  duration_ms: 7.205715
+  type: 'test'
+  ...
+# Subtest: pergunta do print sobre Cloudflare vai para o Java, sem mudar menção explícita
+ok 34 - pergunta do print sobre Cloudflare vai para o Java, sem mudar menção explícita
+  ---
+  duration_ms: 5.964206
+  type: 'test'
+  ...
+# Subtest: não encena outro agente no começo da resposta
+ok 35 - não encena outro agente no começo da resposta
+  ---
+  duration_ms: 26.525247
+  type: 'test'
+  ...
+# Subtest: resposta do print fica atribuída ao Java na conversa real
+ok 36 - resposta do print fica atribuída ao Java na conversa real
+  ---
+  duration_ms: 1162.455596
+  type: 'test'
+  ...
+# Subtest: comandos locais e 'pare isso' funcionam sem provedor e não chamam a rede
+ok 37 - comandos locais e 'pare isso' funcionam sem provedor e não chamam a rede
+  ---
+  duration_ms: 1542.660153
+  type: 'test'
+  ...
+# Subtest: comando pomodoro desconhecido não inicia foco e não reinicia sessão existente
+ok 38 - comando pomodoro desconhecido não inicia foco e não reinicia sessão existente
+  ---
+  duration_ms: 12.750712
+  type: 'test'
+  ...
+# Subtest: modelo não executa ferramenta de e-mail desconectada
+ok 39 - modelo não executa ferramenta de e-mail desconectada
+  ---
+  duration_ms: 48.534875
+  type: 'test'
+  ...
+# Subtest: extrair anexo funciona sem IA e sem executar seu conteúdo
+ok 40 - extrair anexo funciona sem IA e sem executar seu conteúdo
+  ---
+  duration_ms: 334.99812
+  type: 'test'
+  ...
+# Subtest: tentar novamente uma análise mantém ferramentas bloqueadas
+ok 41 - tentar novamente uma análise mantém ferramentas bloqueadas
+  ---
+  duration_ms: 767.319998
+  type: 'test'
+  ...
+# Subtest: aprovação automática anuncia resultado real e não pede confirmação já feita
+ok 42 - aprovação automática anuncia resultado real e não pede confirmação já feita
+  ---
+  duration_ms: 1204.558695
+  type: 'test'
+  ...
+# Subtest: IA não altera os números calculados do relatório semanal
+ok 43 - IA não altera os números calculados do relatório semanal
+  ---
+  duration_ms: 54.032122
+  type: 'test'
+  ...
+# Subtest: função desligada some das ferramentas, do banco, dos comandos e do prompt
+ok 44 - função desligada some das ferramentas, do banco, dos comandos e do prompt
+  ---
+  duration_ms: 144.139906
+  type: 'test'
+  ...
+# Subtest: religar a função devolve tudo sem perder dados
+ok 45 - religar a função devolve tudo sem perder dados
+  ---
+  duration_ms: 8.919791
+  type: 'test'
+  ...
+# Subtest: ajuda e conquistas escondem o que pertence a funções desligadas
+ok 46 - ajuda e conquistas escondem o que pertence a funções desligadas
+  ---
+  duration_ms: 1.720014
+  type: 'test'
+  ...
+# Subtest: instala os ganchos num settings.json que ainda não existe
+ok 47 - instala os ganchos num settings.json que ainda não existe
+  ---
+  duration_ms: 92.113151
+  type: 'test'
+  ...
+# Subtest: preserva o que já existia, faz cópia e não duplica ao reinstalar
+ok 48 - preserva o que já existia, faz cópia e não duplica ao reinstalar
+  ---
+  duration_ms: 27.741805
+  type: 'test'
+  ...
+# Subtest: remover tira só as entradas do Niko
+ok 49 - remover tira só as entradas do Niko
+  ---
+  duration_ms: 24.410367
+  type: 'test'
+  ...
+# Subtest: recusa mexer num settings.json inválido e não altera o arquivo
+ok 50 - recusa mexer num settings.json inválido e não altera o arquivo
+  ---
+  duration_ms: 5.469489
+  type: 'test'
+  ...
+# Subtest: exige confirmação explícita
+ok 51 - exige confirmação explícita
+  ---
+  duration_ms: 0.525683
+  type: 'test'
+  ...
+# Subtest: a prévia esconde o segredo
+ok 52 - a prévia esconde o segredo
+  ---
+  duration_ms: 12.383723
+  type: 'test'
+  ...
+# Subtest: rejeita evento sem o segredo certo
+ok 53 - rejeita evento sem o segredo certo
+  ---
+  duration_ms: 96.53146
+  type: 'test'
+  ...
+# Subtest: sem a ilha ouvindo, o pedido de permissão volta vazio na hora
+ok 54 - sem a ilha ouvindo, o pedido de permissão volta vazio na hora
+  ---
+  duration_ms: 12.9082
+  type: 'test'
+  ...
+# Subtest: com a ilha ouvindo, Permitir devolve a decisão no formato documentado
+ok 55 - com a ilha ouvindo, Permitir devolve a decisão no formato documentado
+  ---
+  duration_ms: 33.386617
+  type: 'test'
+  ...
+# Subtest: descarta campos enormes e recorta textos longos
+ok 56 - descarta campos enormes e recorta textos longos
+  ---
+  duration_ms: 54.046422
+  type: 'test'
+  ...
+# Subtest: corta objetos aninhados fundo demais em vez de guardar tudo na memória
+ok 57 - corta objetos aninhados fundo demais em vez de guardar tudo na memória
+  ---
+  duration_ms: 24.553785
+  type: 'test'
+  ...
+# Subtest: recusa hooks com formato inesperado em vez de apagar
+ok 58 - recusa hooks com formato inesperado em vez de apagar
+  ---
+  duration_ms: 8.489172
+  type: 'test'
+  ...
+# Subtest: detecta conexão desatualizada quando o segredo não bate
+ok 59 - detecta conexão desatualizada quando o segredo não bate
+  ---
+  duration_ms: 3.656214
+  type: 'test'
+  ...
+# Subtest: devolver ao terminal responde vazio para o Claude Code perguntar lá
+ok 60 - devolver ao terminal responde vazio para o Claude Code perguntar lá
+  ---
+  duration_ms: 18.585069
+  type: 'test'
+  ...
+# Subtest: sempre permitir só aceita a regra sugerida pelo Claude Code
+ok 61 - sempre permitir só aceita a regra sugerida pelo Claude Code
+  ---
+  duration_ms: 28.106623
+  type: 'test'
+  ...
+# Subtest: abrir projeto recusa pastas que não vieram de uma sessão
+ok 62 - abrir projeto recusa pastas que não vieram de uma sessão
+  ---
+  duration_ms: 9.186644
+  type: 'test'
+  ...
+# Subtest: abrir projeto recusa caminho relativo mesmo vindo de uma sessão
+ok 63 - abrir projeto recusa caminho relativo mesmo vindo de uma sessão
+  ---
+  duration_ms: 77.467217
+  type: 'test'
+  ...
+# Subtest: diff marca linhas removidas e adicionadas
+ok 64 - diff marca linhas removidas e adicionadas
+  ---
+  duration_ms: 8.042459
+  type: 'test'
+  ...
+# Subtest: evento repetido numa reconexão não duplica a atividade
+ok 65 - evento repetido numa reconexão não duplica a atividade
+  ---
+  duration_ms: 11.433244
+  type: 'test'
+  ...
+# Subtest: pedido que sai da ilha sem decisão deixa o motivo na atividade
+ok 66 - pedido que sai da ilha sem decisão deixa o motivo na atividade
+  ---
+  duration_ms: 7.233749
+  type: 'test'
+  ...
+# Subtest: aviso GNOME tem texto canônico e condição real para Linux com ilha ativa
+ok 67 - aviso GNOME tem texto canônico e condição real para Linux com ilha ativa
+  ---
+  duration_ms: 94.091564
+  type: 'test'
+  ...
+# Subtest: cancelamento durante unminimize, desativar=false, não reabre nem rouba foco
+ok 68 - cancelamento durante unminimize, desativar=false, não reabre nem rouba foco
+  ---
+  duration_ms: 26.82677
+  type: 'test'
+  ...
+# Subtest: cancelamento durante show, desativar=false, não reabre nem rouba foco
+ok 69 - cancelamento durante show, desativar=false, não reabre nem rouba foco
+  ---
+  duration_ms: 14.776163
+  type: 'test'
+  ...
+# Subtest: cancelamento durante show, desativar=true, não reabre nem rouba foco
+ok 70 - cancelamento durante show, desativar=true, não reabre nem rouba foco
+  ---
+  duration_ms: 5.816414
+  type: 'test'
+  ...
+# Subtest: clicar novamente na mesma aba recolhe a ilha
+ok 71 - clicar novamente na mesma aba recolhe a ilha
+  ---
+  duration_ms: 14.574552
+  type: 'test'
+  ...
+# Subtest: trocar de aba não recolhe uma ilha expandida
+ok 72 - trocar de aba não recolhe uma ilha expandida
+  ---
+  duration_ms: 0.429174
+  type: 'test'
+  ...
+# Subtest: Iniciar usa o estado capturado antes de o clique roubar o foco
+ok 73 - Iniciar usa o estado capturado antes de o clique roubar o foco
+  ---
+  duration_ms: 3.747829
+  type: 'test'
+  ...
+# Subtest: cliques rápidos não acumulam comandos para o Iniciar
+ok 74 - cliques rápidos não acumulam comandos para o Iniciar
+  ---
+  duration_ms: 53.380946
+  type: 'test'
+  ...
+# Subtest: falha na leitura do Iniciar não inventa um estado aberto
+ok 75 - falha na leitura do Iniciar não inventa um estado aberto
+  ---
+  duration_ms: 11.248585
+  type: 'test'
+  ...
+# Subtest: segundo clique usa a confirmação real do Windows mesmo sem mover o mouse
+ok 76 - segundo clique usa a confirmação real do Windows mesmo sem mover o mouse
+  ---
+  duration_ms: 4.214402
+  type: 'test'
+  ...
+# Subtest: ponte preserva estado real do Bluetooth e o estado anterior do Iniciar
+ok 77 - ponte preserva estado real do Bluetooth e o estado anterior do Iniciar
+  ---
+  duration_ms: 48.222505
+  type: 'test'
+  ...
+# Subtest: leitura nativa do Bluetooth não usa status do driver como conexão
+ok 78 - leitura nativa do Bluetooth não usa status do driver como conexão # SKIP
+  ---
+  duration_ms: 0.264707
+  type: 'test'
+  ...
+# Subtest: detecção nativa do Iniciar compila e retorna um booleano sem abrir janelas
+ok 79 - detecção nativa do Iniciar compila e retorna um booleano sem abrir janelas # SKIP
+  ---
+  duration_ms: 5.118364
+  type: 'test'
+  ...
+# Subtest: música pausada não toma a ilha, mesmo tocando há poucos segundos
+ok 80 - música pausada não toma a ilha, mesmo tocando há poucos segundos
+  ---
+  duration_ms: 9.427471
+  type: 'test'
+  ...
+# Subtest: consulta antiga não desfaz uma pausa confirmada pelo Windows
+ok 81 - consulta antiga não desfaz uma pausa confirmada pelo Windows
+  ---
+  duration_ms: 53.437265
+  type: 'test'
+  ...
+# Subtest: atualizações periódicas não acumulam consultas simultâneas
+ok 82 - atualizações periódicas não acumulam consultas simultâneas
+  ---
+  duration_ms: 6.614197
+  type: 'test'
+  ...
+# Subtest: falha ao tocar não inventa uma reprodução
+ok 83 - falha ao tocar não inventa uma reprodução
+  ---
+  duration_ms: 1.512795
+  type: 'test'
+  ...
+# Subtest: leitura Linux não envia controles indisponíveis
+ok 84 - leitura Linux não envia controles indisponíveis
+  ---
+  duration_ms: 1.360954
+  type: 'test'
+  ...
+# Subtest: comandos usam o player exibido e não se sobrepõem
+ok 85 - comandos usam o player exibido e não se sobrepõem
+  ---
+  duration_ms: 4.072882
+  type: 'test'
+  ...
+# Subtest: exige versão explícita e mantém as notas separadas
+ok 86 - exige versão explícita e mantém as notas separadas
+  ---
+  duration_ms: 11.662447
+  type: 'test'
+  ...
+# Subtest: recusa versões inválidas, argumentos desconhecidos e versões duplicadas
+ok 87 - recusa versões inválidas, argumentos desconhecidos e versões duplicadas
+  ---
+  duration_ms: 5.814501
+  type: 'test'
+  ...
+# Subtest: identifica divergências nos quatro arquivos e valida a tag
+ok 88 - identifica divergências nos quatro arquivos e valida a tag
+  ---
+  duration_ms: 11.988902
+  type: 'test'
+  ...
+# Subtest: planeja sem escrever e sincroniza preservando conteúdo, dependências e chave
+ok 89 - planeja sem escrever e sincroniza preservando conteúdo, dependências e chave
+  ---
+  duration_ms: 23.027246
+  type: 'test'
+  ...
+# Subtest: bloqueia redução da versão e compara números, não texto
+ok 90 - bloqueia redução da versão e compara números, não texto
+  ---
+  duration_ms: 27.19461
+  type: 'test'
+  ...
+# Subtest: preserva tokens de substituição no conteúdo original
+ok 91 - preserva tokens de substituição no conteúdo original
+  ---
+  duration_ms: 27.244413
+  type: 'test'
+  ...
+# Subtest: reverte escrita parcial sem apagar um temporário preexistente
+ok 92 - reverte escrita parcial sem apagar um temporário preexistente
+  ---
+  duration_ms: 8.944577
+  type: 'test'
+  ...
+# Subtest: não escreve nada quando um arquivo está inválido
+ok 93 - não escreve nada quando um arquivo está inválido
+  ---
+  duration_ms: 14.017433
+  type: 'test'
+  ...
+# Subtest: recusa aplicar um plano se algum arquivo mudou após a leitura
+ok 94 - recusa aplicar um plano se algum arquivo mudou após a leitura
+  ---
+  duration_ms: 17.752011
+  type: 'test'
+  ...
+# Subtest: bloqueia release já publicada, admite ausência e recusa falhas de rede
+ok 95 - bloqueia release já publicada, admite ausência e recusa falhas de rede
+  ---
+  duration_ms: 3.162744
+  type: 'test'
+  ...
+# Subtest: exige instalador e assinatura da versão certa e do build atual
+ok 96 - exige instalador e assinatura da versão certa e do build atual
+  ---
+  duration_ms: 24.515918
+  type: 'test'
+  ...
+# TAP version 13
+# (node:180283) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Gio/D-Bus privados reais; GNOME Shell inteiramente simulado.
+# \# Subtest: Gio real e GNOME fictício: instalação, backup, habilitação e falhas
+# ok 1 - Gio real e GNOME fictício: instalação, backup, habilitação e falhas
+#   ---
+#   duration_ms: 13421.948143
+#   type: 'test'
+#   ...
+# 1..1
+# \# tests 1
+# \# suites 0
+# \# pass 1
+# \# fail 0
+# \# cancelled 0
+# \# skipped 0
+# \# todo 0
+# \# duration_ms 13450.057375
+# Subtest: instalação GNOME simulada usa bus privado e diretórios temporários
+ok 97 - instalação GNOME simulada usa bus privado e diretórios temporários
+  ---
+  duration_ms: 14631.097528
+  type: 'test'
+  ...
+# Subtest: ilha Linux dimensiona a janela, preserva tarefas e mantém serviços locais e consulta mídia Linux
+ok 98 - ilha Linux dimensiona a janela, preserva tarefas e mantém serviços locais e consulta mídia Linux
+  ---
+  duration_ms: 18622.188684
+  type: 'test'
+  ...
+# TAP version 13
+# \# Subtest: lê players sem whitelist, prefere Playing e distingue erro de ausência
+# ok 1 - lê players sem whitelist, prefere Playing e distingue erro de ausência
+#   ---
+#   duration_ms: 21616.266892
+#   type: 'test'
+#   ...
+# 1..1
+# \# tests 1
+# \# suites 0
+# \# pass 1
+# \# fail 0
+# \# cancelled 0
+# \# skipped 0
+# \# todo 0
+# \# duration_ms 21659.953467
+# Subtest: MPRIS genérico em D-Bus privado
+ok 99 - MPRIS genérico em D-Bus privado
+  ---
+  duration_ms: 23066.714784
+  type: 'test'
+  ...
+# Subtest: janela Linux encaminha fetch à ponte com token nativo
+ok 100 - janela Linux encaminha fetch à ponte com token nativo
+  ---
+  duration_ms: 212.73651
+  type: 'test'
+  ...
+# Subtest: ponte autentica a janela nativa e mantém SQLite após reiniciar
+ok 101 - ponte autentica a janela nativa e mantém SQLite após reiniciar
+  ---
+  duration_ms: 466.194241
+  type: 'test'
+  ...
+# Subtest: contrato simulado do cofre linux sem serviço pessoal
+ok 102 - contrato simulado do cofre linux sem serviço pessoal
+  ---
+  duration_ms: 408.134602
+  type: 'test'
+  ...
+# Subtest: contrato simulado do cofre win32 sem serviço pessoal
+ok 103 - contrato simulado do cofre win32 sem serviço pessoal
+  ---
+  duration_ms: 236.367438
+  type: 'test'
+  ...
+# TAP version 13
+# (node:182017) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Native: SQLite temporário + middleware real preservam dados/metadata quando cofre ausente; requisição/resposta simuladas.
+# Simulated: Secret Service retorna AccessDenied e ausência de coleção; locked validado no keyring real.
+# Native: keyring real, store/lookup/delete/restart/concurrency; argv verificados; environ bloqueado pelo kernel em 73 snapshots.
+# \# Subtest: Secret Service real: persistência, concorrência, ausência e entradas inválidas
+# ok 1 - Secret Service real: persistência, concorrência, ausência e entradas inválidas
+#   ---
+#   duration_ms: 29064.068074
+#   type: 'test'
+#   ...
+# 1..1
+# \# tests 1
+# \# suites 0
+# \# pass 1
+# \# fail 0
+# \# cancelled 0
+# \# skipped 0
+# \# todo 0
+# \# duration_ms 29092.203389
+# Subtest: cofre Linux em bus privado sem ativação automática e HOME temporário
+ok 104 - cofre Linux em bus privado sem ativação automática e HOME temporário
+  ---
+  duration_ms: 29824.392598
+  type: 'test'
+  ...
+1..104
+# tests 104
+# suites 0
+# pass 102
+# fail 0
+# cancelled 0
+# skipped 2
+# todo 0
+# duration_ms 165618.012576

@@ -1,0 +1,5 @@
+c8896431f4973aea317a28f658cbb0c5030d84b111da46fa6aaf37974f555bd6  servidor/gnomeIlhaRuntimeLinux.ts
+72e1477c92c57a68547e4e0402fe421077c78752a3ba05b6d11352d34026e551  servidor/gnomeIlhaLinux.ts
+210da079b85878e1f26ed69366d4aa5ec026253fea8ed4873c1524122c9a2de0  linux/gnome/native-sem-reinicio/runtime-helper.test.mjs
+fde562364b3cea675237de200ceb5d5d6044bae595ff03379ae7dd7a8cd2fa4c  linux/gnome/native-sem-reinicio/run.sh
+7bd1a9a2df91281b3a1374e8bc13e16a729cee71440c121f4558c84862dd96d3  linux/gnome/native-sem-reinicio/session.sh

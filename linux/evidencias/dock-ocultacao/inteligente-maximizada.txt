@@ -1,0 +1,2 @@
+Evidence directory: /tmp/niko-tauri.h8Tsu7
+PASS: dock Tauri/WebKit real, âncora, tamanho, AltTab, modo=inteligente, reserva, fullscreen sem foco; Node/GJS ações nativas e stale ID

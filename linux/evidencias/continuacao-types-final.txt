@@ -1,0 +1,4 @@
+
+> niko@0.2.0 verificar /caminho/Niko
+> tsc
+

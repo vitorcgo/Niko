@@ -1,0 +1,2 @@
+PASS: real Tauri island; two nested monitors; displaced primary; scales 100%,200%,125%; logical monitor disable; anchor/cleanup
+FAIL: native critical in logs

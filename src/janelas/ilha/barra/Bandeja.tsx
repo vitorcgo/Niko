@@ -8,7 +8,7 @@ import { T } from "../../../textos/textos";
 const B = T.ilha.barra;
 const INTERVALO_DA_BANDEJA_MS = 5000;
 
-export function Bandeja({ topo, direita, aoFechar }: { topo: number; direita: number; aoFechar: () => void }) {
+export function Bandeja({ topo, direita, aoFechar, embutido = false }: { topo: number; direita: number; aoFechar: () => void; embutido?: boolean }) {
   const itens = useControleRapido((s) => s.bandeja);
   const lida = useControleRapido((s) => s.bandejaLida);
   usarBandeja(true, INTERVALO_DA_BANDEJA_MS);
@@ -16,8 +16,9 @@ export function Bandeja({ topo, direita, aoFechar }: { topo: number; direita: nu
   return (
     <motion.div
       className="ilha-pop ilha-bandeja"
-      style={{ top: topo, right: direita }}
-      role="dialog"
+      data-embutido={embutido || undefined}
+      style={embutido ? undefined : { top: topo, right: direita }}
+      role={embutido ? "group" : "dialog"}
       aria-label={B.bandeja}
       initial={{ opacity: 0, y: -6, scale: 0.96 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}

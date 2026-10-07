@@ -1,0 +1,8 @@
+GNOME Shell-Message: 08:53:52.917: NIKO TOGGLE FROM HTTP
+GNOME Shell-Message: 08:53:56.443: DOCK ACTION focar
+GNOME Shell-Message: 08:53:58.293: DOCK ACTION focar
+GNOME Shell-Message: 08:53:58.808: DOCK ACTION minimizar
+GNOME Shell-Message: 08:53:59.447: DOCK ACTION focar
+GNOME Shell-Message: 08:53:59.918: DOCK ACTION fechar
+GNOME Shell-Message: 08:54:00.301: DOCK ACTION focar
+GNOME Shell-Message: 08:54:00.694: PASS: PNG nativo limitado, minimizada sem imagem; backend Node/GJS/D-Bus real; lista/foco/minimizar/restaurar/fechar; ID stale recusado; Tauri/WebKit privado

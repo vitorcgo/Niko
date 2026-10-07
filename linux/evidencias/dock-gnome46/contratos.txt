@@ -1,0 +1,10 @@
+✔ linux/gnome/extension.test.mjs (118.35523ms)
+✔ linux/gnome/janelas-linux.test.mjs (90.113867ms)
+ℹ tests 2
+ℹ suites 0
+ℹ pass 2
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 225.285187

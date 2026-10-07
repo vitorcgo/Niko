@@ -1,0 +1,160 @@
+
+This GDB supports auto-downloading debuginfo from the following URLs:
+  <https://debuginfod.ubuntu.com>
+Enable debuginfod for this session? (y or [n]) [answered N; input not from terminal]
+Debuginfod has been disabled.
+To make this setting permanent, add 'set debuginfod enabled off' to .gdbinit.
+Breakpoint 1 at 0x39d0
+[Thread debugging using libthread_db enabled]
+Using host libthread_db library "/lib/x86_64-linux-gnu/libthread_db.so.1".
+[New Thread 0x7ffff0dff6c0 (LWP 178974)]
+[Thread 0x7ffff0dff6c0 (LWP 178974) exited]
+[New Thread 0x7ffff0dff6c0 (LWP 178975)]
+[New Thread 0x7fffebfff6c0 (LWP 178977)]
+[New Thread 0x7fffeb7fe6c0 (LWP 178978)]
+[New Thread 0x7fffeaffd6c0 (LWP 178987)]
+[New Thread 0x7ffff01ff6c0 (LWP 178988)]
+[New Thread 0x7fffea7fc6c0 (LWP 178989)]
+libmutter-Message: 18:19:36.422: Running GNOME Shell (using mutter 46.2) as a Wayland display server
+[New Thread 0x7fffea49e6c0 (LWP 179054)]
+[New Thread 0x7fffe9c9d6c0 (LWP 179055)]
+[New Thread 0x7fffe949c6c0 (LWP 179056)]
+[New Thread 0x7fffe8c9b6c0 (LWP 179057)]
+[New Thread 0x7fffd09ff6c0 (LWP 179058)]
+[New Thread 0x7fffbbfff6c0 (LWP 179060)]
+[New Thread 0x7fffbb7fe6c0 (LWP 179061)]
+[New Thread 0x7fffbaffd6c0 (LWP 179062)]
+[New Thread 0x7fffba7fc6c0 (LWP 179065)]
+** Message: 18:19:38.265: Obtained a high priority EGL context
+[Thread 0x7fffba7fc6c0 (LWP 179065) exited]
+[Thread 0x7fffbaffd6c0 (LWP 179062) exited]
+[New Thread 0x7fffbaffd6c0 (LWP 179066)]
+[New Thread 0x7fffba7fc6c0 (LWP 179067)]
+** Message: 18:19:38.301: Obtained a high priority EGL context
+libmutter-Message: 18:19:38.584: Using Wayland display name 'niko-native-178759'
+Window manager warning: Failed to set environment variable WAYLAND_DISPLAY for gnome-session: GDBus.Error:org.freedesktop.DBus.Error.NameHasNoOwner: Name "org.gnome.SessionManager" does not exist
+[Thread 0x7fffeb7fe6c0 (LWP 178978) exited]
+[Thread 0x7fffea49e6c0 (LWP 179054) exited]
+[Thread 0x7fffe949c6c0 (LWP 179056) exited]
+[Thread 0x7fffe8c9b6c0 (LWP 179057) exited]
+[Thread 0x7fffe9c9d6c0 (LWP 179055) exited]
+[New Thread 0x7fffe9c9d6c0 (LWP 179113)]
+
+(gnome-shell:178818): libmutter-WARNING **: 18:19:39.680: Failed to create colord device for 'xrandr-MetaProducts Inc.-MetaMonitor-0xC0FFEE-1': device id 'xrandr-MetaProducts Inc.-MetaMonitor-0xC0FFEE-1' already exists
+[Thread 0x7fffe9c9d6c0 (LWP 179113) exited]
+GNOME Shell-Message: 18:19:45.997: Unset XDG_SESSION_ID, getCurrentSessionProxy() called outside a user session. Asking logind directly.
+GNOME Shell-Message: 18:19:46.004: Will monitor session 69
+[New Thread 0x7fffe9c9d6c0 (LWP 179318)]
+[New Thread 0x7fffe8c9b6c0 (LWP 179319)]
+
+** (gnome-shell:178818): WARNING **: 18:19:47.950: Could not issue 'GetUnit' systemd call
+[Detaching after fork from child process 179341]
+
+(gnome-shell:178818): Gjs-WARNING **: 18:19:48.589: Gio.UnixInputStream has been moved to a separate platform-specific library. Please update your code to use GioUnix.InputStream instead.
+0 inhibit() ["resource:///org/gnome/shell/misc/loginManager.js":209:8]
+1 InterpretGeneratorResume() ["self-hosted":1461:33]
+2 AsyncFunctionNext() ["self-hosted":852:26]
+3 anonymous() ["resource:///org/gnome/shell/ui/init.js":21:19]
+
+[New Thread 0x7fffe949c6c0 (LWP 179351)]
+[New Thread 0x7fffea49e6c0 (LWP 179352)]
+[New Thread 0x7fffb8d836c0 (LWP 179353)]
+[New Thread 0x7fffab1ff6c0 (LWP 179354)]
+[New Thread 0x7fffaa9fe6c0 (LWP 179355)]
+
+(gnome-shell:178818): GNOME Shell-CRITICAL **: 18:19:48.612: Gio.DBusError: GDBus.Error:org.freedesktop.DBus.Error.ServiceUnknown: The name org.gnome.Shell.CalendarServer was not provided by any .service files
+
+Stack trace:
+  asyncCallback@resource:///org/gnome/gjs/modules/core/overrides/Gio.js:114:23
+  @resource:///org/gnome/shell/ui/init.js:21:20
+  
+
+(gnome-shell:178818): GNOME Shell-CRITICAL **: 18:19:48.613: Gio.DBusError: GDBus.Error:org.freedesktop.DBus.Error.ServiceUnknown: The name org.gnome.Shell.CalendarServer was not provided by any .service files
+
+Stack trace:
+  asyncCallback@resource:///org/gnome/gjs/modules/core/overrides/Gio.js:114:23
+  @resource:///org/gnome/shell/ui/init.js:21:20
+  
+invoking IsSupported() failed for remote volume monitor with dbus name org.gtk.vfs.UDisks2VolumeMonitor:: GDBus.Error:org.freedesktop.DBus.Error.ServiceUnknown: The name org.gtk.vfs.UDisks2VolumeMonitor was not provided by any .service files (g-dbus-error-quark, 2)
+invoking IsSupported() failed for remote volume monitor with dbus name org.gtk.vfs.GoaVolumeMonitor:: GDBus.Error:org.freedesktop.DBus.Error.ServiceUnknown: The name org.gtk.vfs.GoaVolumeMonitor was not provided by any .service files (g-dbus-error-quark, 2)
+invoking IsSupported() failed for remote volume monitor with dbus name org.gtk.vfs.MTPVolumeMonitor:: GDBus.Error:org.freedesktop.DBus.Error.ServiceUnknown: The name org.gtk.vfs.MTPVolumeMonitor was not provided by any .service files (g-dbus-error-quark, 2)
+invoking IsSupported() failed for remote volume monitor with dbus name org.gtk.vfs.GPhoto2VolumeMonitor:: GDBus.Error:org.freedesktop.DBus.Error.ServiceUnknown: The name org.gtk.vfs.GPhoto2VolumeMonitor was not provided by any .service files (g-dbus-error-quark, 2)
+invoking IsSupported() failed for remote volume monitor with dbus name org.gtk.vfs.AfcVolumeMonitor:: GDBus.Error:org.freedesktop.DBus.Error.ServiceUnknown: The name org.gtk.vfs.AfcVolumeMonitor was not provided by any .service files (g-dbus-error-quark, 2)
+GNOME Shell-Message: 18:19:48.841: Failed to register AuthenticationAgent
+[Thread 0x7fffd09ff6c0 (LWP 179058) exited]
+[New Thread 0x7fffd09ff6c0 (LWP 179382)]
+[Thread 0x7fffe9c9d6c0 (LWP 179318) exited]
+[Thread 0x7fffea49e6c0 (LWP 179352) exited]
+[Thread 0x7fffb8d836c0 (LWP 179353) exited]
+[Thread 0x7fffe8c9b6c0 (LWP 179319) exited]
+[Thread 0x7fffab1ff6c0 (LWP 179354) exited]
+[Thread 0x7fffaa9fe6c0 (LWP 179355) exited]
+/usr/share/ibus-table/engine/main.py:232: DeprecationWarning: Testing an element's truth value will raise an exception in future versions.  Use specific 'len(elem)' or 'elem is not None' test instead.
+  if element:
+
+(gnome-shell:178818): libmutter-WARNING **: 18:19:49.588: (../src/backends/meta-barrier.c:258):init_barrier_impl: runtime check failed: (priv->impl)
+
+(gnome-shell:178818): libmutter-WARNING **: 18:19:49.589: (../src/backends/meta-barrier.c:258):init_barrier_impl: runtime check failed: (priv->impl)
+
+(gnome-shell:178818): libmutter-WARNING **: 18:19:49.589: (../src/backends/meta-barrier.c:258):init_barrier_impl: runtime check failed: (priv->impl)
+portal is not running: GDBus.Error:org.freedesktop.DBus.Error.ServiceUnknown: The name org.freedesktop.portal.IBus was not provided by any .service files
+[New Thread 0x7fffaa9fe6c0 (LWP 179422)]
+[New Thread 0x7fffab1ff6c0 (LWP 179430)]
+[Thread 0x7fffaa9fe6c0 (LWP 179422) exited]
+[Thread 0x7fffe949c6c0 (LWP 179351) exited]
+[New Thread 0x7fffe949c6c0 (LWP 179486)]
+[New Thread 0x7fffaa9fe6c0 (LWP 179488)]
+[Thread 0x7fffe949c6c0 (LWP 179486) exited]
+[Thread 0x7fffab1ff6c0 (LWP 179430) exited]
+[New Thread 0x7fffab1ff6c0 (LWP 179554)]
+[New Thread 0x7fffe949c6c0 (LWP 179558)]
+[New Thread 0x7fffe8c9b6c0 (LWP 179563)]
+[New Thread 0x7fffb8d836c0 (LWP 179579)]
+[New Thread 0x7fffa99ff6c0 (LWP 179610)]
+** Message: 18:19:55.755: Failed to start camera monitor
+[Thread 0x7fffb8d836c0 (LWP 179579) exited]
+[New Thread 0x7fffb8d836c0 (LWP 179630)]
+[New Thread 0x7fffa91fe6c0 (LWP 179635)]
+[New Thread 0x7fffa89fd6c0 (LWP 179637)]
+[New Thread 0x7fff97fff6c0 (LWP 179638)]
+[New Thread 0x7fff977fe6c0 (LWP 179640)]
+[New Thread 0x7fff96ffd6c0 (LWP 179647)]
+[New Thread 0x7fff967fc6c0 (LWP 179648)]
+[New Thread 0x7fff95ffb6c0 (LWP 179651)]
+[Thread 0x7fff977fe6c0 (LWP 179640) exited]
+[Thread 0x7fff97fff6c0 (LWP 179638) exited]
+[Thread 0x7fffa91fe6c0 (LWP 179635) exited]
+[Thread 0x7fff967fc6c0 (LWP 179648) exited]
+[Thread 0x7fff95ffb6c0 (LWP 179651) exited]
+[Thread 0x7fff96ffd6c0 (LWP 179647) exited]
+[Thread 0x7fffa89fd6c0 (LWP 179637) exited]
+GNOME Shell-Message: 18:19:58.438: GNOME Shell started at Tue Oct 06 2026 18:19:47 GMT-0300 (Brasilia Standard Time)
+GNOME Shell-Message: 18:19:58.458: Registering session with GDM
+[Thread 0x7fffaa9fe6c0 (LWP 179488) exited]
+
+Thread 1 "gnome-shell" hit Breakpoint 1, 0x00007ffff794abf0 in g_return_if_fail_warning () from /lib/x86_64-linux-gnu/libglib-2.0.so.0
+0x7ffff75b7014:	"libmutter"
+0x7ffff75e9180:	"meta_window_set_stack_position_no_sync"
+0x7ffff75bf64d:	"window->stack_position >= 0"
+#0  0x00007ffff794abf0 in g_return_if_fail_warning () at /lib/x86_64-linux-gnu/libglib-2.0.so.0
+#1  0x00007ffff74e378a in ??? () at /lib/x86_64-linux-gnu/libmutter-14.so.0
+#2  0x00007ffff74eb1a8 in meta_window_raise () at /lib/x86_64-linux-gnu/libmutter-14.so.0
+#3  0x00007ffff74eff98 in ??? () at /lib/x86_64-linux-gnu/libmutter-14.so.0
+#4  0x00007ffff75482b1 in ??? () at /lib/x86_64-linux-gnu/libmutter-14.so.0
+#5  0x00007ffff683cb16 in ??? () at /lib/x86_64-linux-gnu/libffi.so.8
+#6  0x00007ffff68393ef in ??? () at /lib/x86_64-linux-gnu/libffi.so.8
+#7  0x00007ffff683c0be in ffi_call () at /lib/x86_64-linux-gnu/libffi.so.8
+#8  0x00007ffff46ad393 in ??? () at /lib/x86_64-linux-gnu/libwayland-server.so.0
+#9  0x00007ffff46b1bb4 in ??? () at /lib/x86_64-linux-gnu/libwayland-server.so.0
+#10 0x00007ffff46b0402 in wl_event_loop_dispatch () at /lib/x86_64-linux-gnu/libwayland-server.so.0
+#11 0x00007ffff75442bb in ??? () at /lib/x86_64-linux-gnu/libmutter-14.so.0
+#12 0x00007ffff7944635 in ??? () at /lib/x86_64-linux-gnu/libglib-2.0.so.0
+#13 0x00007ffff79a3bf7 in ??? () at /lib/x86_64-linux-gnu/libglib-2.0.so.0
+#14 0x00007ffff7944ff7 in g_main_loop_run () at /lib/x86_64-linux-gnu/libglib-2.0.so.0
+#15 0x00007ffff74d50aa in meta_context_run_main_loop () at /lib/x86_64-linux-gnu/libmutter-14.so.0
+#16 0x00007ffff683cb16 in ??? () at /lib/x86_64-linux-gnu/libffi.so.8
+#17 0x00007ffff68393ef in ??? () at /lib/x86_64-linux-gnu/libffi.so.8
+#18 0x00007ffff683c0be in ffi_call () at /lib/x86_64-linux-gnu/libffi.so.8
+#19 0x00007ffff77f0bc9 in ??? () at /lib/x86_64-linux-gnu/libgjs.so.0
+Kill the program being debugged? (y or n) [answered Y; input not from terminal]
+[Inferior 1 (process 178818) killed]

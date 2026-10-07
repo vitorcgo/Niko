@@ -10,6 +10,9 @@ export interface Faixa {
 
 interface RespostaMidia {
   sessao: boolean;
+  player?: string;
+  dono?: string;
+  faixaId?: string | null;
   app?: string;
   titulo?: string;
   artista?: string;
@@ -17,6 +20,7 @@ interface RespostaMidia {
   posicao?: number;
   duracao?: number;
   capa?: string | null;
+  podeAlternar?: boolean;
   podeAvancar?: boolean;
   podeVoltar?: boolean;
   podeBuscar?: boolean;
@@ -24,11 +28,13 @@ interface RespostaMidia {
 
 interface EstadoMidia {
   disponivel: boolean;
+  alvo: { player?: string; dono?: string; faixaId?: string | null };
   faixa: Faixa | null;
   tocando: boolean;
   tocouPorUltimoEm: number;
   posicao: number;
   lidoEm: number;
+  podeAlternar: boolean;
   podeAvancar: boolean;
   podeVoltar: boolean;
   podeBuscar: boolean;
@@ -46,15 +52,17 @@ function mesmaFaixa(a: Faixa | null, b: Faixa): boolean {
 }
 
 function aplicar(r: RespostaMidia, anterior: Faixa | null): Partial<EstadoMidia> {
-  if (!r.sessao || !r.titulo) return { disponivel: true, faixa: null, tocando: false, posicao: 0, lidoEm: Date.now(), tocouPorUltimoEm: 0, podeAvancar: false, podeVoltar: false, podeBuscar: false };
+  if (!r.sessao || !r.titulo) return { alvo: {}, disponivel: true, faixa: null, tocando: false, posicao: 0, lidoEm: Date.now(), tocouPorUltimoEm: 0, podeAlternar: false, podeAvancar: false, podeVoltar: false, podeBuscar: false };
   const nova: Faixa = { titulo: r.titulo, artista: r.artista ?? "", app: nomeDoApp(r.app ?? ""), duracao: r.duracao ?? 0, capa: r.capa ?? null };
   return {
+    alvo: { player: r.player, dono: r.dono, faixaId: r.faixaId },
     disponivel: true,
     faixa: mesmaFaixa(anterior, nova) ? anterior : nova,
     tocando: Boolean(r.tocando),
     ...(r.tocando ? { tocouPorUltimoEm: Date.now() } : {}),
     posicao: r.posicao ?? 0,
     lidoEm: Date.now(),
+    podeAlternar: r.podeAlternar ?? true,
     podeAvancar: Boolean(r.podeAvancar),
     podeVoltar: Boolean(r.podeVoltar),
     podeBuscar: Boolean(r.podeBuscar),
@@ -86,23 +94,26 @@ export const useMidia = create<EstadoMidia>()((set, get) => {
   let consultaEmAndamento = false;
   let acoesEmAndamento = 0;
   let revisao = 0;
-  const agir = async (acao: string, corpo: unknown = {}) => {
+  const agir = async (acao: string, corpo: Record<string, unknown> = {}) => {
+    if (acoesEmAndamento) return;
     const atual = ++revisao;
     acoesEmAndamento++;
     try {
-      const r = await pedir(`/${acao}`, corpo);
+      const r = await pedir(`/${acao}`, { ...corpo, ...get().alvo });
       if (atual !== revisao) return;
       if (r) set(aplicar(r, get().faixa));
-      else set({ disponivel: false, tocando: false });
+      else set({ disponivel: false, tocando: false, podeAlternar: false, podeAvancar: false, podeVoltar: false, podeBuscar: false });
     } finally { acoesEmAndamento--; }
   };
   return {
+    alvo: {},
     disponivel: false,
     faixa: null,
     tocando: false,
     tocouPorUltimoEm: 0,
     posicao: 0,
     lidoEm: 0,
+    podeAlternar: false,
     podeAvancar: false,
     podeVoltar: false,
     podeBuscar: false,
@@ -114,13 +125,13 @@ export const useMidia = create<EstadoMidia>()((set, get) => {
         const r = await pedir("");
         if (atual !== revisao) return;
         if (r) set(aplicar(r, get().faixa));
-        else set({ disponivel: false, faixa: null, tocando: false });
+        else set({ alvo: {}, disponivel: false, faixa: null, tocando: false, podeAlternar: false, podeAvancar: false, podeVoltar: false, podeBuscar: false });
       } finally { consultaEmAndamento = false; }
     },
-    alternar: () => agir("alternar"),
-    proxima: () => agir("proxima"),
-    anterior: () => agir("anterior"),
-    buscar: (segundos) => agir("posicao", { segundos }),
+    alternar: () => get().podeAlternar ? agir("alternar") : Promise.resolve(),
+    proxima: () => get().podeAvancar ? agir("proxima") : Promise.resolve(),
+    anterior: () => get().podeVoltar ? agir("anterior") : Promise.resolve(),
+    buscar: (segundos) => get().podeBuscar ? agir("posicao", { segundos }) : Promise.resolve(),
   };
 });
 

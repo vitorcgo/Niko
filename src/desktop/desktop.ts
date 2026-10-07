@@ -12,6 +12,8 @@ const internos = typeof window !== "undefined" ? (window as unknown as { __TAURI
 
 export const NATIVO = Boolean(internos);
 
+export const LINUX = NATIVO && (window as unknown as { __NIKO_PLATAFORMA__?: string }).__NIKO_PLATAFORMA__ === "linux";
+
 export const JANELA: NomeJanela | null = NATIVO ? ((internos?.metadata?.currentWindow?.label as NomeJanela | undefined) ?? "sistema") : null;
 
 export type Comando =
@@ -20,7 +22,7 @@ export type Comando =
   | { tipo: "abrirBusca" }
   | { tipo: "abrirCaptura" };
 
-const canal = !NATIVO && typeof BroadcastChannel !== "undefined" ? new BroadcastChannel("niko-comandos") : null;
+const canal = typeof window !== "undefined" && !NATIVO && typeof BroadcastChannel !== "undefined" ? new BroadcastChannel("niko-comandos") : null;
 
 export function enviarComando(c: Comando) {
   if (NATIVO) {
@@ -94,7 +96,14 @@ export function mostrarSistema() {
 }
 
 export function informarAreaInterativa(retangulos: { x: number; y: number; w: number; h: number }[]) {
+  if (LINUX && JANELA !== "dock") return;
   return invocar("area_interativa", { janela: JANELA, retangulos });
+}
+
+export async function dimensionarIlha(largura: number, altura: number) {
+  if (!LINUX || JANELA !== "ilha") return;
+  const { invoke } = await import("@tauri-apps/api/core");
+  await invoke("dimensionar_ilha", { largura, altura });
 }
 
 export async function janelaAtual() {
@@ -121,7 +130,7 @@ function enviarPelaPonte(base: string, token: string | null) {
 }
 
 export async function prepararPonte() {
-  if (NATIVO && window.location.hostname === "tauri.localhost") {
+  if (NATIVO && (window.location.hostname === "tauri.localhost" || window.location.protocol === "tauri:")) {
     const [token, porta] = await Promise.all([invocar<string>("token_ponte"), invocar<number>("porta_ponte")]);
     enviarPelaPonte(`http://127.0.0.1:${porta ?? 47831}`, token);
     return;
@@ -147,7 +156,7 @@ const INTERVALO_SEGURANCA_AREA_MS = 1000;
 export function usarAreaInterativa(seletores: string[]) {
   const chaveSeletores = seletores.join(",");
   useEffect(() => {
-    if (!NATIVO) return;
+    if (!NATIVO || LINUX && JANELA !== "dock") return;
     let anterior = "";
     let quadro = 0;
     const medir = () => {
@@ -180,7 +189,7 @@ export function usarAreaInterativa(seletores: string[]) {
     estrutura.observe(document.body, { subtree: true, childList: true });
     const eventos = ["resize", "transitionend", "animationend"] as const;
     for (const e of eventos) window.addEventListener(e, agendar, true);
-    const seguranca = window.setInterval(agendar, INTERVALO_SEGURANCA_AREA_MS);
+    const seguranca = window.setInterval(() => { if (LINUX) anterior = ""; agendar(); }, INTERVALO_SEGURANCA_AREA_MS);
     return () => {
       atributos.disconnect();
       estrutura.disconnect();
@@ -193,7 +202,7 @@ export function usarAreaInterativa(seletores: string[]) {
 
 export function usarCursorFora(fn: () => void) {
   useEffect(() => {
-    if (!NATIVO) return;
+    if (!NATIVO || LINUX) return;
     let desligar: () => void = () => undefined;
     let ativo = true;
     void ouvirEvento("niko://cursor-fora", fn).then((f) => {
@@ -262,6 +271,7 @@ export function ocultarBarraDoWindows(ocultar: boolean) {
 }
 
 export function reservarEspacoDoDock(reservar: boolean) {
+  if (LINUX) return fetch("/ponte/janelas/reservar", { method: "POST", headers: { "x-niko": "1", "content-type": "application/json" }, body: JSON.stringify({ reservar }) }).catch(() => null);
   return invocar("reservar_dock", { reservar });
 }
 
@@ -272,6 +282,8 @@ export interface EstadoDaFrente {
   telaCheia: boolean;
   maximizada: boolean;
   frente: TipoDaFrente;
+  cursorNoDock?: boolean;
+  geracao?: string;
 }
 
 const FRENTE_LIVRE: EstadoDaFrente = { cobre: false, telaCheia: false, maximizada: false, frente: "area_de_trabalho" };
@@ -297,13 +309,21 @@ export async function notificarWindows(titulo: string, corpo: string): Promise<v
   }
 }
 
+async function lerEstadoDaFrente(): Promise<EstadoDaFrente | null> {
+  if (!LINUX) return invocar<EstadoDaFrente>("frente_cobre_tela");
+  try {
+    const resposta = await fetch("/ponte/janelas/estado", { headers: { "x-niko": "1" } });
+    return resposta.ok ? await resposta.json() as EstadoDaFrente : null;
+  } catch { return null; }
+}
+
 export async function frenteCobreAIlha(): Promise<boolean> {
-  const r = await invocar<EstadoDaFrente>("frente_cobre_tela");
+  const r = await lerEstadoDaFrente();
   return Boolean(r?.cobre);
 }
 
 export async function frenteEmTelaCheia(): Promise<boolean> {
-  const r = await invocar<EstadoDaFrente>("frente_cobre_tela");
+  const r = await lerEstadoDaFrente();
   return Boolean(r?.telaCheia);
 }
 
@@ -316,13 +336,15 @@ export function usarEstadoDaFrente(ativo: boolean): EstadoDaFrente {
     }
     let vivo = true;
     const ler = async () => {
-      const r = await invocar<EstadoDaFrente>("frente_cobre_tela");
+      const r = await lerEstadoDaFrente();
       if (!vivo) return;
       const cobre = Boolean(r?.cobre);
       const telaCheia = Boolean(r?.telaCheia);
       const maximizada = Boolean(r?.maximizada);
       const frente: TipoDaFrente = r?.frente === "app" || r?.frente === "sobreposta" ? r.frente : "area_de_trabalho";
-      setEstado((anterior) => (anterior.cobre === cobre && anterior.telaCheia === telaCheia && anterior.maximizada === maximizada && anterior.frente === frente ? anterior : { cobre, telaCheia, maximizada, frente }));
+      const cursorNoDock = LINUX ? Boolean(r?.cursorNoDock) : undefined;
+      const geracao = LINUX && typeof r?.geracao === "string" ? r.geracao : undefined;
+      setEstado((anterior) => (anterior.geracao === geracao && anterior.cobre === cobre && anterior.telaCheia === telaCheia && anterior.maximizada === maximizada && anterior.frente === frente && anterior.cursorNoDock === cursorNoDock ? anterior : { cobre, telaCheia, maximizada, frente, ...(LINUX ? { cursorNoDock, geracao } : {}) }));
     };
     void ler();
     const t = window.setInterval(() => void ler(), 800);
@@ -343,5 +365,6 @@ export async function agirNaJanela(acao: "focar" | "minimizar" | "fechar", id: s
 }
 
 export function alternarSistemaNativo() {
+  if (LINUX) return fetch("/ponte/janelas/niko", { method: "POST", headers: { "x-niko": "1", "content-type": "application/json" }, body: "{}" }).catch(() => null);
   return invocar("alternar_sistema");
 }

@@ -1,0 +1,6 @@
+Laboratório: /tmp/niko-native.wP5eCc
+Resultado:
+PASS: five hide/remap cycles; native Mutter anchor/focus/tablist; attention focus; disable/enable; permission denial; service disappearance/missing
+
+Críticos encontrados:
+

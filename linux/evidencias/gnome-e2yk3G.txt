@@ -1,0 +1,10 @@
+Laboratório: /tmp/niko-native.e2yk3G
+Resultado:
+PASS: baseline five GTK hide/remap cycles without production extension
+FAIL: native critical in logs
+
+Críticos encontrados:
+(gnome-shell:142127): libmutter-CRITICAL **: 17:22:12.870: meta_window_set_stack_position_no_sync: assertion 'window->stack_position >= 0' failed
+(gnome-shell:142127): libmutter-CRITICAL **: 17:22:18.866: meta_window_set_stack_position_no_sync: assertion 'window->stack_position >= 0' failed
+(gnome-shell:142127): libmutter-CRITICAL **: 17:22:24.871: meta_window_set_stack_position_no_sync: assertion 'window->stack_position >= 0' failed
+(gnome-shell:142127): libmutter-CRITICAL **: 17:22:30.879: meta_window_set_stack_position_no_sync: assertion 'window->stack_position >= 0' failed

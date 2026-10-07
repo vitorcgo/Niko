@@ -1,5 +1,5 @@
 import { readFileSync, writeFileSync, mkdirSync, renameSync, existsSync } from "node:fs";
-import { join } from "node:path";
+import { isAbsolute, join } from "node:path";
 import { homedir } from "node:os";
 import { randomUUID } from "node:crypto";
 import { lerSegredo, gravarSegredo, apagarSegredo } from "./segredos";
@@ -71,7 +71,9 @@ export function validarMensagens(valor: unknown): MensagemIa[] {
     }));
 }
 
-const PASTA = join(process.env.APPDATA ?? join(homedir(), "AppData", "Roaming"), "com.niko.desktop");
+const PASTA = join(process.env.APPDATA ?? (process.platform === "linux"
+  ? (process.env.XDG_DATA_HOME && isAbsolute(process.env.XDG_DATA_HOME) ? process.env.XDG_DATA_HOME : join(homedir(), ".local", "share"))
+  : join(homedir(), "AppData", "Roaming")), "com.niko.desktop");
 const ARQUIVO = join(PASTA, "provedores.json");
 
 export function pastaDados() {
@@ -112,14 +114,15 @@ export async function salvarProvedor(dados: { id?: string; tipo: TipoProvedor; n
   const lista = listarProvedores();
   const id = dados.id && lista.some((p) => p.id === dados.id) ? dados.id : `ia-${randomUUID().slice(0, 8)}`;
   if (dados.chave) await gravarSegredo(id, dados.chave.trim());
-  const anterior = lista.find((p) => p.id === id);
+  const atual = listarProvedores();
+  const anterior = atual.find((p) => p.id === id);
   const provedor: Provedor = { id, tipo: dados.tipo, nome, urlBase, modelo, temChave: Boolean(dados.chave) || Boolean(anterior?.temChave), catalogo: catalogo ?? anterior?.catalogo };
-  salvarLista([...lista.filter((p) => p.id !== id), provedor]);
+  salvarLista([...atual.filter((p) => p.id !== id), provedor]);
   return provedor;
 }
 
 export async function removerProvedor(id: string) {
-  await apagarSegredo(id).catch(() => undefined);
+  if (listarProvedores().some((p) => p.id === id && p.temChave)) await apagarSegredo(id);
   salvarLista(listarProvedores().filter((p) => p.id !== id));
 }
 

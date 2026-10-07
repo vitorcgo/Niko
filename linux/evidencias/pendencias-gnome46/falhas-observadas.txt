@@ -1,0 +1,7 @@
+Inspeção do painel: runner expirou na primeira tentativa; overview inicial e calibração/tempo do ponteiro virtual corrigidos no harness privado. Inspeção posterior passou.
+Dock esconder: refoco da fixture necessário após clique que legitimamente ativava Niko. Harness corrigido; rodada final passou.
+Dock inteligente: primeira asserção usava estado hidden do ator GNOME, reservado a fullscreen; teste corrigido para cobre do estado GNOME + clique pass-through do frontend.
+Rodada seguinte: ocultação/cliques passaram, ação focar pela ponte retornou integracao_janelas_indisponivel. Repetição sem mudança no produto passou. Causa da falha intermitente ainda não confirmada; não declarar estabilidade.
+CPU por software variou (fixo 8,7%; esconder 81,2%; inteligente falho 24,6% de um núcleo em janelas de 8s). Sem baseline/hardware equivalente; não comprova ganho ou baixo consumo estável.
+Gate final com ferramentas: asserção do overview falhou porque o próprio harness fechava o overview a cada 2s durante o teste da API. Corrigido o harness para parar essa interferência após terminar os cliques do dock; produto sem mudança.
+Painel final: captura real mostrou UI correta, mas runner terminou 143 sem result/cleanup final; app/shell posteriormente conferidos já encerrados. Não contar como gate completo; inspeção anterior tinha PASS.
