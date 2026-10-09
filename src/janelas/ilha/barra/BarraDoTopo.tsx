@@ -163,7 +163,8 @@ function LadoDireito({ pop, alternarPainel, alternarBandeja }: { pop: Pop; alter
 export function BarraDoTopo({ visivel, escala, larguraDaIlha, aparencia, aoAbrirAba, aoUsar }: PropsBarra) {
   const [pop, setPop] = useState<Pop>(null);
   const [sobre, setSobre] = useState(false);
-  usarAudio(visivel, pop?.tipo === "painel" ? 1000 : 3000);
+  const playerAberto = useIlha((s) => s.estado === "expandida" && s.aba === "midia");
+  usarAudio(visivel || playerAberto, pop?.tipo === "painel" ? 1000 : 3000);
   usarRede(visivel, pop?.tipo === "painel" ? 8000 : 30000);
   usarCursorFora(useCallback(() => setSobre(false), []));
 

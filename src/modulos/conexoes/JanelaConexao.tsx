@@ -320,9 +320,15 @@ function ConteudoServico({ servico, aba, filtro, dados }: { servico: ServicoId; 
     );
   }
 
-  if (servico === "gmail") {
-    const d = dados as DadosServico["gmail"];
-    const tabela = (linhas: DadosServico["gmail"]["recentes"]) => (
+  if (servico === "google") {
+    const g = dados as DadosServico["google"];
+    const G = T.janelaConexao.google;
+    const M = T.janelaConexao.metricas;
+    const avisos = (Object.keys(G.partes) as (keyof typeof G.partes)[]).flatMap((p) => {
+      const f = g.falhas[p];
+      return f ? [<AvisoFaixa key={p} tipo="alerta">{G.falhas[f](G.partes[p])}</AvisoFaixa>] : [];
+    });
+    const emails = (linhas: NonNullable<DadosServico["google"]["gmail"]>["recentes"]) => (
       <Tabela filtro={filtro} linhas={linhas} colunas={[
         { titulo: C.de, render: (l) => <span className="privado" style={{ fontWeight: l.naoLido ? 600 : 400 }}>{l.de}</span>, texto: (l) => l.de },
         { titulo: C.assunto, render: (l) => <span className="privado" style={{ fontWeight: l.naoLido ? 600 : 400 }}>{l.assunto}</span>, texto: (l) => l.assunto },
@@ -330,37 +336,50 @@ function ConteudoServico({ servico, aba, filtro, dados }: { servico: ServicoId; 
         { titulo: C.data, render: (l) => data(l.data), direita: true },
       ]} />
     );
-    if (aba === "importantes") return d.importantes.length ? tabela(d.importantes) : <Vazio titulo={T.janelaConexao.semResultados} />;
-    if (aba === "recentes") return tabela(d.recentes);
-    const M = T.janelaConexao.metricas;
-    return (
-      <div className="coluna">
-        <div className="conexao-metricas">
-          <Metrica rotulo={M.naoLidos} valor={d.naoLidos} />
-          <Metrica rotulo={M.importantes} valor={d.importantes.length} />
-          <Metrica rotulo={M.totalEmails} valor={d.total} />
-        </div>
-        <span className="texto-3 privado">{d.email}</span>
-        <h3 className="conexao-bloco-titulo">{T.janelaConexao.ultimas}</h3>
-        {tabela(d.importantes.length ? d.importantes : d.recentes.slice(0, 8))}
-      </div>
+    const agenda = (linhas: NonNullable<DadosServico["google"]["agenda"]>["proximos"]) => (
+      <Tabela filtro={filtro} linhas={linhas} colunas={[
+        { titulo: C.data, render: (l) => formatar(l.data, "EEE, d 'de' MMM"), texto: (l) => l.data },
+        { titulo: C.inicio, render: (l) => l.hora ?? "" },
+        { titulo: C.titulo, render: (l) => (l.link ? <a className="privado" href={l.link} target="_blank" rel="noopener noreferrer">{l.titulo}</a> : <span className="privado">{l.titulo}</span>), texto: (l) => l.titulo },
+      ]} />
     );
-  }
-
-  if (servico === "agenda") {
-    const d = dados as DadosServico["agenda"];
-    const M = T.janelaConexao.metricas;
+    const drive = (linhas: NonNullable<DadosServico["google"]["drive"]>) => (
+      <Tabela filtro={filtro} linhas={linhas} colunas={[
+        { titulo: C.nome, render: (l) => (l.link ? <a className="privado" href={l.link} target="_blank" rel="noopener noreferrer">{l.nome}</a> : <span className="privado">{l.nome}</span>), texto: (l) => l.nome },
+        { titulo: C.tipo, render: (l) => G.tiposArquivo[l.tipo] ?? l.tipo, texto: (l) => G.tiposArquivo[l.tipo] ?? l.tipo },
+        { titulo: C.alterado, render: (l) => data(l.alterado), direita: true },
+      ]} />
+    );
+    const tarefas = (linhas: NonNullable<DadosServico["google"]["tarefas"]>) => (
+      <Tabela filtro={filtro} linhas={linhas} colunas={[
+        { titulo: C.titulo, render: (l) => (l.link ? <a className="privado" href={l.link} target="_blank" rel="noopener noreferrer">{l.titulo}</a> : <span className="privado">{l.titulo}</span>), texto: (l) => l.titulo },
+        { titulo: C.lista, render: (l) => l.lista, texto: (l) => l.lista },
+        { titulo: C.prazo, render: (l) => (l.prazo ? formatar(l.prazo, "d 'de' MMM") : <span className="texto-3">{G.semPrazo}</span>), direita: true },
+      ]} />
+    );
+    const vazio = <Vazio titulo={T.janelaConexao.semResultados} />;
+    if (aba === "importantes") return <div className="coluna">{avisos}{g.gmail?.importantes.length ? emails(g.gmail.importantes) : vazio}</div>;
+    if (aba === "recentes") return <div className="coluna">{avisos}{g.gmail ? emails(g.gmail.recentes) : vazio}</div>;
+    if (aba === "agenda") return <div className="coluna">{avisos}{g.agenda?.proximos.length ? agenda(g.agenda.proximos) : vazio}</div>;
+    if (aba === "drive") return <div className="coluna">{avisos}{g.drive?.length ? drive(g.drive) : vazio}</div>;
+    if (aba === "tarefas") return <div className="coluna">{avisos}{g.tarefas?.length ? tarefas(g.tarefas) : vazio}</div>;
     return (
       <div className="coluna">
+        {avisos}
         <div className="conexao-metricas">
-          <Metrica rotulo={M.hoje} valor={d.hoje} />
-          <Metrica rotulo={M.proximos} valor={d.proximos.length} />
+          <Metrica rotulo={M.naoLidos} valor={g.gmail?.naoLidos ?? "-"} />
+          <Metrica rotulo={M.importantes} valor={g.gmail?.importantes.length ?? "-"} />
+          <Metrica rotulo={M.hoje} valor={g.agenda?.hoje ?? "-"} />
+          <Metrica rotulo={M.tarefasAbertas} valor={g.tarefas?.length ?? "-"} />
+          <Metrica rotulo={M.arquivosRecentes} valor={g.drive?.length ?? "-"} />
         </div>
-        <Tabela filtro={filtro} linhas={d.proximos} colunas={[
-          { titulo: C.data, render: (l) => formatar(l.data, "EEE, d 'de' MMM"), texto: (l) => l.data },
-          { titulo: C.inicio, render: (l) => l.hora ?? "" },
-          { titulo: C.titulo, render: (l) => <span className="privado">{l.titulo}</span>, texto: (l) => l.titulo },
-        ]} />
+        {g.email && <span className="texto-3 privado">{g.email}</span>}
+        {g.gmail && (
+          <>
+            <h3 className="conexao-bloco-titulo">{T.janelaConexao.ultimas}</h3>
+            {emails(g.gmail.importantes.length ? g.gmail.importantes : g.gmail.recentes.slice(0, 8))}
+          </>
+        )}
       </div>
     );
   }

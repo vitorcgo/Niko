@@ -59,9 +59,6 @@ function mil(n: number) {
   return n.toLocaleString("pt-BR", { notation: n >= 10000 ? "compact" : "standard", maximumFractionDigits: 1 });
 }
 
-function quantos(lista: unknown[]) {
-  return lista.length;
-}
 
 export function montarResumo(servico: ServicoId, dados: DadosServico[ServicoId]): Resumo {
   switch (servico) {
@@ -183,28 +180,21 @@ export function montarResumo(servico: ServicoId, dados: DadosServico[ServicoId])
         linhas: d.execucoes.slice(0, 6).map((e) => ({ chave: e.id, principal: e.workflow, secundario: T.janelaConexao.milissegundos(e.duracao), estado: e.status, quando: e.data })),
       };
     }
-    case "gmail": {
-      const d = dados as DadosServico["gmail"];
+    case "google": {
+      const d = dados as DadosServico["google"];
+      const emails = d.gmail ? (d.gmail.importantes.length ? d.gmail.importantes : d.gmail.recentes) : [];
+      const eventos = d.agenda?.proximos ?? [];
       return {
         numeros: [
-          { rotulo: M.naoLidos, valor: d.naoLidos, tom: d.naoLidos ? "alerta" : "" },
-          { rotulo: M.importantes, valor: d.importantes.length },
-          { rotulo: M.totalEmails, valor: mil(d.total) },
-          { rotulo: I.recentes, valor: quantos(d.recentes) },
+          { rotulo: M.naoLidos, valor: d.gmail?.naoLidos ?? "-", tom: d.gmail?.naoLidos ? "alerta" : "" },
+          { rotulo: M.hoje, valor: d.agenda?.hoje ?? "-", tom: d.agenda?.hoje ? "sucesso" : "" },
+          { rotulo: M.tarefasAbertas, valor: d.tarefas?.length ?? "-" },
+          { rotulo: M.arquivosRecentes, valor: d.drive?.length ?? "-" },
         ],
-        tituloDaLista: d.importantes.length ? M.importantes : I.recentes,
-        linhas: (d.importantes.length ? d.importantes : d.recentes).slice(0, 6).map((e) => ({ chave: e.id, principal: e.assunto, secundario: e.de, estado: e.naoLido ? "pendente" : "", quando: e.data })),
-      };
-    }
-    case "agenda": {
-      const d = dados as DadosServico["agenda"];
-      return {
-        numeros: [
-          { rotulo: M.hoje, valor: d.hoje, tom: d.hoje ? "sucesso" : "" },
-          { rotulo: M.proximos, valor: d.proximos.length },
-        ],
-        tituloDaLista: M.proximos,
-        linhas: d.proximos.slice(0, 6).map((e) => ({ chave: e.id, principal: e.titulo, secundario: [formatar(e.data, "EEE, d 'de' MMM"), e.hora].filter(Boolean).join(" . "), estado: "" })),
+        tituloDaLista: emails.length ? (d.gmail?.importantes.length ? M.importantes : I.recentes) : M.proximos,
+        linhas: emails.length
+          ? emails.slice(0, 6).map((e) => ({ chave: e.id, principal: e.assunto, secundario: e.de, estado: e.naoLido ? "pendente" : "", quando: e.data }))
+          : eventos.slice(0, 6).map((e) => ({ chave: e.id, principal: e.titulo, secundario: [formatar(e.data, "EEE, d 'de' MMM"), e.hora].filter(Boolean).join(" . "), estado: "" })),
       };
     }
     case "supabase": {

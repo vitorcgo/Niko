@@ -297,7 +297,7 @@ export default function Calendario() {
   const fimProximos = paraISO(addDays(deISO(hoje), 6));
   const sugestaoGoogle = useConfig((s) => s.sugestaoAgendaGoogle);
   const definirConfig = useConfig((s) => s.definir);
-  const agendaConectada = useComunicacao((s) => Boolean(s.conexoes.find((c) => c.id === "agenda")?.chaveSalva));
+  const agendaConectada = useComunicacao((s) => Boolean(s.conexoes.find((c) => c.id === "google")?.chaveSalva));
   const sugerirGoogle = sugestaoGoogle && !agendaConectada && funcaoLigada("calendario", desligadas);
   const agendaGoogle = usarAgendaGoogle(funcaoLigada("calendario", desligadas) ? [[inicioISO, fimISO], [hoje, fimProximos]] : []);
   const gerar = useMemo(() => (de: string, ate: string) => {
@@ -815,7 +815,7 @@ export default function Calendario() {
             <div className="cl-integracao">
               <span className="cl-integracao-icone"><Marca marca="agenda" tamanho={15} /></span>
               <span className="cl-integracao-texto">{T.calendario.integracaoTexto}</span>
-              <Botao pequeno onClick={() => irPara("conexoes", { servico: "agenda" })}>{T.calendario.integracaoConectar}</Botao>
+              <Botao pequeno onClick={() => irPara("conexoes", { servico: "google" })}>{T.calendario.integracaoConectar}</Botao>
               <Botao pequeno soIcone variante="fantasma" icone={<X size={13} />} aria-label={T.calendario.integracaoEsconder} title={T.calendario.integracaoEsconder} onClick={() => definirConfig({ sugestaoAgendaGoogle: false })} />
             </div>
           )}

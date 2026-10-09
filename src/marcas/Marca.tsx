@@ -1,6 +1,6 @@
 import {
   siStripe, siGithub, siVercel, siResend, siNotion, siCaldotcom, siN8n, siAnthropic, siOllama,
-  siNvidia, siOpencode, siQwen, siGooglegemini, siOpenrouter, siMistralai, siHuggingface, siDeepseek, siLmstudio, siGmail, siGooglecalendar, siSupabase, siCloudflare, siClaudecode, siGithubcopilot, siKimi,
+  siNvidia, siOpencode, siQwen, siGooglegemini, siOpenrouter, siMistralai, siHuggingface, siDeepseek, siLmstudio, siGmail, siGooglecalendar, siGoogle, siGoogledrive, siGoogletasks, siSupabase, siCloudflare, siClaudecode, siGithubcopilot, siKimi,
   siSpotify, siGooglechrome, siFirefoxbrowser, siZenbrowser, siYoutube, siYoutubemusic, siDeezer, siApplemusic, siTidal, siSoundcloud,
 } from "simple-icons";
 import type { ServicoId } from "../tipos";
@@ -14,7 +14,7 @@ interface IconeMarca {
   hex: string;
 }
 
-export type MarcaId = ServicoId | "anthropic" | "ollama" | "nvidia" | "opencode" | "qwen" | "gemini" | "openrouter" | "mistral" | "huggingface" | "deepseek" | "lmstudio" | "claudecode" | "copilot" | "kimi" | MarcaDeMidia | MarcaColorida;
+export type MarcaId = ServicoId | "gmail" | "agenda" | "drive" | "tarefasGoogle" | "anthropic" | "ollama" | "nvidia" | "opencode" | "qwen" | "gemini" | "openrouter" | "mistral" | "huggingface" | "deepseek" | "lmstudio" | "claudecode" | "copilot" | "kimi" | MarcaDeMidia | MarcaColorida;
 
 export type MarcaColorida = "codex" | "antigravity" | "amp";
 
@@ -55,8 +55,11 @@ export const MARCAS: Record<Exclude<MarcaId, MarcaColorida>, IconeMarca> = {
   notion: siNotion,
   calcom: siCaldotcom,
   n8n: siN8n,
+  google: siGoogle,
   gmail: siGmail,
   agenda: siGooglecalendar,
+  drive: siGoogledrive,
+  tarefasGoogle: siGoogletasks,
   supabase: siSupabase,
   cloudflare: siCloudflare,
   anthropic: siAnthropic,

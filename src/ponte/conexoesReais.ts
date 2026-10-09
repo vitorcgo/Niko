@@ -60,6 +60,33 @@ export interface DadosAgenda {
   proximos: EventoGoogle[];
 }
 
+export interface ArquivoDrive {
+  id: string;
+  nome: string;
+  tipo: string;
+  alterado: string;
+  link?: string;
+}
+
+export interface TarefaGoogle {
+  id: string;
+  titulo: string;
+  lista: string;
+  prazo?: string;
+  link?: string;
+}
+
+export type FalhaGoogle = "api_desativada" | "sem_permissao" | "falhou";
+
+export interface DadosGoogle {
+  email: string;
+  gmail: DadosGmail | null;
+  agenda: DadosAgenda | null;
+  drive: ArquivoDrive[] | null;
+  tarefas: TarefaGoogle[] | null;
+  falhas: Partial<Record<"gmail" | "agenda" | "drive" | "tarefas", FalhaGoogle>>;
+}
+
 export interface EventoGoogle {
   id: string;
   titulo: string;
@@ -107,8 +134,7 @@ export interface DadosCloudflare {
 }
 
 export type DadosServico = {
-  gmail: DadosGmail;
-  agenda: DadosAgenda;
+  google: DadosGoogle;
   supabase: DadosSupabase;
   cloudflare: DadosCloudflare;
   stripe: DadosStripe;
@@ -130,6 +156,7 @@ async function pedir<R>(caminho: string, opcoes: RequestInit = {}): Promise<R> {
 }
 
 export const conexoesPonte = {
+  loginDireto: () => pedir<{ disponivel: boolean }>("/google/login-direto", { signal: AbortSignal.timeout(4000) }),
   estado: () => pedir<Record<ServicoId, { temChave: boolean; url: string | null }>>("/conexoes"),
   ler: <S extends ServicoId>(servico: S, forcar = false) => pedir<DadosServico[S]>(`/conexoes/${servico}${forcar ? "?forcar=1" : ""}`),
   salvarChave: (servico: ServicoId, chave: string, extra: { url?: string; clienteId?: string; segredo?: string } = {}) => pedir<{ ok: boolean }>(`/conexoes/${servico}/chave`, { method: "POST", body: JSON.stringify({ chave, ...extra }) }),
@@ -156,10 +183,10 @@ export function resumoDe<S extends ServicoId>(servico: S, dados: DadosServico[S]
       return R.notion((d as DadosNotion).paginas.length);
     case "calcom":
       return R.calcom((d as DadosCalcom).agendamentos.length);
-    case "gmail":
-      return R.gmail((d as DadosGmail).naoLidos, (d as DadosGmail).importantes.length);
-    case "agenda":
-      return R.agenda((d as DadosAgenda).hoje, (d as DadosAgenda).proximos.length);
+    case "google": {
+      const g = d as DadosGoogle;
+      return R.google(g.gmail?.naoLidos ?? null, g.agenda?.hoje ?? null, g.tarefas?.length ?? null);
+    }
     case "supabase":
       return R.supabase((d as DadosSupabase).projetos.length, (d as DadosSupabase).projetos.reduce((a, p) => a + p.usuarios, 0));
     case "cloudflare":
@@ -197,8 +224,8 @@ export function ocorrenciasDe<S extends ServicoId>(servico: S, dados: DadosServi
       return (d as DadosVercel).deploys.filter((x) => x.estado === "pronto" || x.estado === "erro").map((x) => ({ chave: `${x.projeto}-${x.data}`, texto: x.estado === "erro" ? O.deployFalhou(x.projeto) : O.deployPronto(x.projeto), tipo: x.estado === "erro" ? "falha" : "sucesso", data: x.data }));
     case "resend":
       return (d as DadosResend).emails.filter((e) => e.estado === "devolvido" || e.estado === "spam").map((e) => ({ chave: `${e.para}-${e.data}`, texto: O.emailFalhou(e.para), tipo: "falha", data: e.data }));
-    case "gmail":
-      return (d as DadosGmail).importantes.map((e) => ({ chave: e.id, texto: O.emailImportante(e.de, e.assunto), tipo: "sucesso" as const, data: e.data }));
+    case "google":
+      return ((d as DadosGoogle).gmail?.importantes ?? []).map((e) => ({ chave: e.id, texto: O.emailImportante(e.de, e.assunto), tipo: "sucesso" as const, data: e.data }));
     case "supabase":
       return (d as DadosSupabase).projetos.flatMap((p) => p.servicos.filter((x) => !x.saudavel).map((x) => ({ chave: `${p.ref}-${x.nome}-${new Date().toISOString().slice(0, 13)}`, texto: O.supabaseServico(p.nome, x.nome), tipo: "falha" as const, data: new Date().toISOString() })));
     case "cloudflare":
@@ -209,7 +236,7 @@ export function ocorrenciasDe<S extends ServicoId>(servico: S, dados: DadosServi
       return [];
   }
 }
-export const SERVICOS_DO_GOOGLE: ServicoId[] = ["gmail", "agenda"];
+export const SERVICOS_DO_GOOGLE: ServicoId[] = ["google"];
 
 export const LINKS_DO_GUIA: Record<ServicoId, (string | null)[]> = {
   stripe: ["https://dashboard.stripe.com/apikeys", null, null, null],
@@ -219,17 +246,9 @@ export const LINKS_DO_GUIA: Record<ServicoId, (string | null)[]> = {
   notion: ["https://app.notion.com/developers/connections", null, null, null],
   calcom: ["https://app.cal.com/settings/security", null, null],
   n8n: [null, null, null],
-  gmail: [
+  google: [
     "https://console.cloud.google.com/projectcreate",
-    "https://console.cloud.google.com/apis/enableflow;apiid=gmail.googleapis.com",
-    "https://console.cloud.google.com/auth/branding",
-    "https://console.cloud.google.com/auth/audience",
-    "https://console.cloud.google.com/auth/clients",
-    null,
-  ],
-  agenda: [
-    "https://console.cloud.google.com/projectcreate",
-    "https://console.cloud.google.com/apis/enableflow;apiid=calendar-json.googleapis.com",
+    "https://console.cloud.google.com/apis/enableflow;apiid=gmail.googleapis.com,calendar-json.googleapis.com,drive.googleapis.com,tasks.googleapis.com",
     "https://console.cloud.google.com/auth/branding",
     "https://console.cloud.google.com/auth/audience",
     "https://console.cloud.google.com/auth/clients",
@@ -247,8 +266,7 @@ export const PAINEL_OFICIAL: Record<ServicoId, string> = {
   notion: "https://www.notion.so",
   calcom: "https://app.cal.com/bookings/upcoming",
   n8n: "https://n8n.io",
-  gmail: "https://mail.google.com",
-  agenda: "https://calendar.google.com",
+  google: "https://myaccount.google.com/",
   supabase: "https://supabase.com/dashboard/projects",
   cloudflare: "https://dash.cloudflare.com",
 };

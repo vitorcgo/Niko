@@ -107,7 +107,7 @@ test("capacidades vêm das definições reais e respeitam conexões e privacidad
   assert.ok(!nomes.includes("ler_financas"));
   assert.match(textoCapacidades(), /Não pesquiso na internet/);
   assert.match(textoCapacidades(), /controlar_pomodoro/);
-  useComunicacao.setState({ conexoes: [{ id: "gmail", chaveSalva: true }] });
+  useComunicacao.setState({ conexoes: [{ id: "google", chaveSalva: true }] });
   useConfig.setState({ nuncaFinanceiro: false });
   assert.ok(definicoesFerramentas().some((f) => f.nome === "enviar_email"));
   assert.ok(definicoesFerramentas().some((f) => f.nome === "ler_financas"));

@@ -1,6 +1,5 @@
-import { apiGoogle, autorizarGoogle, lerCredencialGmail, type CredencialGmail } from "./gmail";
+import { apiGoogle, lerCredencialGmail, type CredencialGmail } from "./gmail";
 
-const ESCOPOS_AGENDA = ["https://www.googleapis.com/auth/calendar.readonly"];
 const BASE_AGENDA = "https://www.googleapis.com/calendar/v3";
 const DIAS_MAXIMOS_DA_AGENDA = 62;
 const DIAS_DO_RESUMO = 7;
@@ -24,10 +23,6 @@ interface EventoDaApi {
 
 function dataLocal(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-}
-
-export function autorizarAgenda(clienteId: string, segredo: string): Promise<CredencialGmail> {
-  return autorizarGoogle(clienteId, segredo, ESCOPOS_AGENDA, "Google Agenda");
 }
 
 export function converterEventosGoogle(itens: EventoDaApi[], de: string, ate: string): EventoGoogle[] {

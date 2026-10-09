@@ -167,10 +167,10 @@ async function lerArquivoDaMateria(a: Argumentos): Promise<ResultadoFerramenta> 
   return { tipo: "erro", mensagem: T.chat.recursos.arquivoNaoEncontrado };
 }
 
-const SERVICOS_IA: ServicoId[] = ["stripe", "github", "vercel", "gmail", "agenda", "supabase", "cloudflare", "resend", "notion", "calcom", "n8n"];
+const SERVICOS_IA: ServicoId[] = ["stripe", "github", "vercel", "google", "supabase", "cloudflare", "resend", "notion", "calcom", "n8n"];
 
 function cartaoEmail(tipo: "rascunho" | "email", a: Argumentos): ResultadoFerramenta {
-  if (!useComunicacao.getState().conexoes.find((x) => x.id === "gmail")?.chaveSalva) return { tipo: "erro", mensagem: ERROS.gmailDesconectado };
+  if (!useComunicacao.getState().conexoes.find((x) => x.id === "google")?.chaveSalva) return { tipo: "erro", mensagem: ERROS.gmailDesconectado };
   const para = texto(a.para, 200);
   if (!/^[^\s@<>,;]+@[^\s@<>,;]+\.[^\s@<>,;]+$/.test(para)) return { tipo: "erro", mensagem: ERROS.emailInvalido };
   return { tipo: "confirmar", agente: "organizador", cartao: { tipo, situacao: "pendente", dados: { para, assunto: texto(a.assunto, 300), corpo: texto(a.corpo, 8000) } } };
@@ -425,7 +425,7 @@ const FERRAMENTAS: FerramentaNiko[] = [
       parametros: { type: "object", properties: { busca: { type: "string" } }, required: ["busca"] },
     },
     assincrona: async (a) => {
-      if (!useComunicacao.getState().conexoes.find((x) => x.id === "gmail")?.chaveSalva) return { tipo: "erro", mensagem: ERROS.gmailDesconectado };
+      if (!useComunicacao.getState().conexoes.find((x) => x.id === "google")?.chaveSalva) return { tipo: "erro", mensagem: ERROS.gmailDesconectado };
       try {
         return { tipo: "dados", conteudo: await conexoesPonte.buscarEmails(texto(a.busca, 300)) };
       } catch (e) {
@@ -653,7 +653,7 @@ function definicaoAtual(f: FerramentaIa): FerramentaIa {
 
 export function definicoesFerramentas(): FerramentaIa[] {
   const financeiroBloqueado = useConfig.getState().nuncaFinanceiro;
-  const gmailConectado = useComunicacao.getState().conexoes.some((c) => c.id === "gmail" && c.chaveSalva);
+  const gmailConectado = useComunicacao.getState().conexoes.some((c) => c.id === "google" && c.chaveSalva);
   return FERRAMENTAS.map((f) => definicaoAtual(f.definicao)).filter((f) => {
     if (financeiroBloqueado && f.nome === "ler_financas") return false;
     if (!gmailConectado && ["buscar_emails", "criar_rascunho_email", "enviar_email"].includes(f.nome)) return false;

@@ -22,6 +22,7 @@ import { itemFeito, itensDoCalendario, podeMarcarFeito, repeteTodoDia, type Item
 import { marcarItemFeito } from "../../utilitarios/marcarFeito";
 import { usarAgendaGoogle } from "../../modulos/calendario/usarAgendaGoogle";
 import { ConexaoNaIlha } from "./ConexaoNaIlha";
+import { VolumeDoPlayer } from "./VolumeDoPlayer";
 import { EspacoDoPersonagem } from "./animacoes/PersonagemContinuo";
 import { funcaoLigada, secoesDoHojeLigadas } from "../../utilitarios/funcoes";
 import { useFinancas } from "../../estado/financas";
@@ -326,7 +327,7 @@ export function VisaoMidia() {
 
   return (
     <Cartao veu={c1}>
-      <div className="linha" style={{ gap: 26, flex: 1 }}>
+      <div className="ilha-player" style={{ ["--cor-capa" as string]: c1 }}>
         <div className="ilha-capa-com-personagem">
           <div className="ilha-capa" style={{ width: 96, height: 96, borderRadius: 10, background: fundoDaCapa(faixa), boxShadow: `0 8px 24px ${c1}55` }} />
           <EspacoDoPersonagem tamanho={38} posicao="expandida" flutuar className="ilha-capa-personagem" />
@@ -369,7 +370,8 @@ export function VisaoMidia() {
             <span>{fmt(faixa.duracao)}</span>
           </div>
         </div>
-        <div className="linha" style={{ gap: 4 }}>
+        <div className="ilha-player-controles">
+        <div className="linha" style={{ gap: 4, justifyContent: "center" }}>
           <button type="button" className="ilha-botao ilha-botao-redondo" aria-label={T.ilha.anterior} disabled={!midia.podeVoltar} onClick={midia.anterior}>
             <SkipBack size={15} />
           </button>
@@ -379,6 +381,8 @@ export function VisaoMidia() {
           <button type="button" className="ilha-botao ilha-botao-redondo" aria-label={T.ilha.proxima} disabled={!midia.podeAvancar} onClick={midia.proxima}>
             <SkipForward size={15} />
           </button>
+        </div>
+        <VolumeDoPlayer />
         </div>
       </div>
     </Cartao>

@@ -9,7 +9,7 @@ const cache = new Map<string, { quando: number; eventos: EventoGoogle[] }>();
 export type SituacaoDaAgendaGoogle = "desligada" | "carregando" | "ok" | "semPermissao" | "apiDesativada" | "erro";
 
 export function usarAgendaGoogle(periodos: [string, string][]): { eventos: EventoGoogle[]; situacao: SituacaoDaAgendaGoogle; atualizar: () => void } {
-  const agenda = useComunicacao((s) => s.conexoes.find((c) => c.id === "agenda"));
+  const agenda = useComunicacao((s) => s.conexoes.find((c) => c.id === "google"));
   const ligada = Boolean(agenda?.ligada && agenda.chaveSalva);
   const chave = periodos.map(([de, ate]) => `${de}_${ate}`).join("|");
   const [estado, setEstado] = useState<{ chave: string; eventos: EventoGoogle[]; situacao: SituacaoDaAgendaGoogle }>({ chave: "", eventos: [], situacao: "desligada" });

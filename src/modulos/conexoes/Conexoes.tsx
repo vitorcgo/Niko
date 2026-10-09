@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { KeyRound, Pin, PinOff, RefreshCw, TriangleAlert, ShieldCheck, ExternalLink, Play, Pause } from "lucide-react";
 import { CabecalhoAba } from "../../componentes/CabecalhoAba";
 import { Botao, AvisoFaixa, Modal, Campo, LinhaAlternador, Alternador } from "../../componentes/basicos";
@@ -51,38 +51,59 @@ function Configurar({ servico, aoFechar }: { servico: ServicoId | null; aoFechar
   const [clienteId, setClienteId] = useState("");
   const [erro, setErro] = useState("");
   const [testando, setTestando] = useState(false);
+  const [loginDisponivel, setLoginDisponivel] = useState(false);
+  const [clienteProprio, setClienteProprio] = useState(false);
+  const [verificandoLogin, setVerificandoLogin] = useState(servico === "google");
+  const salvando = useRef(false);
   useEffect(() => {
+    let ativo = true;
     setChave("");
+    setClienteId("");
     setErro("");
     setUrl("");
+    setLoginDisponivel(false);
+    setClienteProprio(false);
+    setVerificandoLogin(servico === "google");
+    if (servico === "google") {
+      void conexoesPonte.loginDireto().then((r) => {
+        if (ativo) setLoginDisponivel(r.disponivel === true);
+      }).catch(() => undefined).finally(() => {
+        if (ativo) setVerificandoLogin(false);
+      });
+    }
+    return () => { ativo = false; };
   }, [servico]);
   if (!servico || !conexao) return <Modal aberto={false} titulo="" aoFechar={aoFechar}>{null}</Modal>;
   const nome = T.conexoes.servicos[servico].nome;
   const doGoogle = SERVICOS_DO_GOOGLE.includes(servico);
+  const loginSimples = servico === "google" && loginDisponivel && !clienteProprio;
   const fixadas = conexoes.filter((c) => c.fixadaNaIlha).length;
 
   const salvar = async () => {
-    if (doGoogle && !/\.apps\.googleusercontent\.com$/.test(clienteId.trim())) {
+    if (salvando.current || verificandoLogin) return;
+    if (doGoogle && !loginSimples && !/\.apps\.googleusercontent\.com$/.test(clienteId.trim())) {
       setErro(T.conexoes.clienteIdInvalido);
       return;
     }
-    if (chave.trim().length < 8) {
+    if (!loginSimples && chave.trim().length < 8) {
       setErro(T.conexoes.chaveCurta);
       return;
     }
+    salvando.current = true;
     setTestando(true);
     setErro("");
     try {
-      await conexoesPonte.salvarChave(servico, chave.trim(), servico === "n8n" ? { url: url.trim() } : doGoogle ? { clienteId: clienteId.trim(), segredo: chave.trim() } : {});
+      await conexoesPonte.salvarChave(servico, loginSimples ? "" : chave.trim(), loginSimples ? {} : servico === "n8n" ? { url: url.trim() } : doGoogle ? { clienteId: clienteId.trim(), segredo: chave.trim() } : {});
       setChave("");
       const dados = await conexoesPonte.ler(servico, true);
       atualizar(servico, { chaveSalva: true, ligada: true, status: "conectado", ultimaAtualizacao: new Date().toISOString(), resumo: resumoDe(servico, dados) });
-      avisar(T.conexoes.chaveSalva);
+      avisar(doGoogle ? T.conexoes.googleConectado : T.conexoes.chaveSalva);
       void tocarSom("approve");
     } catch (e) {
-      setErro(T.conexoes.falhaChave((e as Error).message));
+      setErro(doGoogle ? T.conexoes.falhaLoginGoogle((e as Error).message) : T.conexoes.falhaChave((e as Error).message));
       void tocarSom("error", "avisos");
     } finally {
+      salvando.current = false;
       setTestando(false);
     }
   };
@@ -94,8 +115,8 @@ function Configurar({ servico, aoFechar }: { servico: ServicoId | null; aoFechar
           <span className="linha"><ShieldCheck size={13} />{T.conexoes.permissao}</span>
           <span>{T.conexoes.permissoes[servico]}</span>
         </AvisoFaixa>
-        <GuiaConexao servico={servico} />
-        {doGoogle && (
+        {!loginSimples && !verificandoLogin && <GuiaConexao servico={servico} />}
+        {doGoogle && !loginSimples && !verificandoLogin && (
           <>
             <Campo id="cx-cliente" rotulo={T.conexoes.clienteId} dica={T.conexoes.clienteIdDica}>
               <input id="cx-cliente" className="campo" autoComplete="off" spellCheck={false} value={clienteId} onChange={(e) => setClienteId(e.target.value)} />
@@ -107,7 +128,7 @@ function Configurar({ servico, aoFechar }: { servico: ServicoId | null; aoFechar
             <input id="cx-url" className="campo" type="url" autoComplete="off" spellCheck={false} value={url} onChange={(e) => setUrl(e.target.value)} />
           </Campo>
         )}
-        <Campo id="cx-chave" rotulo={doGoogle ? T.conexoes.segredoCliente : T.conexoes.chave} erro={erro} dica={doGoogle ? T.conexoes.gmailDica : T.conexoes.chaveDica}>
+        {!loginSimples && !verificandoLogin && <Campo id="cx-chave" rotulo={doGoogle ? T.conexoes.segredoCliente : T.conexoes.chave} erro={erro} dica={doGoogle ? T.conexoes.gmailDica : T.conexoes.chaveDica}>
           <input
             id="cx-chave"
             className="campo"
@@ -122,14 +143,16 @@ function Configurar({ servico, aoFechar }: { servico: ServicoId | null; aoFechar
               setErro("");
             }}
           />
-        </Campo>
+        </Campo>}
+        {loginSimples && erro && <AvisoFaixa tipo="erro"><span role="alert">{erro}</span></AvisoFaixa>}
         <div className="linha">
-          <Botao type="submit" variante="primario" icone={<KeyRound size={14} />} disabled={testando || !chave.trim()}>
-            {testando ? (doGoogle ? T.conexoes.aguardandoGoogle : T.conexoes.testando) : doGoogle ? T.conexoes.conectarGoogle : T.conexoes.salvarChave}
+          <Botao type="submit" variante="primario" icone={loginSimples ? <Marca marca="google" tamanho={14} /> : <KeyRound size={14} />} disabled={testando || verificandoLogin || (!loginSimples && !chave.trim())}>
+            {verificandoLogin ? T.conexoes.verificandoLoginGoogle : testando ? (doGoogle ? T.conexoes.aguardandoGoogle : T.conexoes.testando) : loginSimples ? T.conexoes.entrarGoogle : doGoogle ? T.conexoes.conectarGoogle : T.conexoes.salvarChave}
           </Botao>
           {conexao.chaveSalva && (
             <Botao
               variante="perigo"
+              disabled={testando}
               onClick={async () => {
                 await conexoesPonte.removerChave(servico).catch(() => undefined);
                 atualizar(servico, { chaveSalva: false, ligada: false, status: "sem_chave", resumo: "" });
@@ -139,6 +162,11 @@ function Configurar({ servico, aoFechar }: { servico: ServicoId | null; aoFechar
             </Botao>
           )}
         </div>
+        {servico === "google" && loginDisponivel && (
+          <button type="button" className="botao botao-fantasma botao-pequeno" disabled={testando} onClick={() => { setClienteProprio(!clienteProprio); setErro(""); }}>
+            {clienteProprio ? T.conexoes.usarLoginDoNiko : T.conexoes.usarClienteProprio}
+          </button>
+        )}
         <LinhaAlternador
           rotulo={conexao.ligada ? T.conexoes.desligar : T.conexoes.ligar}
           ligado={conexao.ligada}
@@ -280,7 +308,7 @@ export default function Conexoes() {
           );
         })}
       </section>
-      <Configurar servico={configurando} aoFechar={() => setConfigurando(null)} />
+      <Configurar key={configurando ?? "fechado"} servico={configurando} aoFechar={() => setConfigurando(null)} />
     </>
   );
 }

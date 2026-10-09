@@ -2,10 +2,10 @@ import { readFileSync, writeFileSync, mkdirSync, existsSync, renameSync } from "
 import { join } from "node:path";
 import { lerSegredo, gravarSegredo, apagarSegredo } from "./segredos";
 import { pastaDados, validarUrlBase } from "./ia";
-import { lerGmail, autorizarGmail, type CredencialGmail } from "./gmail";
-import { autorizarAgenda, resumoDaAgenda } from "./agendaGoogle";
+import { autorizarWorkspace, lerGoogle } from "./google";
 
-export const SERVICOS = ["stripe", "github", "vercel", "resend", "notion", "calcom", "n8n", "gmail", "agenda", "supabase", "cloudflare"] as const;
+export const SERVICOS = ["stripe", "github", "vercel", "resend", "notion", "calcom", "n8n", "google", "supabase", "cloudflare"] as const;
+const SERVICOS_ANTIGOS_DO_GOOGLE = ["gmail", "agenda"];
 export type Servico = (typeof SERVICOS)[number];
 
 const ARQUIVO = () => join(pastaDados(), "conexoes.json");
@@ -267,8 +267,7 @@ const LEITORES: Record<Servico, Leitor> = {
       execucoes: lista,
     };
   },
-  gmail: async (chave) => lerGmail(chave),
-  agenda: async (chave) => resumoDaAgenda(chave),
+  google: async (chave) => lerGoogle(chave),
   supabase: async (chave) => {
     const h = { authorization: `Bearer ${chave}` };
     const base = "https://api.supabase.com/v1";
@@ -375,13 +374,14 @@ export async function chaveDe(servico: Servico): Promise<string> {
 }
 
 export async function salvarChaveConexao(servico: Servico, dados: { chave?: unknown; url?: unknown; clienteId?: unknown; segredo?: unknown }) {
-  if (servico === "gmail" || servico === "agenda") {
-    const autorizar: (id: string, segredo: string) => Promise<CredencialGmail> = servico === "gmail" ? autorizarGmail : autorizarAgenda;
-    const credencial = await autorizar(String(dados.clienteId ?? "").trim(), String(dados.segredo ?? "").trim());
+  if (servico === "google") {
+    const credencial = await autorizarWorkspace(String(dados.clienteId ?? "").trim(), String(dados.segredo ?? "").trim());
     const texto = JSON.stringify(credencial);
     await LEITORES[servico](texto);
     await gravarSegredo(`conexao-${servico}`, texto);
+    for (const antigo of SERVICOS_ANTIGOS_DO_GOOGLE) await apagarSegredo(`conexao-${antigo}`).catch(() => undefined);
     const c = lerConfig();
+    for (const antigo of SERVICOS_ANTIGOS_DO_GOOGLE) delete c[antigo];
     c[servico] = { temChave: true };
     salvarConfig(c);
     cacheDados.delete(servico);

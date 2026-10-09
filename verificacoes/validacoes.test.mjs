@@ -2,6 +2,36 @@ import test, { after, beforeEach } from "node:test";
 import assert from "node:assert/strict";
 import { EventEmitter } from "node:events";
 import { createServer } from "vite";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+
+async function testarVolumeDoPlayer() {
+  const { VolumeDoPlayer } = await vite.ssrLoadModule("/src/janelas/ilha/VolumeDoPlayer.tsx");
+  const { useControleRapido } = await vite.ssrLoadModule("/src/estado/controleRapido.ts");
+  const anterior = useControleRapido.getState();
+  // No servidor, o Zustand lê o snapshot inicial, não o estado do cliente.
+  const inicial = { ...useControleRapido.getInitialState() };
+  const renderizar = () => {
+    Object.assign(useControleRapido.getInitialState(), useControleRapido.getState());
+    return renderToStaticMarkup(createElement(VolumeDoPlayer));
+  };
+  try {
+    useControleRapido.setState({ audio: { saida: { volume: 65, mudo: false }, entrada: null, sessoes: [] }, audioIndisponivel: false });
+    assert.match(renderizar(), /65%/);
+    assert.match(renderizar(), /aria-label="Volume do Windows"/);
+    assert.doesNotMatch(renderizar(), /disabled/);
+    useControleRapido.setState({ audio: { saida: { volume: 65, mudo: true }, entrada: null, sessoes: [] } });
+    assert.match(renderizar(), /aria-pressed="true"/);
+    assert.match(renderizar(), /value="0"/);
+    useControleRapido.setState({ audioIndisponivel: true });
+    assert.equal((renderizar().match(/disabled=""/g) ?? []).length, 2);
+    useControleRapido.setState({ audio: null, audioIndisponivel: false });
+    assert.equal((renderizar().match(/disabled=""/g) ?? []).length, 2);
+  } finally {
+    useControleRapido.setState(anterior);
+    Object.assign(useControleRapido.getInitialState(), inicial);
+  }
+}
 
 const memoria = new Map();
 let receberMensagem;
@@ -29,6 +59,7 @@ const { rotas } = await vite.ssrLoadModule("/servidor/ponte.ts");
 const conta = { id: "c", nome: "Conta", tipo: "corrente", saldoInicial: 0, cor: "#000000", arquivada: false };
 const transacao = { tipo: "despesa", descricao: "Compra", valor: 12345, contaId: "c", data: "2026-10-09" };
 const evento = { titulo: "Reunião", data: "2026-10-09", hora: "09:30", tipo: "evento", repeticao: "nenhuma" };
+test("volume do player mostra porcentagem, mudo e bloqueia sem dispositivo", testarVolumeDoPlayer);
 beforeEach(() => {
   useFinancas.setState({ contas: [conta, { ...conta, id: "d" }], categorias: [], transacoes: [] });
   useEstudos.setState({ areas: [], materias: [], paginas: [], datas: [] });

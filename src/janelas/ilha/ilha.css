@@ -392,6 +392,90 @@
   min-width: 0;
 }
 
+.ilha-player {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex: 1;
+  min-width: 0;
+}
+
+.ilha-player-controles {
+  flex: 0 0 156px;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  padding: 10px;
+  border-radius: 18px;
+  border: 1px solid var(--i-linha);
+  background: rgba(var(--i-rgb), 0.035);
+  box-shadow: inset 0 1px 0 rgba(var(--i-rgb), 0.04);
+}
+
+.ilha-player .ilha-trilho > span {
+  background: linear-gradient(90deg, var(--cor-capa), var(--i-tinta));
+}
+
+.ilha-player-volume {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.ilha-player-mudo {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  flex-shrink: 0;
+  border: 0;
+  border-radius: 8px;
+  color: var(--i-dim);
+  background: transparent;
+  cursor: pointer;
+}
+
+.ilha-player-mudo:hover:not(:disabled) {
+  color: var(--i-tinta);
+  background: rgba(var(--i-rgb), 0.08);
+}
+
+.ilha-player-volume .numero { min-width: 30px; text-align: right; }
+.ilha-player-volume input {
+  appearance: none;
+  flex: 1;
+  min-width: 0;
+  width: 100%;
+  height: 4px;
+  margin: 0;
+  border-radius: 8px;
+  background: linear-gradient(to right, var(--i-tinta) var(--preenchido), rgba(var(--i-rgb), 0.12) var(--preenchido));
+  cursor: pointer;
+}
+
+.ilha-player-volume input::-webkit-slider-thumb {
+  appearance: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--i-tinta);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+}
+
+.ilha-player-volume input:disabled,
+.ilha-player-mudo:disabled { opacity: 0.35; cursor: default; }
+.ilha-player-volume input:focus-visible,
+.ilha-player-mudo:focus-visible { outline: 2px solid var(--i-tinta); outline-offset: 4px; }
+
+.ilha-cartao:has(.ilha-player) { container-type: inline-size; }
+@container (max-width: 480px) {
+  .ilha-player { gap: 10px; }
+  .ilha-player .ilha-capa { width: 60px !important; height: 60px !important; }
+  .ilha-player-controles { flex-basis: 138px; padding: 6px; }
+}
+
 .ilha-midia-app {
   display: inline-flex;
   flex: 0 0 auto;

@@ -3,7 +3,6 @@ import { createHash, randomBytes } from "node:crypto";
 import { spawn } from "node:child_process";
 import type { AddressInfo } from "node:net";
 
-const ESCOPOS_GMAIL = ["https://www.googleapis.com/auth/gmail.readonly", "https://www.googleapis.com/auth/gmail.compose"];
 const BASE = "https://gmail.googleapis.com/gmail/v1/users/me";
 
 export interface CredencialGmail {
@@ -27,10 +26,6 @@ export function lerCredencialGmail(texto: string): CredencialGmail {
   const c = JSON.parse(texto) as CredencialGmail;
   if (!c.clienteId || !c.segredo) throw new Error("credencial_invalida");
   return c;
-}
-
-export function autorizarGmail(clienteId: string, segredo: string): Promise<CredencialGmail> {
-  return autorizarGoogle(clienteId, segredo, ESCOPOS_GMAIL, "Gmail");
 }
 
 export async function autorizarGoogle(clienteId: string, segredo: string, escopos: string[], servico: string): Promise<CredencialGmail> {

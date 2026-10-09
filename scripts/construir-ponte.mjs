@@ -12,6 +12,10 @@ await build({
   root: raiz,
   logLevel: "warn",
   publicDir: false,
+  define: {
+    "process.env.NIKO_GOOGLE_CLIENTE_ID": JSON.stringify(process.env.NIKO_GOOGLE_CLIENTE_ID ?? ""),
+    "process.env.NIKO_GOOGLE_SEGREDO": JSON.stringify(process.env.NIKO_GOOGLE_SEGREDO ?? ""),
+  },
   build: {
     ssr: join(raiz, "servidor", "producao.ts"),
     outDir: destino,
