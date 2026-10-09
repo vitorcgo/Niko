@@ -23,7 +23,7 @@ const cache = new Map<string, string>();
 const pendentes = new Map<string, string | null>();
 let temporizador = 0;
 const nomeCanal = bancoDeTeste ? `niko-dados-${bancoDeTeste}` : "niko-dados";
-const canal = typeof BroadcastChannel !== "undefined" ? new BroadcastChannel(nomeCanal) : null;
+const canal = typeof window !== "undefined" && typeof BroadcastChannel !== "undefined" ? new BroadcastChannel(nomeCanal) : null;
 const ouvintesDeFora = new Set<(chave: string) => void>();
 const ORIGEM = Math.random().toString(36).slice(2);
 const EVENTO_DADOS = nomeCanal;

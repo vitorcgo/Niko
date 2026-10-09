@@ -1,7 +1,7 @@
 import { useEffect } from "react";
-import { ArrowUpRight, Download, Globe, History, RefreshCw } from "lucide-react";
+import { ArrowUpRight, ChevronDown, Download, Globe, History, RefreshCw } from "lucide-react";
 import { useInterface } from "../../estado/interface";
-import { novidadesAte } from "../../utilitarios/novidades";
+import { novidadesAte, type VersaoComNovidades } from "../../utilitarios/novidades";
 import { formatar } from "../../utilitarios/datas";
 import { CabecalhoAba } from "../../componentes/CabecalhoAba";
 import { AvisoFaixa, Botao, Progresso } from "../../componentes/basicos";
@@ -12,6 +12,26 @@ import { T } from "../../textos/textos";
 
 const REPOSITORIO = "https://github.com/vitorcgo/niko";
 const VERSOES = `${REPOSITORIO}/releases`;
+
+function LinhaDaVersao({ versao: v, atual }: { versao: VersaoComNovidades; atual?: boolean }) {
+  return (
+    <section className="atualizacao-versao-linha" aria-label={`v${v.versao}`}>
+      <div className="atualizacao-versao-lado">
+        <span className="atualizacao-versao-rotulo">{v.versao}</span>
+        {"data" in v && v.data && <span className="atualizacao-versao-data">{formatar(v.data, "dd/MM/yyyy")}</span>}
+        {atual && <span className="atualizacao-esta">{T.atualizacao.estaVersao}</span>}
+      </div>
+      <ul className="atualizacao-versao-itens">
+        {v.mudancas.map(([tipo, texto]) => (
+          <li key={texto} data-tipo={tipo}>
+            <span className="atualizacao-tipo">{T.atualizacao.tiposDeMudanca[tipo]}</span>
+            <span className="atualizacao-texto">{texto}</span>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
 
 export default function Atualizacao() {
   const atualizacao = useAtualizacao();
@@ -93,23 +113,18 @@ export default function Atualizacao() {
               </div>
             </div>
           )}
-          {versoes.map((v, i) => (
-            <section key={v.versao} className="atualizacao-versao-linha" aria-label={`v${v.versao}`}>
-              <div className="atualizacao-versao-lado">
-                <span className="atualizacao-versao-rotulo">{v.versao}</span>
-                {"data" in v && v.data && <span className="atualizacao-versao-data">{formatar(v.data, "dd/MM/yyyy")}</span>}
-                {i === 0 && <span className="atualizacao-esta">{T.atualizacao.estaVersao}</span>}
+          {versoes.slice(0, 1).map((v) => <LinhaDaVersao key={v.versao} versao={v} atual />)}
+          {versoes.length > 1 && (
+            <details className="atualizacao-gaveta">
+              <summary className="atualizacao-gaveta-botao">
+                <ChevronDown size={14} className="atualizacao-gaveta-seta" />
+                {T.atualizacao.versoesAnteriores(versoes.length - 1)}
+              </summary>
+              <div className="atualizacao-gaveta-conteudo">
+                {versoes.slice(1).map((v) => <LinhaDaVersao key={v.versao} versao={v} />)}
               </div>
-              <ul className="atualizacao-versao-itens">
-                {v.mudancas.map(([tipo, texto]) => (
-                  <li key={texto} data-tipo={tipo}>
-                    <span className="atualizacao-tipo">{T.atualizacao.tiposDeMudanca[tipo]}</span>
-                    <span className="atualizacao-texto">{texto}</span>
-                  </li>
-                ))}
-              </ul>
-            </section>
-          ))}
+            </details>
+          )}
         </section>
       )}
       <section className="atualizacao-criador">

@@ -24,6 +24,7 @@ function Ladrilho({ id, estado, indice, aoEscolher }: { id: FerramentaDeCodigo; 
   return (
     <motion.button
       type="button"
+      disabled={!estado}
       className="cfg-ladrilho"
       data-situacao={situacao}
       data-ausente={estado && !estado.detectado ? "" : undefined}
@@ -40,13 +41,13 @@ function Ladrilho({ id, estado, indice, aoEscolher }: { id: FerramentaDeCodigo; 
       <span className="cfg-ladrilho-nome">{nomeDaFerramenta(id)}</span>
       <span className="cfg-situacao" data-situacao={situacao}>
         <span className="cfg-situacao-ponto" />
-        {C.estados[situacao]}
+        {estado ? C.estados[situacao] : T.geral.carregando}
       </span>
     </motion.button>
   );
 }
 
-function Detalhe({ id, estado, aoVoltar, aoMudar }: { id: FerramentaDeCodigo; estado?: EstadoDaFerramenta; aoVoltar: () => void; aoMudar: () => void }) {
+function Detalhe({ id, estado, aoVoltar, aoMudar, ocultarCaminhos = false }: { id: FerramentaDeCodigo; estado?: EstadoDaFerramenta; aoVoltar: () => void; aoMudar: () => void; ocultarCaminhos?: boolean }) {
   const situacao = situacaoDe(estado);
   const nome = nomeDaFerramenta(id);
   const [confirmando, setConfirmando] = useState<"instalar" | "remover" | null>(null);
@@ -102,7 +103,7 @@ function Detalhe({ id, estado, aoVoltar, aoMudar }: { id: FerramentaDeCodigo; es
             {aprova ? C.aprova : C.acompanha}
           </span>
           <span className="vsc-dim cfg-rotulo">{C.arquivo}</span>
-          <code className="cfg-caminho" title={estado?.caminho}>{estado?.caminho ?? "..."}</code>
+          <code className="cfg-caminho" title={ocultarCaminhos ? undefined : estado?.caminho}>{ocultarCaminhos ? T.escritorio.ias.oculto : estado?.caminho ?? "..."}</code>
           {estado && !estado.detectado && (
             <span className="cfg-alerta">
               <TriangleAlert size={13} />
@@ -147,7 +148,7 @@ function Detalhe({ id, estado, aoVoltar, aoMudar }: { id: FerramentaDeCodigo; es
   );
 }
 
-export function ConfigDasFerramentas({ aoFechar }: { aoFechar: () => void }) {
+export function ConfigDasFerramentas({ aoFechar, ocultarCaminhos = false }: { aoFechar: () => void; ocultarCaminhos?: boolean }) {
   const [estados, setEstados] = useState<EstadoDaFerramenta[] | null>(null);
   const [erro, setErro] = useState(false);
   const [escolhida, setEscolhida] = useState<FerramentaDeCodigo | null>(null);
@@ -202,7 +203,7 @@ export function ConfigDasFerramentas({ aoFechar }: { aoFechar: () => void }) {
         </div>
       )}
       <AnimatePresence>
-        {escolhida && <Detalhe key={escolhida} id={escolhida} estado={estadoDe(escolhida)} aoVoltar={() => setEscolhida(null)} aoMudar={atualizar} />}
+        {escolhida && <Detalhe key={escolhida} id={escolhida} estado={estadoDe(escolhida)} aoVoltar={() => setEscolhida(null)} aoMudar={atualizar} ocultarCaminhos={ocultarCaminhos} />}
       </AnimatePresence>
     </motion.div>
   );

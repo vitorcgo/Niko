@@ -7,6 +7,9 @@ import { randomBytes, randomUUID, timingSafeEqual } from "node:crypto";
 import { pastaDados } from "./ia";
 import { donoDaConexao, focarJanelaDoProcesso } from "./controleRapido";
 import { CAMINHO_DA_STATUS, anteriorDaStatus, caminhoDoScript, ehStatusDoNiko, garantirScript, receberStatus, statusDoNiko } from "./statusClaude";
+import { metricasDaStatus, type MetricasDaSessao } from "../src/modulos/escritorio/metricasDaSessao";
+import { estadoDoEvento } from "../src/utilitarios/estadoDoEvento";
+import type { EstadoSessao } from "../src/estado/claudeCode";
 
 export const CABECALHO_SEGREDO = "x-niko-gancho";
 const CAMINHO_EVENTO = "/ponte/claude/evento";
@@ -23,6 +26,7 @@ export const EVENTOS_INSTALADOS = [
   "SessionStart",
   "UserPromptSubmit",
   "PreToolUse",
+  "PostToolUse",
   "PostToolUseFailure",
   "PermissionRequest",
   "Notification",
@@ -33,7 +37,7 @@ export const EVENTOS_INSTALADOS = [
   "SessionEnd",
 ] as const;
 
-const CAMPOS_DESCARTADOS = ["tool_response", "tool_result", "transcript_path", "scratchpad_dir"];
+const CAMPOS_DESCARTADOS = ["tool_response", "tool_result", "transcript_path", "agent_transcript_path", "scratchpad_dir"];
 const FERRAMENTAS_QUE_DECIDEM = new Set<FerramentaDeCodigo>(["claude", "codex", "copilot"]);
 const MENSAGEM_DE_NEGACAO = "Negado pelo usuário no Niko.";
 
@@ -65,6 +69,7 @@ interface Pendente {
 }
 
 const projetosConhecidos = new Set<string>();
+const metricasPorSessao = new Map<string, MetricasDaSessao>();
 const LIMITE_RESPOSTA = 2000;
 
 interface PerguntaDoClaude {
@@ -120,6 +125,8 @@ function regrasSugeridas(dados: Record<string, unknown>): RegraSugerida[] {
 }
 
 const historico: EventoClaude[] = [];
+const sessoesAtuais = new Set<string>();
+const estadosAtuais = new Map<string, { sessao: string; estado: EstadoSessao; atualizadaEm: string }>();
 const ouvintes = new Set<ServerResponse>();
 const pendentes = new Map<string, Pendente>();
 
@@ -259,7 +266,15 @@ export async function receberStatusDoClaude(req: IncomingMessage, res: ServerRes
     res.statusCode = 403;
     return res.end();
   }
-  await lerCorpoJson(req).then(receberStatus).catch(() => undefined);
+  await lerCorpoJson(req).then((corpo) => {
+    receberStatus(corpo);
+    const dados = metricasDaStatus(corpo);
+    if (dados) {
+      metricasPorSessao.set(dados.sessao, dados.metricas);
+      if (metricasPorSessao.size > 50) metricasPorSessao.delete(metricasPorSessao.keys().next().value!);
+      transmitir({ id: randomUUID(), recebidoEm: dados.metricas.em, ferramenta: "claude", evento: "NikoMetadadosSessao", sessao: dados.sessao, cwd: "", dados: { metricas: dados.metricas } });
+    }
+  }).catch(() => undefined);
   responderVazio(res);
 }
 
@@ -395,6 +410,21 @@ export function modeloDoTranscript(caminho: string): string | undefined {
 }
 
 function transmitir(evento: EventoClaude) {
+  if (evento.sessao && (evento.evento === "NikoPensando" || EVENTOS_INSTALADOS.includes(evento.evento as typeof EVENTOS_INSTALADOS[number]))) {
+    if (evento.evento === "SessionEnd") {
+      sessoesAtuais.delete(evento.sessao);
+      estadosAtuais.delete(evento.sessao);
+    } else {
+      sessoesAtuais.add(evento.sessao);
+      const anterior = estadosAtuais.get(evento.sessao);
+      estadosAtuais.set(evento.sessao, { sessao: evento.sessao, estado: estadoDoEvento(evento.evento, evento.dados, evento.pedidoId) ?? anterior?.estado ?? "ociosa", atualizadaEm: evento.recebidoEm });
+    }
+  } else if (evento.evento === "NikoPedidoEncerrado") {
+    const anterior = estadosAtuais.get(evento.sessao);
+    if (anterior?.estado === "aprovacao" && ![...pendentes.values()].some((p) => p.sessao === evento.sessao)) {
+      estadosAtuais.set(evento.sessao, { ...anterior, estado: "trabalhando", atualizadaEm: evento.recebidoEm });
+    }
+  }
   historico.push(evento);
   if (historico.length > MAXIMO_HISTORICO) historico.splice(0, historico.length - MAXIMO_HISTORICO);
   const linha = `${JSON.stringify(evento)}\n`;
@@ -463,6 +493,9 @@ export function processarEvento(corpo: Record<string, unknown>, ferramenta: Ferr
   if (modeloAtual) corpo.model = modeloAtual;
   const ultima = typeof corpo.last_assistant_message === "string" ? corpo.last_assistant_message.slice(0, LIMITE_RESPOSTA_FINAL) : undefined;
   const dados = cortar(corpo) as Record<string, unknown>;
+  const metricas = ferramenta === "claude" && typeof corpo.session_id === "string" ? metricasPorSessao.get(corpo.session_id) : undefined;
+  if (metricas && Date.now() - Date.parse(metricas.em) < 6 * 3600000) dados.metricas = metricas;
+  if (nome === "SessionEnd" && typeof corpo.session_id === "string") metricasPorSessao.delete(corpo.session_id);
   if (ultima !== undefined) dados.last_assistant_message = ultima;
   const evento: EventoClaude = {
     id: randomUUID(),
@@ -590,6 +623,8 @@ export function ouvirEventos(req: IncomingMessage, res: ServerResponse) {
   res.setHeader("x-accel-buffering", "no");
   const limite = Date.now() - 6 * 3600_000;
   for (const evento of historico) if (Date.parse(evento.recebidoEm) >= limite) res.write(`${JSON.stringify(evento)}\n`);
+
+  res.write(`${JSON.stringify({ evento: "NikoSessoesAtuais", id: randomUUID(), recebidoEm: new Date().toISOString(), ferramenta: "claude", sessao: "", cwd: "", dados: { sessoes: [...sessoesAtuais], pedidos: [...pendentes.keys()], estados: [...estadosAtuais.values()] } })}\n`);
 
   res.write(`${JSON.stringify({ evento: "NikoConectado", id: randomUUID(), recebidoEm: new Date().toISOString(), ferramenta: "claude", sessao: "", cwd: "", dados: {} })}\n`);
   ouvintes.add(res);

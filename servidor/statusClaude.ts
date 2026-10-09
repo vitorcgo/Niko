@@ -107,7 +107,8 @@ export function lerDadosDaStatus(corpo: Record<string, unknown>): JanelaDaStatus
     const item = limites[campo];
     const usado = porcentagem(item?.used_percentage);
     if (!item || usado === null) continue;
-    const reinicia = typeof item.resets_at === "number" ? new Date(item.resets_at * 1000).toISOString() : undefined;
+    const data = typeof item.resets_at === "number" ? new Date(item.resets_at * 1000) : undefined;
+    const reinicia = data && Number.isFinite(data.getTime()) ? data.toISOString() : undefined;
     janelas.push({ id, usado, reiniciaEm: reinicia });
   }
   return janelas;

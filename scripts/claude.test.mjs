@@ -74,6 +74,7 @@ before(async () => {
   servidor = criarServidorHttp((req, res) => {
     const url = new URL(req.url, "http://localhost");
     if (url.pathname === "/ponte/claude/evento") return void claude.receberEventoDoGancho(req, res);
+    if (url.pathname === "/ponte/claude/status") return void claude.receberStatusDoClaude(req, res);
     if (url.pathname === "/ponte/claude/eventos") return void claude.ouvirEventos(req, res);
     res.statusCode = 404;
     res.end();
@@ -179,6 +180,23 @@ test("sem a ilha ouvindo, o pedido de permissão volta vazio na hora", async () 
   assert.equal(await r.text(), "");
 });
 
+test("status exige segredo e ausência de Origin, transmite apenas métricas da sessão correta", async () => {
+  const dados = { session_id: "status-segura", context_window: { total_input_tokens: 42 }, cost: { total_cost_usd: 0.1 }, prompt: "privado", cwd: "C:/Privado", transcript_path: "C:/privado.jsonl" };
+  const enviarStatus = (headers) => fetch(`${base}/ponte/claude/status`, { method: "POST", headers: { "content-type": "application/json", ...headers }, body: JSON.stringify(dados) });
+  assert.equal((await enviarStatus({})).status, 403);
+  assert.equal((await enviarStatus({ "x-niko-gancho": segredo(), origin: "http://malicioso" })).status, 403);
+  assert.equal((await enviarStatus({ "x-niko-gancho": segredo() })).status, 200);
+  const controle = new AbortController();
+  try {
+    const fluxo = await fetch(`${base}/ponte/claude/eventos`, { signal: controle.signal });
+    const leitor = fluxo.body.getReader(); let texto = "";
+    while (!texto.includes("NikoConectado")) texto += new TextDecoder().decode((await leitor.read()).value);
+    const evento = texto.split("\n").filter(Boolean).map((l) => JSON.parse(l)).find((e) => e.evento === "NikoMetadadosSessao" && e.sessao === dados.session_id);
+    assert.equal(evento.dados.metricas.entrada, 42); assert.equal(evento.cwd, "");
+    assert.doesNotMatch(JSON.stringify(evento), /privado|Privado|transcript_path|prompt/);
+  } finally { controle.abort(); }
+});
+
 test("com a ilha ouvindo, Permitir devolve a decisão no formato documentado", async () => {
   const controle = new AbortController();
   const fluxo = await fetch(`${base}/ponte/claude/eventos`, { signal: controle.signal });
@@ -208,7 +226,7 @@ test("com a ilha ouvindo, Permitir devolve a decisão no formato documentado", a
 });
 
 test("descarta campos enormes e recorta textos longos", async () => {
-  const r = await enviar({ hook_event_name: "PreToolUse", session_id: "s3", tool_name: "Read", tool_input: { file_path: "a.ts" }, tool_response: "x".repeat(50000), transcript_path: "C:\\segredo.jsonl", extra: "y".repeat(9000) }, { "x-niko-gancho": segredo() });
+  const r = await enviar({ hook_event_name: "PreToolUse", session_id: "s3", tool_name: "Read", tool_input: { file_path: "a.ts" }, tool_response: "x".repeat(50000), transcript_path: "C:\\segredo.jsonl", agent_transcript_path: "C:\\segredo-sub.jsonl", extra: "y".repeat(9000) }, { "x-niko-gancho": segredo() });
   assert.equal(r.status, 200);
   const controle = new AbortController();
   const fluxo = await fetch(`${base}/ponte/claude/eventos`, { signal: controle.signal });
@@ -219,6 +237,7 @@ test("descarta campos enormes e recorta textos longos", async () => {
   const evento = texto.split("\n").filter(Boolean).map((l) => JSON.parse(l)).find((e) => e.sessao === "s3");
   assert.equal(evento.dados.tool_response, undefined);
   assert.equal(evento.dados.transcript_path, undefined);
+  assert.equal(evento.dados.agent_transcript_path, undefined);
   assert.ok(evento.dados.extra.length < 4100);
 });
 
@@ -472,4 +491,57 @@ test("mostra o modelo com nome legível", async () => {
   assert.equal(nomeDoModelo("claude-opus-4-20250514"), "Opus 4");
   assert.equal(nomeDoModelo("claude-3-5-haiku-20241022"), "Haiku 3.5");
   assert.equal(nomeDoModelo("gpt-5-codex"), "gpt-5-codex");
+});
+
+test("reconexão informa sessões atuais mesmo se o encerramento saiu dos 300 eventos", async () => {
+  const resVazia = { writableEnded: true };
+  claude.processarEvento({ hook_event_name: "SessionStart", session_id: "reconexao-encerrada", cwd: "C:/Projeto" }, "claude", resVazia);
+  claude.processarEvento({ hook_event_name: "SessionEnd", session_id: "reconexao-encerrada", cwd: "C:/Projeto" }, "claude", resVazia);
+  for (let i = 0; i < 301; i++) claude.processarEvento({ hook_event_name: "PreToolUse", session_id: "reconexao-viva", cwd: "C:/Projeto", tool_name: "Read" }, "claude", resVazia);
+  const controle = new AbortController();
+  try {
+    const fluxo = await fetch(`${base}/ponte/claude/eventos`, { signal: controle.signal });
+    const leitor = fluxo.body.getReader(); let texto = "";
+    while (!texto.includes("NikoConectado")) texto += new TextDecoder().decode((await leitor.read()).value);
+    const eventos = texto.split('\n').filter(Boolean).map((l) => JSON.parse(l));
+    assert.ok(!eventos.some((e) => e.evento === 'SessionEnd' && e.sessao === 'reconexao-encerrada'));
+    const atual = eventos.find((e) => e.evento === 'NikoSessoesAtuais');
+    assert.ok(atual.dados.sessoes.includes('reconexao-viva'));
+    assert.ok(!atual.dados.sessoes.includes('reconexao-encerrada'));
+    assert.deepEqual(atual.dados.pedidos, []);
+  } finally { controle.abort(); }
+});
+
+test("reconexão recupera Stop perdido sem expor conteúdo nem inventar atividade", async () => {
+  const anterior = useClaudeCode.getState();
+  const resVazia = { writableEnded: true };
+  const sessao = "reconexao-resposta-concluida";
+  useClaudeCode.getState().aplicar({ id: "reconexao-resposta-inicial", evento: "PreToolUse", recebidoEm: new Date(Date.now() - 60000).toISOString(), sessao, cwd: "C:/CAMINHO_PRIVADO_TESTE", dados: { tool_name: "Read" } });
+  claude.processarEvento({ hook_event_name: "PreToolUse", session_id: sessao }, "claude", resVazia);
+  claude.processarEvento({ hook_event_name: "Stop", session_id: sessao, last_assistant_message: "RESPOSTA_PRIVADA_TESTE" }, "claude", resVazia);
+  const transicoes = [
+    ["NikoPensando", {}, "pensando"],
+    ["UserPromptSubmit", {}, "pensando"],
+    ["PreToolUse", {}, "trabalhando"],
+    ["StopFailure", {}, "erro"],
+    ["Notification", { notification_type: "elicitation_url_dialog" }, "esperando"],
+    ["Notification", { message: "usage limit" }, "limite"],
+  ];
+  transicoes.forEach(([evento, dados], i) => claude.processarEvento({ hook_event_name: evento, session_id: `reconexao-estado-${i}`, ...dados }, "opencode", resVazia));
+  for (let i = 0; i < 301; i++) claude.processarEvento({ hook_event_name: "PreToolUse", session_id: "reconexao-outra-sessao", tool_name: "Read" }, "claude", resVazia);
+  const controle = new AbortController();
+  try {
+    const fluxo = await fetch(`${base}/ponte/claude/eventos`, { signal: controle.signal });
+    const leitor = fluxo.body.getReader(); let texto = "";
+    while (!texto.includes("NikoConectado")) texto += new TextDecoder().decode((await leitor.read()).value);
+    const eventos = texto.split('\n').filter(Boolean).map((l) => JSON.parse(l));
+    assert.ok(!eventos.some((e) => e.evento === "Stop" && e.sessao === sessao));
+    const snapshot = eventos.find((e) => e.evento === "NikoSessoesAtuais");
+    assert.equal(snapshot.dados.estados.find((s) => s.sessao === sessao).estado, "terminou");
+    transicoes.forEach(([, , estado], i) => assert.equal(snapshot.dados.estados.find((s) => s.sessao === `reconexao-estado-${i}`).estado, estado));
+    assert.doesNotMatch(JSON.stringify(snapshot), /RESPOSTA_PRIVADA_TESTE|CAMINHO_PRIVADO_TESTE|tool_input|last_assistant_message/);
+    eventos.forEach((e) => useClaudeCode.getState().aplicar(e));
+    const atual = useClaudeCode.getState().sessoes[sessao];
+    assert.equal(atual.estado, "terminou"); assert.equal(atual.ferramentasUsadas, 1); assert.equal(atual.passos.length, 1);
+  } finally { controle.abort(); useClaudeCode.setState(anterior); }
 });

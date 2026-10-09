@@ -3,6 +3,8 @@ import { dataValida, horaValida } from "./datas";
 import type { Conta, Categoria, Evento, Pagina, Transacao } from "../tipos";
 import { CONFIG_PADRAO } from "../estado/configuracoes";
 import { validarFormatoConfiguracoes } from "./configuracoesValidas";
+import { configuracaoEscritorioValida } from "../modulos/escritorio/configuracaoDoEscritorio";
+import { corteDasAnalisesValido, registrosValidos } from "../modulos/escritorio/dadosDoEscritorio";
 
 type Regra = string | { [campo: string]: Regra } | [Regra];
 const id = "s!";
@@ -10,6 +12,7 @@ const transacao: Regra = { id, tipo: "receita|despesa|transferencia", valor: "i"
 const evento: Regra = { id, titulo: "s!", data: "d", hora: "?h", tipo: "evento|lembrete", repeticao: "nenhuma|diaria|semanal|mensal", excecoes: ["d"], feitos: ["d"] };
 const tarefa: Regra = { id, titulo: "s", descricao: "s", status: "a_fazer|em_andamento|concluida|reagendada|cancelada|em_aguardo", prioridade: "baixa|media|alta", checklist: [{ id, texto: "s", feito: "b" }], criadaEm: "t", ordem: "n", data: "?d", hora: "?h" };
 const esquemas: Record<string, Record<string, Regra>> = {
+  "escritorio-ias": { config: { ciclo: "auto|day|night", estilo: "niko|original", seguir: "b", esconderDetalhes: "b", guardarAnalises: "b", nomes: {}, salas: {} }, ignorarAte: "?n", registros: [{ id, sessao: id, projeto: id, nome: "s", ferramenta: "claude|codex|copilot|antigravity|kimi|amp|gemini|opencode", em: "n", estado: "?trabalho|espera|ocioso|erro", acao: "b", falha: "b", pedido: "b" }] },
   rotina: { tarefas: [tarefa], habitos: [{ id, nome: "s!", tipo: "sim_nao|quantidade", meta: "n", unidade: "s", arquivado: "b", hora: "?h" }], registros: {}, dias: {}, diasAbertos: ["d"] },
   estudos: {
     areas: [{ id, nome: "s!", tipo: "faculdade|idiomas|programacao|concurso|cursos", cor: "s" }],
@@ -137,7 +140,9 @@ export function validarBackup(bruto: unknown): Record<string, string> {
     const salvo: unknown = JSON.parse(valor);
     validarEstadoSalvo(nome, salvo);
     const permitidos = nome === "configuracoes" ? CONFIG_PADRAO : esquemas[nome];
-    dados[chave] = JSON.stringify({ state: Object.fromEntries(Object.entries(salvo.state).filter(([k]) => Object.hasOwn(permitidos, k))), ...(salvo.version !== undefined ? { version: salvo.version } : {}) });
+    const ignorarAte = corteDasAnalisesValido(salvo.state.ignorarAte);
+    const estado = nome === "escritorio-ias" ? { config: configuracaoEscritorioValida(salvo.state.config), registros: registrosValidos(salvo.state.registros).filter((r) => r.em > ignorarAte), ignorarAte } : Object.fromEntries(Object.entries(salvo.state).filter(([k]) => Object.hasOwn(permitidos, k)));
+    dados[chave] = JSON.stringify({ state: estado, ...(salvo.version !== undefined ? { version: salvo.version } : {}) });
   }
   exigir(Object.keys(dados).length > 0);
   return dados;

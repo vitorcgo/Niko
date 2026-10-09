@@ -17,7 +17,9 @@ PENDENCIAS.md
 IDEIAS.md
 
 # Scripts e testes
-scripts/
+scripts/*
+!scripts/validacoes.test.mjs
+!scripts/escritorio.test.mjs
 testes/
 
 # Vídeo e material de divulgação

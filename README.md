@@ -192,7 +192,7 @@ Perguntas sobre Cloudflare e Supabase são encaminhadas ao Java. Menções expl�
 - Integrações e análises por IA podem transmitir dados ao serviço escolhido. Revise o contexto e evite anexar segredos ou informações que não deseja compartilhar.
 - Importações, backups e registros passam por validações de formato e referências. Isso não substitui manter seus próprios backups.
 - Não publique chaves, tokens, arquivos de configuração com segredos ou dados pessoais em issues. Para relatar um problema, informe versão do Niko, versão do Windows, passos para reproduzir e uma captura anonimizada.
-- O Escritório atual representa o time do Niko. Salas dinâmicas por projeto e funcionalidades inspiradas em outros escritórios virtuais não estão implementadas.
+- O Escritório tem duas áreas: time Niko e Escritório de IAs. A área de IAs organiza sessões recebidas em salas por projeto, com personagens pixelados, atividade filtrável, detalhes por sessão, renomeação visual, câmera e análises locais por hora, projeto e ferramenta. Usa as mesmas conexões e pedidos do modo Código da ilha. Tarefas, subagentes, contexto e estimativas de custo aparecem somente quando a ferramenta fornece os dados correspondentes. O botão de terminal traz uma sessão existente, não cria um terminal interativo dentro do escritório.
 
 ## Tecnologias
 

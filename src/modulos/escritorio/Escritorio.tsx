@@ -11,6 +11,7 @@ import { formatar } from "../../utilitarios/datas";
 import { useComportamento, MESAS, LUGARES, type Acao } from "./comportamento";
 import { Pensamento } from "./Pensamento";
 import type { AgenteId } from "../../tipos";
+import { EscritorioIas } from "./EscritorioIas";
 
 const Cena3D = lazy(() => import("./Cena3D"));
 
@@ -56,7 +57,7 @@ function Sala2D({ comportamento, tarefas, aoEscolher }: { comportamento: ReturnT
   );
 }
 
-export default function Escritorio() {
+function EscritorioNiko() {
   const modoLeve = useConfig((s) => s.modoLeveEscritorio);
   const definir = useConfig((s) => s.definir);
   const nomes = useConfig((s) => s.agentes.nomes);
@@ -84,7 +85,7 @@ export default function Escritorio() {
   return (
     <>
       <CabecalhoAba
-        titulo={T.escritorio.titulo}
+        titulo={T.escritorio.niko}
         subtitulo={T.escritorio.subtitulo}
         acoes={
           <Segmentado
@@ -150,4 +151,15 @@ export default function Escritorio() {
       </section>
     </>
   );
+}
+
+export default function Escritorio({ tipoInicial = "niko", demonstracaoInicial = false }: { tipoInicial?: "niko" | "ias"; demonstracaoInicial?: boolean } = {}) {
+  const [tipo, setTipo] = useState<"niko" | "ias">(tipoInicial);
+  return <>
+    <div className="escritorio-seletor"><Segmentado rotulo={T.escritorio.tipo} valor={tipo} aoMudar={setTipo} opcoes={[{ valor: "niko", rotulo: T.escritorio.niko }, { valor: "ias", rotulo: T.escritorio.ias.titulo }]} /></div>
+    {tipo === "niko" ? <EscritorioNiko /> : <div className="escritorio-ias-pagina">
+      <CabecalhoAba titulo={T.escritorio.ias.titulo} subtitulo={T.escritorio.ias.subtitulo} />
+      <EscritorioIas demonstracaoInicial={demonstracaoInicial} />
+    </div>}
+  </>;
 }

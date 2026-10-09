@@ -56,6 +56,235 @@ const { configuracoesValidas } = await vite.ssrLoadModule("/src/utilitarios/conf
 const armazenamento = await vite.ssrLoadModule("/src/ponte/armazenamento.ts");
 const { rotas } = await vite.ssrLoadModule("/servidor/ponte.ts");
 const { lerDataIcs, lerEventosIcs } = await vite.ssrLoadModule("/src/utilitarios/calendarioIcs.ts");
+const { agruparSessoesDoEscritorio, poseDaSessao } = await vite.ssrLoadModule("/src/modulos/escritorio/sessoesDoEscritorio.ts");
+const { filtrarSessoes, acontecimentosDoEscritorio, minutosDaSessao, nomeDoPersonagem, sessoesDeDemonstracao } = await vite.ssrLoadModule("/src/modulos/escritorio/sessoesDoEscritorio.ts");
+const { aparenciaDoEscritorio } = await vite.ssrLoadModule("/src/modulos/escritorio/aparenciaDoEscritorio.ts");
+const { hash32 } = await vite.ssrLoadModule("/src/modulos/escritorio/motor/shared/hash.ts");
+const { appearanceFromSeed } = await vite.ssrLoadModule("/src/modulos/escritorio/motor/client/src/art/character/appearance.ts");
+const { renderCharacter, POSE_FRAMES } = await vite.ssrLoadModule("/src/modulos/escritorio/motor/client/src/art/character/render.ts");
+const { desk, officeChair } = await vite.ssrLoadModule("/src/modulos/escritorio/motor/client/src/art/furniture/office.ts");
+const { pedidoDaSessao } = await vite.ssrLoadModule("/src/utilitarios/pedidoDaSessao.ts");
+
+test("demonstração do escritório é isolada e filtros não alteram suas sessões", () => {
+  const exemplos = sessoesDeDemonstracao(Date.parse("2026-10-09T12:00:00Z"));
+  const original = structuredClone(exemplos);
+  assert.equal(exemplos.length, 5);
+  assert.equal(agruparSessoesDoEscritorio(exemplos).length, 3);
+  assert.ok(exemplos.every((s) => s.id.startsWith("demo:")));
+  assert.equal(filtrarSessoes(exemplos, "codex", "todos").length, 2);
+  assert.equal(filtrarSessoes(exemplos, "codex", "aprovacao").length, 1);
+  assert.equal(filtrarSessoes(exemplos, "claude", "aprovacao").length, 0);
+  assert.deepEqual(exemplos, original);
+  assert.deepEqual(sessoesDeDemonstracao(Date.parse("2026-10-09T12:00:00Z")), original);
+});
+
+test("feed usa somente acontecimentos válidos e ordena os mais recentes", () => {
+  const exemplos = sessoesDeDemonstracao(Date.parse("2026-10-09T12:00:00Z"));
+  exemplos[0].passos.push({ id: "invalido", hora: "não é uma data", rotulo: "Ignorar" });
+  const feed = acontecimentosDoEscritorio(exemplos);
+  assert.equal(feed.length, 10);
+  assert.ok(feed.every((p, i) => !i || Date.parse(feed[i - 1].passo.hora) >= Date.parse(p.passo.hora)));
+  assert.ok(feed.every(({ sessao }) => exemplos.includes(sessao)));
+  assert.deepEqual(acontecimentosDoEscritorio([]), []);
+});
+
+test("aparência Niko preserva identidade e tempo nunca fica negativo ou NaN", () => {
+  const original = appearanceFromSeed(hash32("agente"));
+  assert.deepEqual(aparenciaDoEscritorio("agente", "original"), original);
+  const niko = aparenciaDoEscritorio("agente", "niko", "#112233");
+  assert.deepEqual(niko, aparenciaDoEscritorio("agente", "niko", "#112233"));
+  assert.equal(niko.top, "#112233");
+  assert.equal(niko.topStyle, "hoodie");
+  assert.equal(niko.accessory, "headphones");
+  assert.equal(niko.skin, original.skin);
+  assert.equal(nomeDoPersonagem("agente"), nomeDoPersonagem("agente"));
+  assert.equal(minutosDaSessao("2026-10-09T12:00:00Z", Date.parse("2026-10-09T12:25:59Z")), 25);
+  assert.equal(minutosDaSessao("2026-10-09T12:00:00Z", 0), 0);
+  assert.equal(minutosDaSessao("inválido", NaN), 0);
+});
+
+test("escritório vazio não reutiliza painel vazio e demo não grava sessões reais", async () => {
+  const { EscritorioIas } = await vite.ssrLoadModule("/src/modulos/escritorio/EscritorioIas.tsx");
+  const { useClaudeCode } = await vite.ssrLoadModule("/src/estado/claudeCode.ts");
+  const inicial = useClaudeCode.getInitialState();
+  const anterior = { ...inicial };
+  try {
+    Object.assign(inicial, { sessoes: {}, ordem: [], pedidos: [] });
+    const vazio = renderToStaticMarkup(createElement(EscritorioIas));
+    assert.match(vazio, /ei-escritorio-conectado/);
+    assert.match(vazio, /ei-mundo-canvas/);
+    assert.doesNotMatch(vazio, /ei-sessao-real/);
+    assert.doesNotMatch(vazio, /Ver demonstração|Voltar ao vivo|Demonstrar passeio|Projetos e personagens de exemplo/);
+    assert.match(vazio, /Site do Niko/);
+    assert.match(vazio, /ei-resumo-dados/);
+    const { ConfigDasFerramentas } = await vite.ssrLoadModule("/src/janelas/ilha/claude/ConfigDasFerramentas.tsx");
+    const conectando = renderToStaticMarkup(createElement(ConfigDasFerramentas, { aoFechar() {} }));
+    assert.match(conectando, /Carregando/);
+    assert.doesNotMatch(conectando, /Desligado/);
+    assert.equal((conectando.match(/class="cfg-ladrilho"/g) ?? []).length, 8);
+    const estadoReal = useClaudeCode.getState();
+    const demo = renderToStaticMarkup(createElement(EscritorioIas, { demonstracaoInicial: true }));
+    assert.equal((demo.match(/class="ei-projeto"/g) ?? []).length, 3);
+    assert.match(demo, /<dt>.*?Sessões<\/dt><dd>5<\/dd>/);
+    assert.match(demo, /Demonstrar passeio/);
+    assert.doesNotMatch(demo, /copa-niko.png/);
+    assert.doesNotMatch(demo, /ei-sessao-real/);
+    assert.equal(useClaudeCode.getState(), estadoReal);
+  } finally { Object.assign(inicial, anterior); }
+});
+
+test("snapshot visual mantém IDs reais e não inventa tarefas, contas autenticadas ou subagentes", async () => {
+  const { snapshotDoEscritorio, estadoDoPersonagem } = await vite.ssrLoadModule("/src/modulos/escritorio/snapshotDoEscritorio.ts");
+  const exemplos = sessoesDeDemonstracao(Date.parse("2026-10-09T12:00:00Z"));
+  const snap = snapshotDoEscritorio(exemplos, { "demo:0": "Nome local" }, true, Date.parse("2026-10-09T12:00:00Z"));
+  assert.equal(snap.rooms.length, 3);
+  assert.equal(snap.agents.length, 5);
+  assert.equal(snap.agents[0].name, "Nome local");
+  assert.ok(snap.agents.every((a) => exemplos.some((s) => s.id === a.id) && a.kind === "main" && !a.tasks.length && !a.permission && !a.shells));
+  assert.ok(snap.accounts.every((a) => a.usageStatus === "disabled" && !a.usage && !a.configDir));
+  assert.equal(snap.meta.messages, false);
+  assert.equal(estadoDoPersonagem("terminou"), "idle");
+  assert.equal(estadoDoPersonagem("aprovacao"), "waiting");
+  assert.deepEqual(snapshotDoEscritorio([]).agents, []);
+});
+
+test("prédio conectado alcança cada móvel utilizável pelos corredores e respeita bloqueios", async () => {
+  const { Sim } = await vite.ssrLoadModule("/src/modulos/escritorio/motor/client/src/world/sim/sim.ts");
+  const arte = await vite.ssrLoadModule("/src/modulos/escritorio/motor/client/src/art/index.ts");
+  const { DEFAULT_WORLD_OPTIONS } = await vite.ssrLoadModule("/src/modulos/escritorio/motor/client/src/world/api.ts");
+  const { snapshotDoEscritorio } = await vite.ssrLoadModule("/src/modulos/escritorio/snapshotDoEscritorio.ts");
+  const agora = Date.parse("2026-10-09T12:00:00Z");
+  const sim = new Sim(arte, () => DEFAULT_WORLD_OPTIONS, null);
+  sim.applySnapshot(snapshotDoEscritorio(sessoesDeDemonstracao(agora), {}, true, agora), agora);
+  const elevador = sim.building.spots.find((s) => s.kind === "elevator");
+  const caminho = [];
+  for (const spot of sim.building.spots) {
+    assert.ok(sim.finder.find(elevador.tx, elevador.ty, spot.tx, spot.ty, caminho), spot.id);
+    for (let i = 0; i < caminho.length; i += 2) assert.ok(sim.building.grid.walkable(caminho[i], caminho[i + 1]), spot.id);
+  }
+  assert.ok(sim.building.core.some((s) => s.id === "core:copa"));
+  assert.ok(sim.building.core.some((s) => s.id === "core:lounge"));
+  assert.ok(sim.building.grid.cells.some((s) => s === 0));
+});
+
+test("cidade pixelada tem lojas e calçadas, sem gramado ou bosque externo", async () => {
+  const { exteriorUrbano, patioUrbano, pixelsDaLoja } = await vite.ssrLoadModule("/src/modulos/escritorio/cenarioUrbano.ts");
+  const cidade = exteriorUrbano(4);
+  assert.ok(cidade.floors.every((p) => p.kind !== "grass"));
+  assert.equal(cidade.props.filter((p) => p.kind === "loja").length, 3);
+  for (const cols of [2, 3, 4, 8, 16]) {
+    const lojas = exteriorUrbano(cols).props.filter((p) => p.kind === "loja");
+    assert.ok(lojas.length >= 3 && lojas.length <= 5);
+    const norte = lojas.filter((p) => p.y < 0);
+    for (let j = 1; j < norte.length; j++) assert.ok(norte[j].x - norte[j - 1].x >= 112);
+  }
+  assert.ok(cidade.props.every((p) => p.kind !== "tree" && p.kind !== "pine"));
+  assert.ok(cidade.lanes.every((l) => l.y > cidade.streetY && l.y < cidade.streetY + cidade.streetH));
+  for (let i = 0; i < 5; i++) {
+    const loja = pixelsDaLoja(i);
+    assert.equal(loja.data.length, loja.w * loja.h * 4);
+    assert.ok(loja.countOpaque() > 6000);
+    assert.deepEqual(loja.data, pixelsDaLoja(i).data);
+    assert.ok(patioUrbano(i, true).props.every((p) => p.kind !== "tree" && p.kind !== "pine"));
+  }
+  assert.notDeepEqual(pixelsDaLoja(0).data, pixelsDaLoja(1).data);
+});
+
+test("câmera entra mais próxima e ainda permite enquadrar o prédio inteiro em qualquer largura", async () => {
+  const { enquadramentoDoEscritorio } = await vite.ssrLoadModule("/src/modulos/escritorio/enquadramentoDoEscritorio.ts");
+  for (const cols of [2, 4, 8, 16]) for (const largura of [280, 375, 720, 1280]) {
+    const inicial = enquadramentoDoEscritorio(cols, largura, 540);
+    const geral = enquadramentoDoEscritorio(cols, largura, 540, true);
+    assert.ok(inicial.zoom >= geral.zoom);
+    assert.ok(inicial.zoom <= 4 && geral.zoom > 0);
+    assert.ok(inicial.minZoom <= geral.zoom);
+    assert.ok([inicial.cx, inicial.cy, geral.cx, geral.cy, inicial.dy].every(Number.isFinite));
+    assert.ok(inicial.bounds.y < -8 * 16);
+  }
+  assert.ok(enquadramentoDoEscritorio(4, 1000, 600).zoom > enquadramentoDoEscritorio(4, 1000, 600, true).zoom);
+  assert.ok(Object.values(enquadramentoDoEscritorio(NaN, NaN, NaN)).filter((v) => typeof v === "number").every(Number.isFinite));
+});
+
+test("personagem ocioso caminha entre ambientes e volta à mesa quando chega trabalho", async () => {
+  const { Sim } = await vite.ssrLoadModule("/src/modulos/escritorio/motor/client/src/world/sim/sim.ts");
+  const arte = await vite.ssrLoadModule("/src/modulos/escritorio/motor/client/src/art/index.ts");
+  const { DEFAULT_WORLD_OPTIONS } = await vite.ssrLoadModule("/src/modulos/escritorio/motor/client/src/world/api.ts");
+  const { snapshotDoEscritorio } = await vite.ssrLoadModule("/src/modulos/escritorio/snapshotDoEscritorio.ts");
+  const agora = Date.parse("2026-10-09T12:00:00Z");
+  const exemplos = sessoesDeDemonstracao(agora);
+  const sim = new Sim(arte, () => DEFAULT_WORLD_OPTIONS, null);
+  sim.applySnapshot(snapshotDoEscritorio(exemplos, {}, true, agora), agora);
+  const ch = sim.chars.get("demo:4");
+  const origem = [ch.x, ch.y];
+  ch.nextOutingAt = 1;
+  let caminhou = false; let saiuDaSala = false;
+  const sala = sim.rooms.get(ch.roomId).layout.rect;
+  for (let i = 1; i <= 1200; i++) {
+    sim.update(.05, agora + i * 50);
+    caminhou ||= ch.x !== origem[0] || ch.y !== origem[1];
+    saiuDaSala ||= ch.tx < sala.x || ch.ty < sala.y || ch.tx >= sala.x + sala.w || ch.ty >= sala.y + sala.h;
+  }
+  assert.ok(caminhou);
+  assert.ok(saiuDaSala);
+  exemplos[4] = { ...exemplos[4], estado: "trabalhando", atualizadaEm: new Date(agora + 60_000).toISOString() };
+  sim.applySnapshot(snapshotDoEscritorio(exemplos, {}, true, agora + 60_000), agora + 60_000);
+  for (let i = 1; i <= 1200; i++) sim.update(.05, agora + 60_000 + i * 50);
+  assert.equal(ch.mode, "work");
+  assert.equal(ch.atSpot, ch.homeSpot);
+  assert.equal(ch.pose, "type");
+});
+
+test("escritório não mostra aprovação de outra sessão ao selecionar um personagem", () => {
+  const pedidos = [{ pedidoId: "1", sessao: "outro" }, { pedidoId: "2", sessao: "escolhido" }];
+  assert.equal(pedidoDaSessao(pedidos, "escolhido", true), pedidos[1]);
+  assert.equal(pedidoDaSessao(pedidos, "sem-pedido", true), undefined);
+  assert.equal(pedidoDaSessao(pedidos, undefined, true), undefined);
+  assert.equal(pedidoDaSessao(pedidos, "sem-pedido"), pedidos[0]);
+  assert.equal(pedidoDaSessao([], "escolhido", true), undefined);
+});
+
+test("móveis originais geram sprites válidos com âncoras preservadas", () => {
+  for (let seed = 0; seed < 6; seed++) {
+    for (const movel of [desk("white", seed), officeChair("blue")]) {
+      const { buf, ax, ay } = movel.base;
+      assert.equal(buf.data.length, buf.w * buf.h * 4);
+      assert.ok(buf.data.some((c) => c !== 0));
+      assert.ok(Number.isFinite(ax) && Number.isFinite(ay));
+    }
+  }
+});
+
+test("escritório de IAs agrupa pelo caminho real, não apenas pelo nome da pasta", () => {
+  const sessao = (id, cwd) => ({ id, cwd, projeto: "App", ferramenta: "claude", estado: "trabalhando" });
+  const salas = agruparSessoesDoEscritorio([sessao("a", "V:\\Projetos\\App"), sessao("b", "v:/projetos/app/"), sessao("c", "V:\\Outros\\App")]);
+  assert.equal(salas.length, 2);
+  assert.deepEqual(salas[0].sessoes.map((s) => s.id), ["a", "b"]);
+  assert.equal(salas[1].sessoes[0].id, "c");
+});
+
+test("escritório de IAs filtra sem acentos e não inventa sessões", () => {
+  const s = { id: "a", cwd: "V:/App", projeto: "Programação", ferramenta: "codex", pedido: "Revisar calendário" };
+  assert.equal(agruparSessoesDoEscritorio([s], "programacao").length, 1);
+  assert.equal(agruparSessoesDoEscritorio([s], "codex").length, 1);
+  assert.equal(agruparSessoesDoEscritorio([s], "calendario").length, 1);
+  assert.deepEqual(agruparSessoesDoEscritorio([s], "inexistente"), []);
+  assert.deepEqual(agruparSessoesDoEscritorio([]), []);
+});
+
+test("bonequinhos originais têm aparência estável e quadros válidos", () => {
+  const appearance = appearanceFromSeed(1234);
+  assert.deepEqual(appearance, appearanceFromSeed(1234));
+  for (const estado of ["aprovacao", "trabalhando", "erro", "terminou"]) {
+    const pose = poseDaSessao(estado);
+    for (let frame = 0; frame < POSE_FRAMES[pose]; frame++) {
+      const { buf } = renderCharacter({ appearance, pose, frame, dir: "down" });
+      assert.equal(buf.data.length, buf.w * buf.h * 4);
+      assert.ok(buf.data.some((c) => c !== 0));
+    }
+  }
+  assert.equal(poseDaSessao("aprovacao"), "raise_hand");
+  assert.equal(poseDaSessao("terminou"), "stand");
+});
 
 test("ICS do Google converte 11:30 UTC para 08:30 em São Paulo", () => {
   const texto = "BEGIN:VCALENDAR\r\nBEGIN:VEVENT\r\nDTSTART:20261008T113000Z\r\nSUMMARY:Bate Papo Cultura e Pessoas\r\nEND:VEVENT\r\nEND:VCALENDAR";

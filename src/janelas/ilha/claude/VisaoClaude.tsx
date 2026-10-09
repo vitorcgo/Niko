@@ -21,6 +21,7 @@ import { ResumoDaSemana } from "./ResumoDaSemana";
 import { trazerTerminalDaSessao } from "../../../desktop/usarAtalhosGlobais";
 import { MARCA_DA_FERRAMENTA, nomeDaFerramenta } from "./ferramentas";
 import { indicadorDePermissoes } from "./indicadorDePermissoes";
+import { pedidoDaSessao } from "../../../utilitarios/pedidoDaSessao";
 
 const ESPERA_MS = 110_000;
 const C = T.ilha.claude;
@@ -222,6 +223,10 @@ function Permissao({ pedido, fila }: { pedido: PedidoDePermissao; fila: number }
   );
 }
 
+export function PedidoDeCodigo({ pedido }: { pedido: PedidoDePermissao }) {
+  return pedido.perguntas ? <Pergunta key={pedido.pedidoId} pedido={pedido} perguntas={pedido.perguntas} fila={1} /> : <Permissao key={pedido.pedidoId} pedido={pedido} fila={1} />;
+}
+
 function Atividade({ sessao }: { sessao: SessaoClaude }) {
   const lista = useRef<HTMLDivElement>(null);
   const noFim = useRef(true);
@@ -358,7 +363,7 @@ function SemSessoes({ conectado, aoConfigurar }: { conectado: boolean; aoConfigu
   );
 }
 
-export function VisaoClaude() {
+export function VisaoClaude({ somenteSessaoSelecionada = false }: { somenteSessaoSelecionada?: boolean } = {}) {
   const sessoes = useClaudeCode((s) => s.sessoes);
   const ordem = useClaudeCode((s) => s.ordem);
   const pedidos = useClaudeCode((s) => s.pedidos);
@@ -369,7 +374,7 @@ export function VisaoClaude() {
   const [configAberta, setConfigAberta] = useState(false);
   const [resumoAberto, setResumoAberto] = useState(false);
   const sessao = sessoes[focada ?? ""] ?? sessoes[ordem[0]];
-  const pedido = pedidos.find((p) => p.sessao === sessao?.id) ?? pedidos[0];
+  const pedido = pedidoDaSessao(pedidos, sessao?.id, somenteSessaoSelecionada);
   const [painel, setPainel] = useState<"resposta" | "atividade">("atividade");
   const indicador = sessao ? indicadorDePermissoes(sessao, Math.max(agora, Date.now())) : null;
 
