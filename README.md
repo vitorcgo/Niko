@@ -24,6 +24,8 @@ Rotina, estudos, finanças, metas e os serviços que você acompanha, reunidos e
 
 ---
 
+Este README descreve o código atual do repositório. Algumas mudanças podem ainda não estar no instalador da última release. Para saber o que foi distribuído, consulte as [releases](https://github.com/vitorcgo/niko/releases).
+
 ## Sobre
 
 O Niko é um aplicativo desktop que fica junto do Windows, e não dentro de uma aba do navegador. Ele aparece em três camadas:
@@ -31,14 +33,14 @@ O Niko é um aplicativo desktop que fica junto do Windows, e não dentro de uma 
 | Camada | Onde fica | Para que serve |
 | ------ | --------- | -------------- |
 | **Ilha** | Topo da tela | Mídia tocando, pomodoro, tarefas do dia, captura rápida e avisos do time |
-| **Dock** | Base da tela | Abre o Niko e mostra os apps abertos, com prévia das janelas ao passar o mouse |
+| **Dock** | Base da tela | Iniciar do Windows, busca de aplicativos, janelas abertas, prévias e menus de contexto |
 | **Sistema** | Janela própria | Todas as áreas do app: início, chat, finanças, estudos, metas, calendário e configurações |
 
 Três princípios guiam o projeto:
 
 - **Funciona sem IA.** Toda função principal tem um caminho próprio. A IA é uma camada opcional que melhora o que já funciona.
 - **Você escolhe o provedor.** Cada pessoa conecta o provedor e o modelo que quiser, com a própria chave, ou usa um modelo local.
-- **Seus dados ficam com você.** Tudo é guardado no seu computador. As chaves ficam só no Gerenciador de Credenciais do Windows. Não existe conta do Niko nem servidor do Niko.
+- **Armazenamento local.** Os registros do app ficam no seu computador e as credenciais das conexões ficam no Gerenciador de Credenciais do Windows. Não é necessário criar uma conta do Niko. Integrações consultam serviços externos e, ao usar IA, mensagens e contexto necessário podem ser enviados ao provedor escolhido. Local não significa que todos os recursos funcionam sem internet.
 
 ## Funcionalidades
 
@@ -49,12 +51,13 @@ Uma barra discreta no topo da tela, com três estados: escondida, compacta e exp
 - **Calendário:** a hora, o que tem marcado hoje e o mês, com uma marca nos dias com compromisso. Um clique no dia abre o calendário completo.
 - **Hoje:** tarefas do dia, com entrada em linguagem natural ("ligar pro banco 15h").
 - **Capturar:** tarefa, gasto, link, nota ou lembrete em poucos segundos.
-- **Mídia:** o que está tocando no Windows, com capa e controles.
+- **Mídia:** reprodução informada pelo Windows, com capa, controles, progresso e volume do sistema, incluindo porcentagem e botão de silenciar.
 - **Foco:** pomodoro com etapas de foco e pausa.
 - **Hábitos e Agenda:** marcação rápida e próximos compromissos.
 - **Chat:** conversa rápida com o time, com anexos.
 - **Conexões:** números e últimas atividades de cada serviço, como cobranças do Stripe, Actions do GitHub, e-mails do Resend e tráfego do Cloudflare.
 - **Avisos:** os alertas do time.
+- **Código:** acompanhamento das sessões de ferramentas de programação, com atividade, alterações e pedidos de aprovação nas ferramentas compatíveis.
 
 Na área de trabalho, a ilha ganha uma **aba de cada lado**, ligadas por uma faixa fina no topo. Com um app na frente, fica só a ilha.
 
@@ -63,9 +66,25 @@ Na área de trabalho, a ilha ganha uma **aba de cada lado**, ligadas por uma fai
 
 Modos **fixo**, **esconder** e **inteligente**. Durante jogos, vídeos em tela cheia e apresentações, a ilha e o dock somem por completo. O **modo privacidade** esconde valores e textos sensíveis quando você compartilha a tela.
 
+Os avisos habilitados podem revelar temporariamente a ilha e mostrar a mensagem antes de restaurar o estado anterior. O comportamento respeita as categorias de aviso e o Não perturbe. A compacta destaca mídia somente durante reprodução ativa; uma faixa pausada continua acessível na aba Mídia.
+
 ### Dock
 
-Substitui a barra de tarefas do Windows com a logo do Niko e os apps abertos, agrupados por programa. Ao passar o mouse, mostra uma prévia ao vivo de cada janela, de onde dá para focar ou fechar. Também tem os modos fixo, esconder e inteligente.
+Substitui a barra de tarefas do Windows com acesso ao Niko, ao Iniciar, à busca e aos aplicativos abertos. Ao passar o mouse, mostra prévias das janelas, de onde dá para focar ou fechar. Também tem os modos fixo, esconder e inteligente.
+
+- **Vários monitores:** pode aparecer em cada monitor ou apenas no escolhido, com organização dos apps conforme a configuração.
+- **Perfis de navegador:** separa janelas do Chrome e do Edge quando o Windows fornece identificação do perfil.
+- **Botão direito:** menu para mostrar, minimizar e fechar janelas do grupo, além de acessos como Gerenciador de Tarefas e configurações do dock. Fechar todas exige confirmação e o programa pode pedir para salvar arquivos.
+- **Lupa:** procura aplicativos e janelas, oferece controles rápidos do Windows, calculadora e pesquisa pelo buscador escolhido. A pesquisa abre o navegador, não dá ao chat uma ferramenta de navegação web.
+
+### AtalhoTouch
+
+Um botão flutuante opcional, desativado por padrão, para abrir os aplicativos que você escolher. Pode ser ativado ou desativado pela lupa do dock.
+
+- Arraste o botão para posicioná-lo na tela.
+- Uma gaveta compacta revela os atalhos e abre para cima quando não há espaço abaixo.
+- Use **+** para adicionar aplicativos, com animação de entrada e aparência combinando com a ilha e o dock.
+- Clique com o botão direito em um atalho para removê-lo. Isso não desinstala o aplicativo.
 
 ### Sistema
 
@@ -73,17 +92,52 @@ Substitui a barra de tarefas do Windows com a logo do Niko e os apps abertos, ag
 | ---- | --------- |
 | **Início** | Painel do dia com blocos configuráveis: time, tarefas, foco, finanças, revisões e conquistas |
 | **Chat** | Conversa com os agentes, com comandos que funcionam mesmo sem IA |
-| **Escritório** | O time trabalhando em um escritório 3D |
+| **Escritório** | Time em uma sala 3D ou modo leve 2D, com estados, tarefa atual, últimas atividades e acesso ao chat |
 | **Journal** | Tarefas, hábitos, humor, notas e calendário do dia, com desfazer e refazer |
-| **Estudos** | Matérias com páginas, quadro, datas de prova, links e revisão espaçada |
+| **Estudos** | Áreas e matérias, páginas e subpáginas, quadro, provas, links, arquivos locais e revisão espaçada |
 | **Finanças** | Contas, cartões, transações, orçamento, recorrentes, metas de economia, divisão de contas, lista de compras e relatórios |
 | **Metas** | Pilares de vida, metas medidas por hábitos, horas de estudo, economia ou tarefas, e quadro de visão |
-| **Calendário** | Tudo que tem data no Niko, nas vistas de mês, semana e agenda, com eventos e lembretes recorrentes |
-| **Conexões** | Stripe, GitHub, Vercel, Resend, Notion, Cal.com, n8n, Gmail, Supabase e Cloudflare, cada um com janela própria |
+| **Calendário** | Vistas de mês, semana e agenda, recorrências, edição por ocorrência, movimentação de eventos, marcação de feito e importação/exportação ICS |
+| **Conexões** | Stripe, GitHub, Vercel, Resend, Notion, Cal.com, n8n, Google Workspace, Supabase e Cloudflare, com painéis próprios |
 | **Provedores de IA** | Escolha do provedor e do modelo, com chave guardada no cofre do Windows |
 | **Consumo de IA** | Uso e limites das ferramentas de IA que você usa |
 | **Conquistas** | Marcos e mapa de calor da sua rotina |
 | **Configurações** | Aparência, ilha, dock, sons, atalhos, privacidade, backup e dados |
+| **Atualização** | Versão instalada, verificação de atualizações, novidades e links do projeto |
+
+A janela principal recebeu uma atualização visual e paginação nas listas longas. Áreas e funções opcionais podem ser desativadas nas configurações.
+
+### Calendário e arquivos
+
+Eventos recorrentes podem ser editados ou excluídos somente em uma ocorrência ou em toda a série. Hábitos com horário aparecem no calendário e podem gerar lembretes enquanto não forem cumpridos.
+
+A importação `.ics` interpreta horários UTC e fusos `TZID` reconhecidos pelo sistema, convertendo data e hora para o fuso do computador. Eventos de dia inteiro permanecem sem horário; horários sem fuso são mantidos como locais. Não é uma sincronização contínua com o Google e não corrige retroativamente registros importados antes da correção. Fusos personalizados e todas as possibilidades de recorrência do formato ICS não são suportados integralmente.
+
+Arquivos de Estudos ficam no computador e podem ser abertos no programa associado. A leitura de texto para o chat admite PDF, documentos compatíveis do Office e imagens com OCR do Windows, sujeito a limites e à disponibilidade do OCR. A extração pode conter erros.
+
+### Google Workspace e outras conexões
+
+Gmail e Google Agenda passam a fazer parte de uma única conexão **Google Workspace**, com abas de e-mails, agenda, arquivos recentes do Drive e tarefas do Google Tasks.
+
+- Gmail permite consultas, criação de rascunhos e envio solicitado pelo usuário, com confirmação.
+- Agenda consulta compromissos; Drive lista metadados, como nomes, tipos, datas e links, sem baixar o conteúdo dos arquivos; Tasks consulta tarefas pendentes.
+- Falhas são apresentadas por serviço: uma API indisponível não precisa impedir a leitura das demais.
+- O botão **Entrar com o Google** depende de o build incluir o cliente OAuth do Niko. Sem essa configuração, existe o fluxo com cliente OAuth próprio.
+- Acesso público depende das configurações e da verificação exigida pelo Google. A presença da função no código não significa que o login já está aprovado ou disponível a qualquer conta.
+
+No GitHub, os painéis distinguem pull requests próprios e pedidos de revisão, com status de CI por PR quando disponível. As demais conexões dependem das permissões, credenciais e limites do respectivo serviço.
+
+### Ferramentas de código na ilha
+
+A aba Código integra Claude Code, Codex, Copilot CLI, OpenCode, Antigravity, Kimi, Gemini CLI e Amp. A configuração é feita pelo Niko, com acompanhamento local dos eventos disponíveis em cada ferramenta.
+
+- Sessões identificadas por projeto e ferramenta, passos recentes e alterações de arquivos quando informadas.
+- Pedidos de aprovação nas integrações compatíveis, atualmente Claude Code, Codex e Copilot. A integração com Claude também apresenta perguntas com opções para resposta.
+- Acesso ao terminal e ao projeto da sessão, sem transformar o chat comum em um controlador irrestrito do Windows.
+- Indicadores de uso de Claude e Codex quando a fonte fornece esses dados. Ausência de informação não equivale a consumo zero.
+- Resumo semanal local de sessões, comandos, alterações e pedidos registrados. Esses números representam eventos acompanhados pelo Niko, não uma auditoria completa de toda a atividade do computador.
+
+As capacidades variam entre ferramentas e versões. Uma integração que acompanha atividade não necessariamente permite aprovar comandos, responder perguntas ou enviar instruções.
 
 ### O time
 
@@ -98,9 +152,12 @@ Cada agente tem oito estados visíveis (ocioso, ouvindo, pensando, escrevendo, s
 
 ## Atalhos
 
+Combinações globais padrão, configuráveis no app. Conflitos com atalhos de outros programas são informados quando detectados.
+
 | Atalho | Ação |
 | ------ | ---- |
 | `Ctrl` `Alt` `Espaço` | Captura rápida |
+| `Ctrl` `Alt` `L` | Lupa de aplicativos do dock |
 | `Ctrl` `Alt` `N` | Abrir ou esconder o sistema |
 | `Ctrl` `Alt` `P` | Iniciar ou pausar o pomodoro |
 | `Ctrl` `Alt` `M` | Tocar ou pausar a mídia |
@@ -110,6 +167,8 @@ Cada agente tem oito estados visíveis (ocioso, ouvindo, pensando, escrevendo, s
 | `Ctrl` `B` | Recolher ou expandir a barra lateral |
 | `Ctrl` `1` a `Ctrl` `9` | Ir para as áreas da barra lateral |
 | `Esc` | Fechar modal, painel ou ilha |
+
+As ações globais de Não perturbe, próximo pedido de aprovação, próxima aba e terminal podem receber combinações próprias nas configurações. Atalhos internos, como `Ctrl K`, dependem da janela em foco.
 
 ## Recursos do chat
 
@@ -121,11 +180,19 @@ O pomodoro, a lista de capacidades e o relatório semanal funcionam sem provedor
 - `/capacidades` lista as ferramentas cadastradas, respeitando as permissões e conexões atuais. Não comprova que o modelo escolhido aceita ferramentas.
 - `/relatorio` calcula os últimos sete dias a partir dos registros locais. Não inclui finanças e não preenche dias sem registro.
 
-Anexos de texto têm botões para resumir, explicar, criar perguntas e extrair texto. Extrair funciona localmente; as demais análises usam o provedor escolhido, com ferramentas de ação desativadas e sem enviar o contexto pessoal do Niko. O conteúdo enviado para análise é limitado a 45 mil caracteres. Imagens não usam esses botões e precisam de um modelo com visão; PDF e pesquisa web ainda não estão disponíveis.
+Anexos analisáveis têm ações para resumir, explicar, criar perguntas e extrair texto. A extração é local; as análises por IA usam o provedor escolhido. Documentos têm limite de 30 MB por arquivo, outros anexos de 8 MB, e cada mensagem admite até quatro anexos. Textos extraídos podem ser recortados antes da análise. OCR reconhece texto, mas interpretar visualmente uma imagem exige um modelo com visão.
+
+As ferramentas do chat podem consultar registros e conexões autorizadas, inclusive arquivos de Estudos. A disponibilidade depende das funções habilitadas, das permissões e do suporte do modelo. O chat do Niko ainda não tem uma ferramenta própria de pesquisa na internet.
 
 Perguntas sobre Cloudflare e Supabase são encaminhadas ao Java. Menções explícitas continuam escolhendo o agente. Confirmações e resultados de ações vêm das ferramentas, sem anunciar um cartão pendente como salvo. As respostas do modelo são verificadas antes de aparecer, mas isso não elimina todos os possíveis erros de uma IA.
 
-A ilha compacta destaca mídia somente enquanto o Windows informa reprodução ativa. Uma música pausada continua acessível na aba Mídia, sem ocupar automaticamente a compacta. Quando Mídia é escolhida para repouso, a compacta mostra o relógio enquanto não há reprodução.
+## Privacidade, limites e segurança
+
+- Modelos podem errar. Confirmações de ferramentas ajudam a evitar respostas falsas sobre ações executadas, mas não eliminam alucinações.
+- Integrações e análises por IA podem transmitir dados ao serviço escolhido. Revise o contexto e evite anexar segredos ou informações que não deseja compartilhar.
+- Importações, backups e registros passam por validações de formato e referências. Isso não substitui manter seus próprios backups.
+- Não publique chaves, tokens, arquivos de configuração com segredos ou dados pessoais em issues. Para relatar um problema, informe versão do Niko, versão do Windows, passos para reproduzir e uma captura anonimizada.
+- O Escritório atual representa o time do Niko. Salas dinâmicas por projeto e funcionalidades inspiradas em outros escritórios virtuais não estão implementadas.
 
 ## Tecnologias
 
@@ -153,7 +220,7 @@ pnpm install
 pnpm dev
 ```
 
-Abra o endereço que aparecer no terminal (por padrão `http://localhost:5420`). No navegador as conexões usam dados de demonstração e a IA fica desligada, porque as chaves só podem ficar no cofre do Windows.
+Abra o endereço que aparecer no terminal (por padrão `http://localhost:5420`). Essa execução serve para desenvolvimento e não equivale ao aplicativo instalado: recursos nativos dependem do Windows, da ponte local e, em alguns casos, do ambiente desktop do Tauri.
 
 ### Versão desktop
 
@@ -185,7 +252,7 @@ pnpm app         # gera o instalador do Windows
 Informe a versão explicitamente, sem editar os arquivos à mão:
 
 ```powershell
-pnpm lancar 0.1.2 "Descrição das novidades"
+pnpm lancar 0.2.2 "Descrição das novidades"
 ```
 
 O comando sincroniza `package.json`, `src-tauri/tauri.conf.json`, a versão do pacote Niko em `src-tauri/Cargo.toml` e `src-tauri/Cargo.lock`, além do selo de versão deste README. Antes de escrever, valida os arquivos, recusa redução de versão e consulta o GitHub para impedir uma release duplicada. Em builds feitos a partir de uma tag no GitHub Actions, a tag precisa ser `v` seguida da mesma versão.
@@ -198,13 +265,13 @@ Comandos que não geram instalador:
 
 ```powershell
 pnpm lancar:verificar
-pnpm lancar 0.1.2 --verificar
+pnpm lancar 0.2.2 --verificar
 pnpm lancar:testar
 ```
 
 O primeiro confere se as quatro versões concordam. O segundo mostra uma prévia da sincronização, sem alterar arquivos nem consultar o GitHub. O terceiro executa os testes das proteções de release.
 
-Para reconstruir deliberadamente uma versão já publicada, use `pnpm lancar 0.1.1 --recompilar "Notas da versão"`. Essa opção dispensa a consulta de duplicidade no GitHub, mas mantém as validações dos arquivos e do build. Não substitua uma release publicada usando esses arquivos.
+Os números acima são exemplos de comandos, não um anúncio de release. Para reconstruir deliberadamente uma versão já publicada, use a opção `--recompilar` com a versão correspondente. Essa opção dispensa a consulta de duplicidade no GitHub, mas mantém as validações dos arquivos e do build. Não substitua uma release publicada usando esses arquivos.
 
 ## Estrutura
 
