@@ -1,5 +1,6 @@
 import { Component, lazy, Suspense, useState, type ReactNode } from "react";
-import { Box, LayoutGrid, MessageSquare } from "lucide-react";
+import { Box, Building2, LayoutGrid, MessageSquare, SquareTerminal } from "lucide-react";
+import { useClaudeCode } from "../../estado/claudeCode";
 import { CabecalhoAba } from "../../componentes/CabecalhoAba";
 import { Segmentado, AvisoFaixa } from "../../componentes/basicos";
 import { Personagem } from "../../personagens/Personagem";
@@ -57,7 +58,7 @@ function Sala2D({ comportamento, tarefas, aoEscolher }: { comportamento: ReturnT
   );
 }
 
-function EscritorioNiko() {
+function EscritorioNiko({ alternador }: { alternador: ReactNode }) {
   const modoLeve = useConfig((s) => s.modoLeveEscritorio);
   const definir = useConfig((s) => s.definir);
   const nomes = useConfig((s) => s.agentes.nomes);
@@ -96,6 +97,7 @@ function EscritorioNiko() {
           />
         }
       />
+      {alternador}
       <section className="escritorio-palco">
         <div className="escritorio-quadro" data-modo={modoLeve ? "leve" : "3d"}>
           {modoLeve ? (
@@ -155,11 +157,20 @@ function EscritorioNiko() {
 
 export default function Escritorio({ tipoInicial = "niko", demonstracaoInicial = false }: { tipoInicial?: "niko" | "ias"; demonstracaoInicial?: boolean } = {}) {
   const [tipo, setTipo] = useState<"niko" | "ias">(tipoInicial);
-  return <>
-    <div className="escritorio-seletor"><Segmentado rotulo={T.escritorio.tipo} valor={tipo} aoMudar={setTipo} opcoes={[{ valor: "niko", rotulo: T.escritorio.niko }, { valor: "ias", rotulo: T.escritorio.ias.titulo }]} /></div>
-    {tipo === "niko" ? <EscritorioNiko /> : <div className="escritorio-ias-pagina">
-      <CabecalhoAba titulo={T.escritorio.ias.titulo} subtitulo={T.escritorio.ias.subtitulo} />
-      <EscritorioIas demonstracaoInicial={demonstracaoInicial} />
-    </div>}
+  const sessoes = useClaudeCode((s) => s.ordem.length);
+  const alternador = (
+    <div className="escritorio-troca" role="tablist" aria-label={T.escritorio.tipo}>
+      {([["niko", Building2, T.escritorio.niko, T.escritorio.trocaNiko], ["ias", SquareTerminal, T.escritorio.ias.curto, T.escritorio.trocaIas(sessoes)]] as const).map(([id, Icone, titulo, dica]) => (
+        <button key={id} type="button" role="tab" aria-selected={tipo === id} className="escritorio-troca-botao" onClick={() => setTipo(id)}>
+          <span className="escritorio-troca-icone"><Icone size={18} /></span>
+          <span className="escritorio-troca-texto"><b>{titulo}</b><small>{dica}</small></span>
+        </button>
+      ))}
+    </div>
+  );
+  return tipo === "niko" ? <EscritorioNiko alternador={alternador} /> : <>
+    <CabecalhoAba titulo={T.escritorio.ias.titulo} subtitulo={T.escritorio.ias.subtitulo} />
+    {alternador}
+    <EscritorioIas demonstracaoInicial={demonstracaoInicial} />
   </>;
 }

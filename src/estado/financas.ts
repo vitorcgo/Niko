@@ -20,6 +20,8 @@ import { gerarId, normalizarTexto } from "../utilitarios/basicos";
 import { deISO, hojeISO, paraISO } from "../utilitarios/datas";
 import { T } from "../textos/textos";
 import { exigir, validarTransacao } from "../utilitarios/validacoes";
+import { COTACOES_PADRAO, emReais, moedaValida, type Cotacoes } from "../utilitarios/dinheiro";
+import type { Moeda } from "../tipos";
 
 export const EU = "eu";
 
@@ -51,6 +53,7 @@ export interface DadosFinancas {
   listas: ListaCompras[];
   precos: Record<string, PrecoHistorico[]>;
   regras: RegraCategoria[];
+  cotacoes: Cotacoes;
 }
 
 interface NovaTransacao extends Omit<Transacao, "id" | "criadaEm"> {
@@ -95,6 +98,7 @@ interface EstadoFinancas extends DadosFinancas {
   categorizar: (descricao: string) => string | undefined;
   importar: (itens: Omit<Transacao, "id" | "criadaEm">[]) => { importados: number; duplicados: number };
   substituir: (dados: Partial<DadosFinancas>) => void;
+  definirCotacoes: (parcial: Partial<Cotacoes>) => void;
 }
 
 function datasDeParcela(data: string, n: number): string {
@@ -118,6 +122,14 @@ export const useFinancas = create<EstadoFinancas>()(
       listas: [],
       precos: {},
       regras: [],
+      cotacoes: COTACOES_PADRAO,
+      definirCotacoes: (parcial) =>
+        set((s) => {
+          const atual = { ...COTACOES_PADRAO, ...s.cotacoes };
+          const proxima = { ...atual, ...parcial };
+          for (const m of ["USD", "EUR"] as const) if (!(Number.isFinite(proxima[m]) && proxima[m] >= 0 && proxima[m] < 1000)) proxima[m] = atual[m];
+          return { cotacoes: proxima };
+        }),
       garantirCategorias: () => {
         if (get().categorias.length > 0) return;
         set({ categorias: CATEGORIAS_PADRAO.map((c) => ({ ...c, id: gerarId() })) });
@@ -446,9 +458,31 @@ export function saldoDaConta(s: Pick<DadosFinancas, "contas" | "transacoes">, co
       if (t.tipo === "receita") saldo += t.valor;
       else saldo -= t.valor;
     }
-    if (t.tipo === "transferencia" && t.contaDestinoId === contaId) saldo += t.valor;
+    if (t.tipo === "transferencia" && t.contaDestinoId === contaId) saldo += t.valorDestino ?? t.valor;
   }
   return saldo;
+}
+
+export function moedaDaConta(contas: Pick<Conta, "id" | "moeda">[], contaId: string | undefined): Moeda {
+  const m = contas.find((c) => c.id === contaId)?.moeda;
+  return moedaValida(m) ? m : "BRL";
+}
+
+export function cotacoesDe(s: { cotacoes?: Cotacoes }): Cotacoes {
+  return { ...COTACOES_PADRAO, ...s.cotacoes };
+}
+
+/** Valor do lançamento em centavos de real, pela cotação guardada. */
+export function valorEmReais(t: Pick<Transacao, "valor" | "contaId">, s: { contas: Conta[]; cotacoes?: Cotacoes }, valor = t.valor): number {
+  return emReais(valor, moedaDaConta(s.contas, t.contaId), cotacoesDe(s));
+}
+
+export function saldoDaContaEmReais(s: Pick<DadosFinancas, "contas" | "transacoes"> & { cotacoes?: Cotacoes }, contaId: string, ate?: string): number {
+  return emReais(saldoDaConta(s, contaId, ate), moedaDaConta(s.contas, contaId), cotacoesDe(s));
+}
+
+export function contasEmOutraMoeda(contas: Pick<Conta, "moeda" | "arquivada">[]): Moeda[] {
+  return [...new Set(contas.filter((c) => !c.arquivada && c.moeda && c.moeda !== "BRL").map((c) => c.moeda as Moeda))];
 }
 
 export function parteDoUsuario(t: Transacao, divisoes: Divisao[]): number {
@@ -483,11 +517,11 @@ export function receitasDoMes(s: Pick<DadosFinancas, "transacoes">, mes: string)
   return s.transacoes.filter((t) => t.tipo === "receita" && !t.ajuste && t.data.startsWith(mes));
 }
 
-export function gastoPorCategoria(s: Pick<DadosFinancas, "transacoes" | "contas" | "divisoes">, mes: string, modo: "competencia" | "caixa" = "competencia") {
+export function gastoPorCategoria(s: Pick<DadosFinancas, "transacoes" | "contas" | "divisoes"> & { cotacoes?: Cotacoes }, mes: string, modo: "competencia" | "caixa" = "competencia") {
   const mapa = new Map<string, number>();
   for (const t of gastosDoMes(s, mes, modo)) {
     const k = t.categoriaId ?? "";
-    mapa.set(k, (mapa.get(k) ?? 0) + parteDoUsuario(t, s.divisoes));
+    mapa.set(k, (mapa.get(k) ?? 0) + valorEmReais(t, s, parteDoUsuario(t, s.divisoes)));
   }
   return mapa;
 }

@@ -21,7 +21,7 @@ import { useRotina, tarefasDoDia, habitoCumprido } from "../../estado/rotina";
 import { useEstudos, revisoesParaHoje, cartoesVencidos } from "../../estado/estudos";
 import { usePomodoro, restanteAtual, formatarRelogio } from "../../estado/pomodoro";
 import type { EtapaPomodoro } from "../../tipos";
-import { useFinancas, gastoPorCategoria, receitasDoMes, gastosDoMes, parteDoUsuario, saldoDaConta } from "../../estado/financas";
+import { useFinancas, gastoPorCategoria, receitasDoMes, gastosDoMes, parteDoUsuario, saldoDaConta, moedaDaConta, valorEmReais } from "../../estado/financas";
 import { useComunicacao } from "../../estado/comunicacao";
 import { useAgentes, AGENTES, estadoDoAgente } from "../../estado/agentes";
 import { useConquistas, CONQUISTAS } from "../../estado/conquistas";
@@ -98,7 +98,7 @@ function SecaoTime() {
   const abertas = tarefasDoDia(tarefas, hoje).filter((t) => t.status !== "concluida" && t.status !== "cancelada").length;
   const revisoes = revisoesParaHoje(estudos);
   const prova = estudos.datas.filter((d) => !d.concluida && d.data >= hoje).sort((a, b) => a.data.localeCompare(b.data))[0];
-  const gasto = somar(gastosDoMes(fin, hoje.slice(0, 7)), (t) => parteDoUsuario(t, fin.divisoes));
+  const gasto = somar(gastosDoMes(fin, hoje.slice(0, 7)), (t) => valorEmReais(t, fin, parteDoUsuario(t, fin.divisoes)));
   const falha = agentes.alertas.find((a) => a.agenteId === "operador");
 
   const desligadas = useConfig((s) => s.funcoesDesligadas);
@@ -315,7 +315,7 @@ function BlocoFinancas({ numero }: { numero: string }) {
   const irPara = useInterface((s) => s.irPara);
   const mes = hojeISO().slice(0, 7);
   const gastos = gastoPorCategoria(fin, mes);
-  const entradas = somar(receitasDoMes(fin, mes), (t) => t.valor);
+  const entradas = somar(receitasDoMes(fin, mes), (t) => valorEmReais(t, fin));
   const saidas = somar([...gastos.values()], (v) => v);
   const comOrcamento = fin.categorias
     .filter((c) => c.tipo === "despesa" && c.orcamento > 0)
@@ -352,7 +352,7 @@ function BlocoFinancas({ numero }: { numero: string }) {
             return (
               <div key={c.id} className={`inicio-linha ${extra(i, 4)}`}>
                 <span className="inicio-linha-nome cortar"><span className="ponto-cor" style={{ background: c.cor }} />{c.nome}</span>
-                <span className="inicio-valor privado" data-negativo={s < 0 || undefined}>{formatarDinheiro(s)}</span>
+                <span className="inicio-valor privado" data-negativo={s < 0 || undefined}>{formatarDinheiro(s, moedaDaConta(fin.contas, c.id))}</span>
               </div>
             );
           })}
@@ -381,7 +381,7 @@ function BlocoFinancas({ numero }: { numero: string }) {
           {ultimas.map((x, i) => (
             <div key={x.id} className={`inicio-linha ${extra(i, 4)}`}>
               <span className="cortar">{x.descricao}</span>
-              <span className="inicio-valor privado" data-receita={x.tipo === "receita" || undefined}>{x.tipo === "receita" ? "+" : x.tipo === "despesa" ? "-" : ""}{formatarDinheiro(x.valor)}</span>
+              <span className="inicio-valor privado" data-receita={x.tipo === "receita" || undefined}>{x.tipo === "receita" ? "+" : x.tipo === "despesa" ? "-" : ""}{formatarDinheiro(x.valor, moedaDaConta(fin.contas, x.contaId))}</span>
             </div>
           ))}
         </div>
@@ -392,7 +392,7 @@ function BlocoFinancas({ numero }: { numero: string }) {
           {proximas.map((r, i) => (
             <div key={r.id} className={`inicio-linha ${extra(i, 2)}`}>
               <span className="cortar">{r.descricao}</span>
-              <span className="inicio-valor-apagado privado">{formatarDinheiro(r.valor)} . {r.falta === 0 ? T.datas.hoje : T.datas.emDias(r.falta)}</span>
+              <span className="inicio-valor-apagado privado">{formatarDinheiro(r.valor, moedaDaConta(fin.contas, r.contaId))} . {r.falta === 0 ? T.datas.hoje : T.datas.emDias(r.falta)}</span>
             </div>
           ))}
         </div>
@@ -760,7 +760,7 @@ export default function Inicio() {
     <>
       <CabecalhoAba
         rotulo={T.inicio.rotulo}
-        titulo={<>{T.inicio.saudacao(saudacao())}<em>{nome || T.barraLateral.perfil}</em></>}
+        titulo={<>{T.inicio.saudacao(saudacao())}<em className="inicio-nome" title={nome || undefined}>{nome.trim().split(/\s+/)[0] || T.barraLateral.perfil}</em></>}
         subtitulo={data}
         acoes={
           <>

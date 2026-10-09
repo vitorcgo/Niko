@@ -991,3 +991,66 @@
   border-radius: 9px;
   font-size: 13px;
 }
+
+.estilo-sistema .ajuste-perfil {
+  padding: 22px;
+  border-bottom: 1px solid var(--linha);
+  background: radial-gradient(420px 160px at 0% 0%, color-mix(in srgb, var(--destaque) 7%, transparent), transparent 70%);
+}
+
+.estilo-sistema .ajuste-perfil .editor-foto {
+  align-items: center;
+  gap: 22px;
+  flex-wrap: nowrap;
+}
+
+.estilo-sistema .ajuste-perfil .editor-foto-alvo {
+  flex: 0 0 auto;
+  border-radius: 50%;
+  box-shadow: 0 0 0 3px var(--superficie), 0 0 0 4px var(--borda-forte);
+  transition: transform 0.2s var(--curva-mola), box-shadow 0.2s;
+}
+
+.estilo-sistema .ajuste-perfil .editor-foto-alvo:hover {
+  transform: scale(1.03);
+  box-shadow: 0 0 0 3px var(--superficie), 0 0 0 4px var(--destaque);
+}
+
+.estilo-sistema .ajuste-perfil .editor-foto-camera,
+.estilo-sistema .editor-foto-camera {
+  width: 30px;
+  height: 30px;
+  background: var(--superficie-2);
+  color: var(--texto);
+  border: 1px solid var(--borda-forte);
+  box-shadow: 0 0 0 3px var(--superficie);
+}
+
+.estilo-sistema .ajuste-perfil .editor-foto-lado {
+  flex: 1 1 auto;
+  min-width: 0;
+  max-width: 420px;
+  gap: 8px !important;
+}
+
+.estilo-sistema .ajuste-perfil-rotulo {
+  font-family: var(--fonte-mono);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--texto-3);
+}
+
+.estilo-sistema .ajuste-perfil-nome {
+  height: 44px;
+  font-family: var(--fonte-titulo);
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+@container conteudo (max-width: 520px) {
+  .estilo-sistema .ajuste-perfil .editor-foto {
+    flex-wrap: wrap;
+  }
+}

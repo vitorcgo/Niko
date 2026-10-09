@@ -4,7 +4,7 @@ import { Search, ListTodo, FileText, Wallet, Link2, CalendarDays, MessageSquare,
 import { useInterface } from "../../estado/interface";
 import { useRotina } from "../../estado/rotina";
 import { useEstudos } from "../../estado/estudos";
-import { useFinancas } from "../../estado/financas";
+import { useFinancas, moedaDaConta } from "../../estado/financas";
 import { useOrganizacao } from "../../estado/organizacao";
 import { useComunicacao } from "../../estado/comunicacao";
 import { useConfig } from "../../estado/configuracoes";
@@ -115,7 +115,7 @@ export function BuscaGlobal() {
     }
     for (const x of funcaoLigada("financas", desligadas) ? useFinancas.getState().transacoes : []) {
       if (ok(x.id, x.descricao))
-        r.push({ id: x.id, grupo: "transacoes", titulo: x.descricao, sub: `${formatarDinheiro(x.valor)} . ${formatar(x.data, "d 'de' MMM")}`, icone: <Wallet size={15} />, executar: () => { irPara("financas", { aba: "transacoes", busca: x.descricao }); fechar(); } });
+        r.push({ id: x.id, grupo: "transacoes", titulo: x.descricao, sub: `${formatarDinheiro(x.valor, moedaDaConta(useFinancas.getState().contas, x.contaId))} .${formatar(x.data, "d 'de' MMM")}`, icone: <Wallet size={15} />, executar: () => { irPara("financas", { aba: "transacoes", busca: x.descricao }); fechar(); } });
     }
     for (const e of funcaoLigada("calendario", desligadas) ? useOrganizacao.getState().eventos : []) {
       if (ok(e.id, e.titulo))

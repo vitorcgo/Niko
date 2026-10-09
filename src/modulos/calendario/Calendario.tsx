@@ -246,6 +246,7 @@ export default function Calendario() {
   const datas = useEstudos((s) => s.datas);
   const revisoes = useEstudos((s) => s.revisoesConteudo);
   const recorrentes = useFinancas((s) => s.recorrentes);
+  const contasFinanceiras = useFinancas((s) => s.contas);
   const [vista, setVista] = useState<Vista>("mes");
   const [foco, setFoco] = useState(parametros.data && dataValida(parametros.data) ? parametros.data : hojeISO());
   const [fontes, setFontes] = useState<Record<Fonte, boolean>>({ eventos: true, tarefas: true, habitos: true, estudos: true, financas: true, metas: true, google: true });
@@ -302,10 +303,10 @@ export default function Calendario() {
   const sugerirGoogle = sugestaoGoogle && !agendaConectada && funcaoLigada("calendario", desligadas);
   const agendaGoogle = usarAgendaGoogle(funcaoLigada("calendario", desligadas) ? [[inicioISO, fimISO], [hoje, fimProximos]] : []);
   const gerar = useMemo(() => (de: string, ate: string) => {
-    const locais = itensDoCalendario({ eventos, tarefas, habitos, datas, revisoes, metas, recorrentes }, de, ate);
+    const locais = itensDoCalendario({ eventos, tarefas, habitos, datas, revisoes, metas, recorrentes, contas: contasFinanceiras }, de, ate);
     const google: Item[] = agendaGoogle.eventos.filter((e) => e.data >= de && e.data <= ate).map((e) => ({ id: `google-${e.id}`, titulo: e.titulo, data: e.data, hora: e.hora, fonte: "google", link: e.link }));
     return [...locais, ...google].filter((i) => fontes[i.fonte]).sort((a, b) => `${a.data}${a.hora ?? "99"}`.localeCompare(`${b.data}${b.hora ?? "99"}`));
-  }, [eventos, tarefas, habitos, datas, revisoes, metas, recorrentes, fontes, desligadas, agendaGoogle.eventos]);
+  }, [eventos, tarefas, habitos, datas, revisoes, metas, recorrentes, contasFinanceiras, fontes, desligadas, agendaGoogle.eventos]);
   const itens = useMemo(() => gerar(inicioISO, fimISO), [gerar, inicioISO, fimISO]);
   const proximosTodos = useMemo(() => gerar(hoje, fimProximos), [gerar, hoje, fimProximos]);
   const proximos = proximosTodos.filter((i) => !repeteTodoDia(i));

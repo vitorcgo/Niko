@@ -38,7 +38,7 @@ export function Avatar({ tamanho = 28, className = "" }: { tamanho?: number; cla
   );
 }
 
-export function EditorFoto({ tamanho = 88 }: { tamanho?: number }) {
+export function EditorFoto({ tamanho = 88, children }: { tamanho?: number; children?: React.ReactNode }) {
   const foto = useConfig((s) => s.foto);
   const definir = useConfig((s) => s.definir);
   const entrada = useRef<HTMLInputElement>(null);
@@ -78,7 +78,8 @@ export function EditorFoto({ tamanho = 88 }: { tamanho?: number }) {
         <Avatar tamanho={tamanho} />
         <span className="editor-foto-camera"><Camera size={15} /></span>
       </button>
-      <div className="coluna" style={{ gap: 6 }}>
+      <div className="coluna editor-foto-lado" style={{ gap: 6 }}>
+        {children}
         <span className="linha" style={{ gap: 6 }}>
           <button type="button" className="botao botao-secundario botao-pequeno" onClick={() => entrada.current?.click()}>
             <Camera size={13} />

@@ -115,7 +115,45 @@ test("conclusão associa duração ao tool_use_id, não conta a ação duas veze
   aplicar({ ...evento, id: "d-5", evento: "SubagentStop", dados: { agent_id: "agente-a" } });
   assert.equal(useClaudeCode.getState().sessoes[evento.sessao].subagentes[0].estado, "terminou");
   const snapshot = snapshotDoEscritorio([useClaudeCode.getState().sessoes[evento.sessao]]);
-  assert.equal(snapshot.agents[1].parentId, evento.sessao); assert.equal(snapshot.agents[1].status, "done");
+  const sub = snapshot.agents.find((a) => a.kind === "sub");
+  assert.equal(sub.parentId, evento.sessao); assert.equal(sub.status, "done");
+});
+
+test("equipe passeia sem sessões e um boneco livre recebe cada sessão nova", async () => {
+  const { atribuirEquipe, IDS_DA_EQUIPE, SALA_DA_EQUIPE } = await vite.ssrLoadModule("/src/modulos/escritorio/equipeDoEscritorio.ts");
+  const vazio = snapshotDoEscritorio([]);
+  assert.equal(vazio.agents.length, IDS_DA_EQUIPE.length);
+  assert.ok(vazio.agents.every((a) => a.roomId === SALA_DA_EQUIPE && a.status === "idle"));
+  const s = { id: "sessao-da-equipe", ferramenta: "claude", projeto: "Projeto", cwd: "C:/Projeto", estado: "trabalhando", passos: [], ferramentasUsadas: 0, iniciadaEm: new Date().toISOString(), atualizadaEm: new Date().toISOString() };
+  const equipe = atribuirEquipe(new Map(), [s.id]);
+  const comSessao = snapshotDoEscritorio([s], {}, false, Date.now(), equipe);
+  const boneco = equipe.get(s.id);
+  const agente = comSessao.agents.find((a) => a.id === boneco);
+  assert.equal(agente.sessionId, s.id); assert.notEqual(agente.roomId, SALA_DA_EQUIPE);
+  assert.equal(comSessao.agents.filter((a) => a.roomId === SALA_DA_EQUIPE).length, IDS_DA_EQUIPE.length - 1);
+  const depois = atribuirEquipe(equipe, ["outra", s.id]);
+  assert.equal(depois.get(s.id), boneco); assert.notEqual(depois.get("outra"), boneco);
+  assert.equal(atribuirEquipe(depois, ["outra"]).has(s.id), false);
+  const muitas = atribuirEquipe(new Map(), Array.from({ length: IDS_DA_EQUIPE.length + 2 }, (_, i) => `s${i}`));
+  assert.equal(muitas.size, IDS_DA_EQUIPE.length);
+
+  const { Sim } = await vite.ssrLoadModule("/src/modulos/escritorio/motor/client/src/world/sim/sim.ts");
+  const arte = await vite.ssrLoadModule("/src/modulos/escritorio/motor/client/src/art/index.ts");
+  const { DEFAULT_WORLD_OPTIONS } = await vite.ssrLoadModule("/src/modulos/escritorio/motor/client/src/world/api.ts");
+  const agora = Date.parse("2026-10-09T12:00:00Z");
+  const sim = new Sim(arte, () => ({ ...DEFAULT_WORLD_OPTIONS, passearOcioso: true }), null);
+  sim.applySnapshot(snapshotDoEscritorio([], {}, false, agora, new Map(), agora), agora);
+  assert.equal(sim.chars.size, IDS_DA_EQUIPE.length);
+  const inicio = new Map([...sim.chars].map(([id, c]) => [id, `${c.tx},${c.ty}`]));
+  for (let i = 1; i <= 2400; i++) sim.update(.05, agora + i * 50);
+  assert.ok([...sim.chars].some(([id, c]) => inicio.get(id) !== `${c.tx},${c.ty}`), "algum boneco da equipe andou");
+  const recebeu = atribuirEquipe(new Map(), [s.id]);
+  const t = agora + 2400 * 50;
+  sim.applySnapshot(snapshotDoEscritorio([{ ...s, atualizadaEm: new Date(t).toISOString() }], {}, false, t, recebeu, agora), t);
+  const ch = sim.chars.get(recebeu.get(s.id));
+  assert.notEqual(ch.roomId, SALA_DA_EQUIPE);
+  for (let i = 1; i <= 2400; i++) sim.update(.05, t + i * 50);
+  assert.equal(ch.mode, "work"); assert.equal(sim.chars.size, IDS_DA_EQUIPE.length);
 });
 
 test("tempo pertence ao projeto anterior ao mudar de diretório", () => {

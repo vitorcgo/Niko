@@ -2211,6 +2211,231 @@
   font-family: var(--fonte-mono);
   font-size: 16px;
   color: var(--texto-3);
+  transition: color 0.2s;
+}
+
+.estilo-sistema .fin-dinheiro:not([data-moeda="BRL"]) .fin-dinheiro-moeda {
+  color: var(--destaque-claro);
+}
+
+/* Moedas */
+
+.estilo-sistema .fin-moedas {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.estilo-sistema .fin-moeda-opcao {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--borda-controle);
+  background: var(--fundo);
+  text-align: left;
+  color: var(--texto-2);
+  transition: border-color 0.15s, background 0.15s, color 0.15s, transform 0.08s ease-out;
+}
+
+.estilo-sistema .fin-moeda-opcao:hover {
+  border-color: var(--borda-hover);
+  color: var(--texto);
+}
+
+.estilo-sistema .fin-moeda-opcao:active {
+  transform: scale(0.98);
+}
+
+.estilo-sistema .fin-moeda-opcao[aria-checked="true"] {
+  border-color: var(--destaque);
+  background: var(--destaque-suave);
+  color: var(--texto);
+}
+
+.estilo-sistema .fin-moeda-simbolo {
+  display: grid;
+  place-items: center;
+  min-width: 34px;
+  height: 34px;
+  padding: 0 6px;
+  border-radius: 9px;
+  background: var(--superficie-2);
+  font-family: var(--fonte-mono);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--texto-2);
+  transition: background 0.15s, color 0.15s;
+}
+
+.estilo-sistema .fin-moeda-opcao[aria-checked="true"] .fin-moeda-simbolo {
+  background: var(--destaque);
+  color: var(--destaque-sobre);
+}
+
+.estilo-sistema .fin-moeda-textos {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.25;
+}
+
+.estilo-sistema .fin-moeda-textos b {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.estilo-sistema .fin-moeda-textos small {
+  font-family: var(--fonte-mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  color: var(--texto-3);
+}
+
+.estilo-sistema .fin-selo-moeda {
+  display: inline-flex;
+  align-items: center;
+  height: 16px;
+  margin-left: 6px;
+  padding: 0 5px;
+  border-radius: 4px;
+  background: var(--info-suave);
+  color: var(--info-claro);
+  font-family: var(--fonte-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.06em;
+  vertical-align: 1px;
+}
+
+.estilo-sistema .fin-valor-moeda {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-end;
+  line-height: 1.15;
+}
+
+.estilo-sistema .fin-conta-valor .fin-valor-moeda,
+.estilo-sistema .fin-conta-mini-saldo .fin-valor-moeda,
+.estilo-sistema .fin-fatura-total .fin-valor-moeda {
+  align-items: flex-start;
+}
+
+.estilo-sistema .fin-valor-equivalente {
+  font-family: var(--fonte-mono);
+  font-size: 10.5px;
+  font-weight: 400;
+  letter-spacing: 0;
+  color: var(--texto-3);
+}
+
+.estilo-sistema .fin-cotacao {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+  padding: 10px 10px 10px 16px;
+  border: 1px solid var(--borda);
+  border-radius: 12px;
+  background: linear-gradient(90deg, var(--info-suave), transparent 55%), var(--superficie);
+  animation: entrar-pagina-sistema 0.3s var(--curva-suave);
+}
+
+.estilo-sistema .fin-cotacao[data-falhou="sim"] {
+  background: linear-gradient(90deg, var(--alerta-suave), transparent 55%), var(--superficie);
+}
+
+.estilo-sistema .fin-cotacao-rotulo {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-family: var(--fonte-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--info-claro);
+}
+
+.estilo-sistema .fin-cotacao[data-falhou="sim"] .fin-cotacao-rotulo {
+  color: var(--alerta);
+}
+
+.estilo-sistema .fin-cotacao-valores {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.estilo-sistema .fin-cotacao-valor {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+  height: 28px;
+  padding: 0 10px;
+  border-radius: 8px;
+  background: var(--fundo);
+  border: 1px solid var(--borda-controle);
+  font-family: var(--fonte-mono);
+  font-size: 12px;
+  line-height: 26px;
+}
+
+.estilo-sistema .fin-cotacao-valor b {
+  font-weight: 500;
+  color: var(--texto-2);
+}
+
+.estilo-sistema .fin-cotacao-estado {
+  flex: 1 1 auto;
+  font-size: 11.5px;
+  color: var(--texto-3);
+}
+
+.estilo-sistema .fin-cotacao-acoes {
+  display: flex;
+  gap: 2px;
+}
+
+.estilo-sistema .fin-cotacao-form {
+  flex: 1 1 auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.estilo-sistema .fin-cotacao-campo {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 30px;
+  padding: 0 4px 0 10px;
+  border-radius: 8px;
+  border: 1px solid var(--borda-controle);
+  background: var(--fundo);
+  font-family: var(--fonte-mono);
+  font-size: 12px;
+  color: var(--texto-3);
+}
+
+.estilo-sistema .fin-cotacao-campo:focus-within {
+  border-color: var(--destaque);
+}
+
+.estilo-sistema .fin-cotacao-campo input {
+  width: 74px;
+  border: 0;
+  outline: none;
+  background: transparent;
+  font: inherit;
+  color: var(--texto);
+}
+
+@container conteudo (max-width: 560px) {
+  .estilo-sistema .fin-moedas {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 .estilo-sistema .fin-dinheiro-campo {

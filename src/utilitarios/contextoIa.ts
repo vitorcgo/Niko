@@ -1,6 +1,6 @@
 import { useRotina, tarefasDoDia, habitoCumprido } from "../estado/rotina";
 import { useEstudos, revisoesParaHoje } from "../estado/estudos";
-import { useFinancas, gastosDoMes, parteDoUsuario } from "../estado/financas";
+import { useFinancas, gastosDoMes, parteDoUsuario, valorEmReais } from "../estado/financas";
 import { useComunicacao } from "../estado/comunicacao";
 import { useConfig } from "../estado/configuracoes";
 import { usePomodoro } from "../estado/pomodoro";
@@ -28,7 +28,7 @@ export function resumoPorAgente(): Record<AgenteId, string> {
   const habitos = rotina.habitos.filter((h) => !h.arquivado && !habitoCumprido(h, rotina.registros[hoje]?.[h.id]));
   const revisoes = revisoesParaHoje(estudos);
   const prova = estudos.datas.filter((d) => !d.concluida && d.data >= hoje).sort((a, b) => a.data.localeCompare(b.data))[0];
-  const gasto = somar(gastosDoMes(fin, hoje.slice(0, 7)), (t) => parteDoUsuario(t, fin.divisoes));
+  const gasto = somar(gastosDoMes(fin, hoje.slice(0, 7)), (t) => valorEmReais(t, fin, parteDoUsuario(t, fin.divisoes)));
   const alertas = useAgentes.getState().alertas;
   const falha = alertas.find((a) => a.agenteId === "operador");
   const falhaConexao = alertas.find((a) => a.agenteId === "java" && a.servico);
@@ -65,7 +65,7 @@ export function contextoParaIa(): string {
     `Fatos que o usuário pediu para lembrar:\n${memoria.join("\n") || "- nenhum"}`,
   ];
   if (!cfg.nuncaFinanceiro && funcaoLigada("financas")) {
-    const gasto = somar(gastosDoMes(fin, hoje.slice(0, 7)), (t) => parteDoUsuario(t, fin.divisoes));
+    const gasto = somar(gastosDoMes(fin, hoje.slice(0, 7)), (t) => valorEmReais(t, fin, parteDoUsuario(t, fin.divisoes)));
     linhas.push(`Gasto do mês até agora: ${formatarDinheiro(gasto)}.`);
   }
   return linhas.join("\n\n");

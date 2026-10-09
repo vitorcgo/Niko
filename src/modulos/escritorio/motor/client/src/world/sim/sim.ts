@@ -1440,7 +1440,8 @@ export class Sim {
     const rng = ch.rng;
     const persona = personaFor(ch.info.seed);
     // colegas à toa: a vontade é de companhia (a personalidade dosa) — TV, jogo, papo, aposta...
-    if (this.social.hasCompany(ch, now) && rng() < 0.45 + persona.sociability * 0.4 && this.social.tryInitiate(ch, now, false)) return true;
+    const chance = Math.min(0.95, 0.45 + persona.sociability * 0.4 + (this.options().sociabilidade ?? 0));
+    if (this.social.hasCompany(ch, now) && rng() < chance && this.social.tryInitiate(ch, now, false)) return true;
     const avail: Partial<Record<IdleActivity, boolean>> = {
       coffee: !!this.spots.findFree('coffee', { by: ch.id }),
       water: !!this.spots.findFree('water', { by: ch.id }),

@@ -5,7 +5,7 @@ import { useRotina, tarefasDoDia, habitoCumprido } from "../estado/rotina";
 import { useOrganizacao } from "../estado/organizacao";
 import { ocorrencias } from "./itensDoCalendario";
 import { useEstudos, revisoesParaHoje } from "../estado/estudos";
-import { useFinancas, gastosDoMes, receitasDoMes, gastoPorCategoria, parteDoUsuario, saldoDaConta } from "../estado/financas";
+import { useFinancas, gastosDoMes, receitasDoMes, gastoPorCategoria, parteDoUsuario, saldoDaConta, moedaDaConta, valorEmReais } from "../estado/financas";
 import { useComunicacao } from "../estado/comunicacao";
 import { useConfig } from "../estado/configuracoes";
 import { usePomodoro } from "../estado/pomodoro";
@@ -110,8 +110,8 @@ const AREAS_BANCO: Record<string, AreaBanco> = {
   cartoes: { data: "vencimento", ler: () => { const e = useEstudos.getState(); return e.cartoes.map((c) => ({ materia: nomeDe(e.materias, c.materiaId), frente: c.frente, verso: c.verso, vencimento: diaDoMomento(c.vencimento), repeticoes: c.repeticoes, lapsos: c.lapsos })); } },
   datas_estudo: { data: "data", ler: () => { const e = useEstudos.getState(); return e.datas.map((d) => ({ titulo: d.titulo, tipo: d.tipo, data: d.data, materia: nomeDe(e.materias, d.materiaId), concluida: d.concluida })); } },
   links: { data: "criado", ler: () => { const e = useEstudos.getState(); return e.links.map((l) => ({ titulo: l.titulo, url: l.url, nota: l.nota, tags: l.tags, estado: l.estado, materia: nomeDe(e.materias, l.materiaId), criado: diaDoMomento(l.criadoEm) })); } },
-  contas: { financeira: true, ler: () => { const f = useFinancas.getState(); return f.contas.map((c) => ({ nome: c.nome, tipo: c.tipo, saldo: reais(saldoDaConta(f, c.id)), limite: c.limite != null ? reais(c.limite) : null, arquivada: c.arquivada })); } },
-  transacoes: { data: "data", financeira: true, ler: () => { const f = useFinancas.getState(); return f.transacoes.map((t) => ({ data: t.data, tipo: t.tipo, valor: reais(t.valor), descricao: t.descricao, categoria: nomeDe(f.categorias, t.categoriaId), conta: nomeDe(f.contas, t.contaId), parcela: t.parcela ? `${t.parcela.numero}/${t.parcela.total}` : null })); } },
+  contas: { financeira: true, ler: () => { const f = useFinancas.getState(); return f.contas.map((c) => ({ nome: c.nome, tipo: c.tipo, moeda: moedaDaConta(f.contas, c.id), saldo: reais(saldoDaConta(f, c.id)), limite: c.limite != null ? reais(c.limite) : null, arquivada: c.arquivada })); } },
+  transacoes: { data: "data", financeira: true, ler: () => { const f = useFinancas.getState(); return f.transacoes.map((t) => ({ data: t.data, tipo: t.tipo, valor: reais(t.valor), moeda: moedaDaConta(f.contas, t.contaId), descricao: t.descricao, categoria: nomeDe(f.categorias, t.categoriaId), conta: nomeDe(f.contas, t.contaId), parcela: t.parcela ? `${t.parcela.numero}/${t.parcela.total}` : null })); } },
   categorias: { financeira: true, ler: () => useFinancas.getState().categorias.map((c) => ({ nome: c.nome, tipo: c.tipo, orcamento: reais(c.orcamento) })) },
   recorrentes: { financeira: true, ler: () => { const f = useFinancas.getState(); return f.recorrentes.map((r) => ({ descricao: r.descricao, valor: reais(r.valor), dia: r.dia, frequencia: r.frequencia, ativa: r.ativa, categoria: nomeDe(f.categorias, r.categoriaId), conta: nomeDe(f.contas, r.contaId) })); } },
   metas_economia: { data: "prazo", financeira: true, ler: () => useFinancas.getState().metasEconomia.map((m) => ({ nome: m.nome, guardado: reais(m.guardado), alvo: reais(m.alvo), prazo: m.prazo ?? null })) },
@@ -302,9 +302,9 @@ const FERRAMENTAS: FerramentaNiko[] = [
         tipo: "dados",
         conteudo: {
           mes,
-          contas: fin.contas.filter((c) => !c.arquivada).map((c) => ({ nome: c.nome, tipo: c.tipo, saldo: reais(saldoDaConta(fin, c.id)) })),
-          entradas: reais(somar(receitasDoMes(fin, mes), (t) => t.valor)),
-          saidas: reais(somar(gastosDoMes(fin, mes), (t) => parteDoUsuario(t, fin.divisoes))),
+          contas: fin.contas.filter((c) => !c.arquivada).map((c) => ({ nome: c.nome, tipo: c.tipo, moeda: moedaDaConta(fin.contas, c.id), saldo: reais(saldoDaConta(fin, c.id)) })),
+          entradas: reais(somar(receitasDoMes(fin, mes), (t) => valorEmReais(t, fin))),
+          saidas: reais(somar(gastosDoMes(fin, mes), (t) => valorEmReais(t, fin, parteDoUsuario(t, fin.divisoes)))),
           categorias: fin.categorias
             .filter((c) => c.tipo === "despesa" && (porCategoria.get(c.id) || c.orcamento))
             .map((c) => ({ nome: c.nome, gasto: reais(porCategoria.get(c.id) ?? 0), orcamento: reais(c.orcamento) })),

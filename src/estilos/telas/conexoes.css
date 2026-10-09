@@ -150,6 +150,10 @@
   left: 2px;
 }
 
+.estilo-sistema .conexao-cartao .alternador::before {
+  background-size: 9px;
+}
+
 .estilo-sistema .conexao-cartao .alternador[aria-checked="true"]::after {
   transform: translateX(12px);
 }

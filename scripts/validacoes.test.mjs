@@ -115,8 +115,8 @@ test("escritório vazio não reutiliza painel vazio e demo não grava sessões r
     assert.match(vazio, /ei-mundo-canvas/);
     assert.doesNotMatch(vazio, /ei-sessao-real/);
     assert.doesNotMatch(vazio, /Ver demonstração|Voltar ao vivo|Demonstrar passeio|Projetos e personagens de exemplo/);
-    assert.match(vazio, /Site do Niko/);
     assert.match(vazio, /ei-resumo-dados/);
+    assert.match(vazio, /Equipe livre/);
     const { ConfigDasFerramentas } = await vite.ssrLoadModule("/src/janelas/ilha/claude/ConfigDasFerramentas.tsx");
     const conectando = renderToStaticMarkup(createElement(ConfigDasFerramentas, { aoFechar() {} }));
     assert.match(conectando, /Carregando/);
@@ -136,16 +136,21 @@ test("escritório vazio não reutiliza painel vazio e demo não grava sessões r
 test("snapshot visual mantém IDs reais e não inventa tarefas, contas autenticadas ou subagentes", async () => {
   const { snapshotDoEscritorio, estadoDoPersonagem } = await vite.ssrLoadModule("/src/modulos/escritorio/snapshotDoEscritorio.ts");
   const exemplos = sessoesDeDemonstracao(Date.parse("2026-10-09T12:00:00Z"));
+  const { SALA_DA_EQUIPE, IDS_DA_EQUIPE } = await vite.ssrLoadModule("/src/modulos/escritorio/equipeDoEscritorio.ts");
   const snap = snapshotDoEscritorio(exemplos, { "demo:0": "Nome local" }, true, Date.parse("2026-10-09T12:00:00Z"));
-  assert.equal(snap.rooms.length, 3);
-  assert.equal(snap.agents.length, 5);
-  assert.equal(snap.agents[0].name, "Nome local");
-  assert.ok(snap.agents.every((a) => exemplos.some((s) => s.id === a.id) && a.kind === "main" && !a.tasks.length && !a.permission && !a.shells));
+  const salas = snap.rooms.filter((r) => r.id !== SALA_DA_EQUIPE);
+  const sessoes = snap.agents.filter((a) => a.roomId !== SALA_DA_EQUIPE);
+  assert.equal(salas.length, 3);
+  assert.equal(sessoes.length, 5);
+  assert.equal(snap.agents.length - sessoes.length, IDS_DA_EQUIPE.length);
+  assert.equal(sessoes[0].name, "Nome local");
+  assert.ok(sessoes.every((a) => exemplos.some((s) => s.id === a.id) && a.kind === "main" && !a.tasks.length && !a.permission && !a.shells));
+  assert.ok(snap.agents.every((a) => !a.tasks.length && !a.permission && !a.shells));
   assert.ok(snap.accounts.every((a) => a.usageStatus === "disabled" && !a.usage && !a.configDir));
   assert.equal(snap.meta.messages, false);
   assert.equal(estadoDoPersonagem("terminou"), "idle");
   assert.equal(estadoDoPersonagem("aprovacao"), "waiting");
-  assert.deepEqual(snapshotDoEscritorio([]).agents, []);
+  assert.ok(snapshotDoEscritorio([]).agents.every((a) => a.roomId === SALA_DA_EQUIPE && a.status === "idle" && !a.sessionId));
 });
 
 test("prédio conectado alcança cada móvel utilizável pelos corredores e respeita bloqueios", async () => {

@@ -31,7 +31,7 @@ export function CenaPixelConectada({ snapshot, ciclo, estilo, seguir, selecionad
   useEffect(() => { mundo.current?.selecionar(selecionada); }, [selecionada, tentativa]);
   useEffect(() => { mundo.current?.visibilidade(ativa); }, [ativa, tentativa]);
   return <div ref={palco} className="ei-mundo">
-    <header className="ei-mundo-topo"><span><Building2 size={14} />{E.ambiente}</span>
+    <header className="ei-mundo-topo"><span title={E.mapaDica}>{E.ambiente}</span>
     <div className="ei-camera" role="group" aria-label={E.camera}>
       <button type="button" onClick={() => mundo.current?.aproximar(-1)} aria-label={E.afastar}><Minus size={16} /></button>
       <button type="button" onClick={() => mundo.current?.aproximar(1)} aria-label={E.aproximar}><Plus size={16} /></button>
@@ -44,6 +44,5 @@ export function CenaPixelConectada({ snapshot, ciclo, estilo, seguir, selecionad
     <canvas ref={canvas} className="ei-mundo-canvas" tabIndex={0} aria-label={E.mapaDica} />
     {falhou && <div className="ei-mundo-erro" role="alert"><p>{E.erroCena}</p><button type="button" className="ei-botao" onClick={() => { setFalhou(false); setTentativa((n) => n + 1); }}>{E.tentarNovamente}</button></div>}
     {erroTelaCheia && <p className="ei-mundo-erro" role="alert">{E.erroTelaCheia}</p>}
-    <span className="ei-mapa-dica">{E.mapaDica}</span>
   </div>;
 }

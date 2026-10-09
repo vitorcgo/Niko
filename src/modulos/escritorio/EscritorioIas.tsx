@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
-import { Search, Activity, FolderOpen, Bell, Play, Plug, SlidersHorizontal, Pencil, ChartNoAxesColumn, Settings, ShieldCheck, Eye, Trash2, Globe } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Search, Activity, FolderOpen, Bell, Play, Plug, SlidersHorizontal, Pencil, ChartNoAxesColumn, Settings, ShieldCheck, Eye, Trash2, RefreshCw, Users } from "lucide-react";
+import { atribuirEquipe, ehDaEquipe, IDS_DA_EQUIPE } from "./equipeDoEscritorio";
 import { useClaudeCode, type EstadoSessao } from "../../estado/claudeCode";
 import { useEscritorioIas } from "../../estado/escritorioIas";
 import { useHistoricoCodigo } from "../../estado/historicoCodigo";
@@ -58,20 +59,30 @@ export function EscritorioIas({ demonstracaoInicial = false }: { demonstracaoIni
     const s = sessoes[id]; return s ? [{ ...s, estado: pedidos.some((p) => p.sessao === id) ? "aprovacao" as const : s.estado }] : [];
   }), [demonstracao, exemplos, sessoes, ordem, pedidos]);
   const todasSalas = useMemo(() => agruparSessoesDoEscritorio(todas), [todas]);
+  const equipeAnterior = useRef<Map<string, string>>(new Map());
+  const [equipeDesde] = useState(() => Date.now());
+  const equipe = useMemo(() => {
+    const ordenadas = [...todas].sort((a, b) => a.iniciadaEm.localeCompare(b.iniciadaEm)).map((s) => s.id);
+    const nova = atribuirEquipe(equipeAnterior.current, ordenadas);
+    equipeAnterior.current = nova;
+    return nova;
+  }, [todas]);
+  const idVisual = (sessao: string) => equipe.get(sessao) ?? sessao;
+  const livres = IDS_DA_EQUIPE.filter((id) => ![...equipe.values()].includes(id));
   const filtradas = useMemo(() => agruparSessoesDoEscritorio(filtrarSessoes(todas, ferramenta, estado), busca, nomes, nomesSalas).flatMap((s) => s.sessoes), [todas, ferramenta, estado, busca, nomes, nomesSalas]);
   const salas = useMemo(() => agruparSessoesDoEscritorio(filtradas), [filtradas]);
   const feed = useMemo(() => acontecimentosDoEscritorio(filtradas).filter(({ passo }) => tipoAtividade === "todos" || passo.tipo === tipoAtividade), [filtradas, tipoAtividade]);
   const selecionada = todas.find((s) => s.id === selecionadaId);
   const pendentes = todas.filter((s) => s.estado === "aprovacao");
-  const nome = (id: string) => nomes[chaveVisual(id)] || nomeDoPersonagem(id);
+  const nome = (id: string) => nomes[chaveVisual(id)] || nomeDoPersonagem(equipe.get(id) ?? id);
   const nomeSala = (id: string, padrao: string) => nomesSalas[chaveVisual(id)] || padrao || E.semNome;
   const snapshot = useMemo(() => {
-    const visuais = Object.fromEntries(todas.map((s) => [s.id, nomes[chaveVisual(s.id)] || nomeDoPersonagem(s.id)]));
-    const snap = snapshotDoEscritorio(todas, visuais, demonstracao);
+    const visuais = Object.fromEntries(todas.map((s) => [s.id, nomes[chaveVisual(s.id)] || nomeDoPersonagem(equipe.get(s.id) ?? s.id)]));
+    const snap = snapshotDoEscritorio(todas, visuais, demonstracao, Date.now(), equipe, equipeDesde);
     snap.rooms = snap.rooms.map((s) => ({ ...s, name: nomesSalas[chaveVisual(s.id)] || s.name, path: config.esconderDetalhes ? "" : s.path }));
     if (config.esconderDetalhes) snap.agents = snap.agents.map((a) => ({ ...a, title: undefined, recent: a.recent.map((p) => ({ ...p, text: p.tool || E.atividade, detail: undefined })), activity: a.activity ? { ...a.activity, text: a.activity.tool || E.atividade, detail: undefined } : undefined }));
     return snap;
-  }, [todas, nomes, nomesSalas, demonstracao, config.esconderDetalhes]);
+  }, [todas, nomes, nomesSalas, demonstracao, config.esconderDetalhes, equipe, equipeDesde]);
   const registrosDemo = useMemo(() => exemplos.flatMap((s) => [
     { id: `${s.id}:inicio`, recebidoEm: s.iniciadaEm, evento: "UserPromptSubmit", sessao: s.id, cwd: s.cwd, ferramenta: s.ferramenta, dados: {} },
     ...s.passos.map((p) => ({ id: p.id, recebidoEm: p.hora, evento: p.tipo === "fim" ? "Stop" : p.tipo === "erro" ? "StopFailure" : s.estado === "aprovacao" && p === s.passos.at(-1) ? "PermissionRequest" : "PreToolUse", sessao: s.id, cwd: s.cwd, ferramenta: s.ferramenta, dados: {} })),
@@ -90,13 +101,16 @@ export function EscritorioIas({ demonstracaoInicial = false }: { demonstracaoIni
     return () => { desligar?.(); window.clearInterval(relogio); document.removeEventListener("visibilitychange", sincronizar); };
   }, [demonstracao, tentativaConexao]);
   useEffect(() => { if (selecionadaId && !todas.some((s) => s.id === selecionadaId)) setSelecionadaId(undefined); }, [selecionadaId, todas]);
-  const escolher = (id: string) => setSelecionadaId(snapshot.agents.find((a) => a.id === id)?.parentId || id);
+  const escolher = (id: string) => {
+    if (ehDaEquipe(id) && ![...equipe.values()].includes(id)) return;
+    const agente = snapshot.agents.find((a) => a.id === id);
+    setSelecionadaId(agente?.sessionId || agente?.parentId || id);
+  };
   const renomear = (n: string) => { if (!selecionada) return; const novos = { ...nomes, [chaveVisual(selecionada.id)]: n }; if (demonstracao) setNomesDemo(novos); else definir({ nomes: novos }); };
   const filtros = <div className="ei-filtros"><label className="ei-busca"><Search size={15} /><input value={busca} onChange={(e) => setBusca(e.target.value)} aria-label={E.buscar} placeholder={E.buscar} /></label><select aria-label={E.filtroFerramenta} value={ferramenta} onChange={(e) => setFerramenta(e.target.value as FerramentaDeCodigo | "todas")}><option value="todas">{E.todas}</option>{FERRAMENTAS_DE_CODIGO.filter((f) => todas.some((s) => s.ferramenta === f)).map((f) => <option key={f} value={f}>{nomeDaFerramenta(f)}</option>)}</select><select aria-label={E.filtroEstado} value={estado} onChange={(e) => setEstado(e.target.value as EstadoSessao | "todos")}><option value="todos">{E.todosEstados}</option>{Object.entries(T.ilha.claude.estados).map(([id, t]) => <option key={id} value={id}>{t}</option>)}</select></div>;
   return <section className="escritorio-ias ei" aria-label={E.titulo} hidden={!visivel}>
-    <div className="ei-barra"><div className="ei-abas" role="tablist" aria-label={E.titulo}>{([["ambiente", E.visao, FolderOpen], ["atividade", E.atividade, Activity], ["analises", E.analises, ChartNoAxesColumn], ["config", E.configuracoes, Settings]] as const).map(([id, t, Icone]) => <button key={id} type="button" role="tab" aria-selected={aba === id} onClick={() => setAba(id)}><Icone size={14} /><span>{t}</span></button>)}</div><span className="ei-conexao" data-demo={demonstracao} data-ligado={conectado}><span />{demonstracao ? E.demonstracao : conectado ? E.aoVivo : E.reconectando}</span><a className="ei-icone" href="https://nikoapp-eight.vercel.app/" target="_blank" rel="noopener noreferrer" aria-label={T.atualizacao.site} title={T.atualizacao.site}><Globe size={16} /></a></div>
+    <div className="ei-barra"><div className="ei-abas" role="tablist" aria-label={E.titulo}>{([["ambiente", E.visao, FolderOpen], ["atividade", E.atividade, Activity], ["analises", E.analises, ChartNoAxesColumn], ["config", E.configuracoes, Settings]] as const).map(([id, t, Icone]) => <button key={id} type="button" role="tab" aria-selected={aba === id} onClick={() => setAba(id)}><Icone size={14} /><span>{t}</span></button>)}</div><span className="ei-conexao" role="status" data-demo={demonstracao} data-ligado={conectado}><span />{demonstracao ? E.demonstracao : conectado ? E.aoVivo : E.reconectando}{!demonstracao && !conectado && <button type="button" className="ei-conexao-tentar" aria-label={E.tentarNovamente} title={E.tentarNovamente} onClick={() => setTentativaConexao((n) => n + 1)}><RefreshCw size={12} /></button>}</span></div>
     {demonstracao && <p className="ei-demo-aviso"><Play size={14} />{E.demoDica}</p>}
-    {!demonstracao && !conectado && <div className="ei-aviso" role="status"><span>{E.reconectando}</span><button type="button" className="ei-botao" onClick={() => setTentativaConexao((n) => n + 1)}>{E.tentarNovamente}</button></div>}
     {(aba === "ambiente" || aba === "atividade") && <div className="ei-resumo">
       <dl className="ei-resumo-dados">
         <div><dt><FolderOpen size={13} aria-hidden="true" />{E.indicadores.projetos}</dt><dd>{todasSalas.length}</dd></div>
@@ -106,13 +120,16 @@ export function EscritorioIas({ demonstracaoInicial = false }: { demonstracaoIni
       </dl><button type="button" className="ei-botao" onClick={() => setAba("config")}><Plug size={13} />{E.conectar}</button>
     </div>}
     <div className="ei-ambiente" hidden={aba !== "ambiente"}>{filtros}<div className="ei-escritorio-conectado" data-inspecao={Boolean(selecionada)}><aside className="ei-lista" aria-label={E.listaProjetos}>
-      {!todas.length && <div className="ei-boas-vindas-texto"><h2>{E.pronto}</h2><p>{E.prontoDica}</p><button type="button" className="ei-botao" onClick={() => setAba("config")}><Plug size={14} />{E.conectar}</button></div>}
+      {!todas.length && <p className="ei-lista-dica">{E.prontoDica}</p>}
       {todas.length > 0 && !salas.length && <p className="ei-vazio-texto">{E.semResultados}</p>}
       {salas.map((sala) => <section key={sala.id} className="ei-projeto"><header onContextMenu={(e) => { e.preventDefault(); setEditandoSala(sala.id); setNovoNomeSala(nomeSala(sala.id, sala.projeto)); }}><FolderOpen size={14} /><h2 className="privado">{nomeSala(sala.id, sala.projeto)}</h2><span>{sala.sessoes.length}</span><button type="button" className="ei-icone" aria-label={`${E.renomearSala}: ${nomeSala(sala.id, sala.projeto)}`} onClick={() => { setEditandoSala(sala.id); setNovoNomeSala(nomeSala(sala.id, sala.projeto)); }}><Pencil size={12} /></button></header>
         {editandoSala === sala.id && <form className="ei-renomear-sala" onSubmit={(e) => { e.preventDefault(); const n = novoNomeSala.trim().slice(0, 40); if (n) { const novas = { ...nomesSalas, [chaveVisual(sala.id)]: n }; if (demonstracao) setSalasDemo(novas); else definir({ salas: novas }); } setEditandoSala(undefined); }}><input autoFocus aria-label={E.nomeSala} maxLength={40} value={novoNomeSala} onChange={(e) => setNovoNomeSala(e.target.value)} onKeyDown={(e) => { if (e.key === "Escape") setEditandoSala(undefined); }} /><button type="submit" className="ei-botao">{E.salvarNome}</button></form>}
-        {sala.sessoes.map((s) => <button type="button" key={s.id} className="ei-pessoa" data-estado={s.estado} aria-pressed={selecionada?.id === s.id} aria-label={`${nome(s.id)}, ${nomeDaFerramenta(s.ferramenta)}, ${T.ilha.claude.estados[s.estado]}`} onClick={() => escolher(s.id)}><RetratoPixel id={s.id} estilo={config.estilo} cor={COR_DA_FERRAMENTA[s.ferramenta]} /><span><b>{nome(s.id)}</b><small>{T.ilha.claude.estados[s.estado]}</small><small className="privado">{config.esconderDetalhes ? E.oculto : mascararSegredos(s.passos.at(-1)?.rotulo || E.semAtividade)}</small></span><Marca marca={MARCA_DA_FERRAMENTA[s.ferramenta]} tamanho={14} /></button>)}
+        {sala.sessoes.map((s) => <button type="button" key={s.id} className="ei-pessoa" data-estado={s.estado} aria-pressed={selecionada?.id === s.id} aria-label={`${nome(s.id)}, ${nomeDaFerramenta(s.ferramenta)}, ${T.ilha.claude.estados[s.estado]}`} onClick={() => escolher(s.id)}><RetratoPixel id={idVisual(s.id)} estilo={config.estilo} cor={COR_DA_FERRAMENTA[s.ferramenta]} /><span><b>{nome(s.id)}</b><small>{T.ilha.claude.estados[s.estado]}</small><small className="privado">{config.esconderDetalhes ? E.oculto : mascararSegredos(s.passos.at(-1)?.rotulo || E.semAtividade)}</small></span><Marca marca={MARCA_DA_FERRAMENTA[s.ferramenta]} tamanho={14} /></button>)}
       </section>)}
-    </aside><CenaPixelConectada key={demonstracao ? "demo" : "real"} snapshot={snapshot} ciclo={config.ciclo} estilo={config.estilo} seguir={config.seguir} selecionada={selecionadaId} demonstracao={demonstracao} ativa={visivel && aba === "ambiente"} aoSelecionar={escolher} aoInteragir={() => { if (config.seguir) definir({ seguir: false }); }} />
+      {livres.length > 0 && !busca && <section className="ei-projeto ei-equipe"><header><Users size={14} /><h2>{E.equipe.titulo}</h2><span>{livres.length}</span></header>
+        {livres.map((id) => <div key={id} className="ei-pessoa ei-pessoa-livre"><RetratoPixel id={id} estilo={config.estilo} cor="#78b7a1" /><span><b>{nomes[id] || nomeDoPersonagem(id)}</b><small>{E.equipe.livre}</small></span></div>)}
+      </section>}
+    </aside><CenaPixelConectada key={demonstracao ? "demo" : "real"} snapshot={snapshot} ciclo={config.ciclo} estilo={config.estilo} seguir={config.seguir} selecionada={selecionadaId ? idVisual(selecionadaId) : undefined} demonstracao={demonstracao} ativa={visivel && aba === "ambiente"} aoSelecionar={escolher} aoInteragir={() => { if (config.seguir) definir({ seguir: false }); }} />
     {selecionada && <PainelDaSessao key={selecionada.id} sessao={selecionada} nome={nome(selecionada.id)} pedido={demonstracao || !visivel || aba !== "ambiente" ? undefined : pedidos.find((p) => p.sessao === selecionada.id)} demonstracao={demonstracao} ocultar={config.esconderDetalhes} agora={agora} aoFechar={() => setSelecionadaId(undefined)} aoRenomear={renomear} aoMostrarPedido={() => definir({ esconderDetalhes: false })} />}</div></div>
     {aba === "atividade" && <>{filtros}<section className="ei-atividade"><header><h2><Activity size={16} />{E.atividade}</h2><select aria-label={E.filtroTipo} value={tipoAtividade} onChange={(e) => setTipoAtividade(e.target.value)}><option value="todos">{E.todosTipos}</option>{Object.entries(E.tipos).map(([id, t]) => <option key={id} value={id}>{t}</option>)}</select></header>{feed.slice(0, mais ? 120 : 20).map(({ sessao, passo }) => <article key={`${sessao.id}:${passo.id}`}><button type="button" className="ei-atividade-origem" onClick={() => { escolher(sessao.id); setAba("ambiente"); }}><Marca marca={MARCA_DA_FERRAMENTA[sessao.ferramenta]} tamanho={14} /><b>{nome(sessao.id)}</b><span className="privado">{sessao.projeto}</span></button><LinhaDeAtividade passo={passo} ocultar={config.esconderDetalhes} /></article>)}{!feed.length && <p className="ei-vazio-texto">{E.feedVazio}</p>}{feed.length > 20 && <button type="button" className="ei-botao" onClick={() => setMais((v) => !v)}>{mais ? E.menosAtividade : E.maisAtividade}</button>}</section></>}
     {aba === "analises" && <AnalisesDoEscritorio key={demonstracao ? "demo" : "real"} registros={demonstracao ? registrosDemo : registros} demonstracao={demonstracao} sessoes={demonstracao ? [] : todas} agora={agora} />}

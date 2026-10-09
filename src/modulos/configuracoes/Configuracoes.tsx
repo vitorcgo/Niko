@@ -333,12 +333,12 @@ export default function Configuracoes() {
   const conteudo: Record<Secao, React.ReactNode> = {
     geral: (
       <>
-        <LinhaAjuste rotulo={T.configuracoes.foto}>
-          <EditorFoto tamanho={44} />
-        </LinhaAjuste>
-        <LinhaAjuste rotulo={T.configuracoes.nomePerfil} para="cf-nome">
-          <input id="cf-nome" className="campo ajuste-valor ajuste-valor-largo" value={cfg.nome} maxLength={40} onChange={(e) => cfg.definir({ nome: e.target.value })} />
-        </LinhaAjuste>
+        <div className="ajuste-perfil">
+          <EditorFoto tamanho={96}>
+            <label className="ajuste-perfil-rotulo" htmlFor="cf-nome">{T.configuracoes.nomePerfil}</label>
+            <input id="cf-nome" className="campo ajuste-perfil-nome" value={cfg.nome} maxLength={40} placeholder={T.barraLateral.perfil} onChange={(e) => cfg.definir({ nome: e.target.value })} />
+          </EditorFoto>
+        </div>
         <AlternadorAjuste rotulo={T.configuracoes.viradaDia} dica={T.configuracoes.viradaDiaDica} ligado={cfg.viradaAs4h} aoMudar={(v) => cfg.definir({ viradaAs4h: v })} />
         <AlternadorAjuste rotulo={T.configuracoes.iniciarComWindows} dica={T.configuracoes.iniciarComWindowsDica} ligado={cfg.iniciarComWindows} aoMudar={(v) => cfg.definir({ iniciarComWindows: v })} />
         <AlternadorAjuste rotulo={T.configuracoes.manterSegundoPlano} dica={`${T.configuracoes.manterDica} ${T.configuracoes.somenteDesktop}.`} ligado={false} desativado aoMudar={() => undefined} />

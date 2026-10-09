@@ -31,6 +31,7 @@ export interface DadosDoCalendario {
   datas: ReturnType<typeof useEstudos.getState>["datas"];
   revisoes: ReturnType<typeof useEstudos.getState>["revisoesConteudo"];
   recorrentes: ReturnType<typeof useFinancas.getState>["recorrentes"];
+  contas?: ReturnType<typeof useFinancas.getState>["contas"];
 }
 
 export type EscopoDaEdicao = "este" | "todos";
@@ -150,7 +151,7 @@ export function itensDoCalendario(todos: DadosDoCalendario, de: string, ate: str
     let d = startOfMonth(deISO(de));
     while (paraISO(d) <= ate) {
       const dia = paraISO(new Date(d.getFullYear(), d.getMonth(), Math.min(r.dia, endOfMonth(d).getDate())));
-      if (dia >= de && dia <= ate && (r.frequencia === "mensal" || d.getMonth() + 1 === r.mesAnual)) lista.push({ id: `${r.id}-${dia}`, titulo: `${r.descricao} ${formatarDinheiro(r.valor)}`, data: dia, fonte: "financas" });
+      if (dia >= de && dia <= ate && (r.frequencia === "mensal" || d.getMonth() + 1 === r.mesAnual)) lista.push({ id: `${r.id}-${dia}`, titulo: `${r.descricao} ${formatarDinheiro(r.valor, todos.contas?.find((c) => c.id === r.contaId)?.moeda ?? "BRL")}`, data: dia, fonte: "financas" });
       d = addMonths(d, 1);
     }
   }

@@ -14,7 +14,7 @@ import type { FerramentaDeCodigo } from "../../ponte/claudeCode";
 import { enquadramentoDoEscritorio } from "./enquadramentoDoEscritorio";
 
 export function criarMundoDoEscritorio(canvas: HTMLCanvasElement, aoSelecionar: (id: string) => void, aoFalhar: () => void, aoInteragir = () => {}) {
-  let opcoes: WorldOptions = { ...DEFAULT_WORLD_OPTIONS, bubbles: "all", passearOcioso: true };
+  let opcoes: WorldOptions = { ...DEFAULT_WORLD_OPTIONS, bubbles: "all", passearOcioso: true, liveliness: "lively", sociabilidade: 0.35 };
   // Carteiras da vida visual ficam apenas em memória, inclusive ao vivo.
   const sim = new Sim(arte, () => opcoes, null);
   const camera = new Camera();

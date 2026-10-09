@@ -11,6 +11,7 @@ import { estadoConexoes, lerConexao, salvarChaveConexao, removerChaveConexao, se
 import { buscarGmail, criarRascunhoGmail, enviarGmail } from "./gmail";
 import { lerAgendaGoogle } from "./agendaGoogle";
 import { temClienteDoNiko } from "./google";
+import { lerCotacoes } from "./cotacoes";
 import { lerAudio, definirVolume, definirMudo, ajustarSessao, lerTema, lerIniciar, definirTema, abrirFerramenta, agirNaEnergia, lerBandeja, abrirDaBandeja, pastaDaBandeja, encerrarDaBandeja, listarApps, iconesDeApps, abrirApp, abrirComandoDoSistema } from "./controleRapido";
 import { ocrDaRequisicao } from "./ocr";
 import { receberEventoDoGancho, ehRotaDoGancho, ouvirEventos, decidirPedido, estadoDaInstalacao, previaDaInstalacao, instalarGanchos, removerGanchos, abrirProjeto, trazerTerminal, ehRotaDaStatus, receberStatusDoClaude } from "./claude";
@@ -148,6 +149,7 @@ export const rotas: Connect.NextHandleFunction = async (req, res, proximo) => {
     if (caminho === "/conexoes" && req.method === "GET") {
       return responder(res, 200, estadoConexoes());
     }
+    if (caminho === "/cotacoes" && req.method === "GET") return responder(res, 200, await lerCotacoes());
     if (caminho === "/google/login-direto" && req.method === "GET") return responder(res, 200, { disponivel: temClienteDoNiko() });
     if (caminho === "/gmail/buscar" && req.method === "GET") return responder(res, 200, await buscarGmail(await chaveDe("google"), url.searchParams.get("q") ?? ""));
     if (caminho === "/agenda/eventos" && req.method === "GET") return responder(res, 200, await lerAgendaGoogle(await chaveDe("google"), url.searchParams.get("de") ?? "", url.searchParams.get("ate") ?? ""));

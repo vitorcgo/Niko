@@ -6,7 +6,7 @@ import { lerValorEmCentavos, formatarDinheiro } from "./dinheiro";
 import { normalizarTexto, urlSegura } from "./basicos";
 import { formatar, hojeISO } from "./datas";
 import { useRotina, tarefasDoDia, habitoCumprido } from "../estado/rotina";
-import { useFinancas, gastosDoMes, parteDoUsuario, EU } from "../estado/financas";
+import { useFinancas, gastosDoMes, parteDoUsuario, EU, valorEmReais } from "../estado/financas";
 import { useEstudos, revisoesParaHoje } from "../estado/estudos";
 import { usePomodoro } from "../estado/pomodoro";
 import { useConfig } from "../estado/configuracoes";
@@ -475,7 +475,7 @@ export function executarComando(entrada: string, opcoes: { confirmar?: boolean }
       const abertas = tarefasDoDia(rotina.tarefas, hoje).filter((t) => t.status !== "concluida" && t.status !== "cancelada").length;
       const pendentes = rotina.habitos.filter((h) => !h.arquivado && !habitoCumprido(h, rotina.registros[hoje]?.[h.id])).length;
       const fin = useFinancas.getState();
-      const gasto = somar(gastosDoMes(fin, hoje.slice(0, 7)), (t) => parteDoUsuario(t, fin.divisoes));
+      const gasto = somar(gastosDoMes(fin, hoje.slice(0, 7)), (t) => valorEmReais(t, fin, parteDoUsuario(t, fin.divisoes)));
       return {
         agente: "organizador",
         resposta: T.chat.respostas.status({

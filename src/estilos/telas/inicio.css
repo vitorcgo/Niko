@@ -982,3 +982,13 @@
   font-size: 11.5px;
   color: var(--texto-3);
 }
+
+.estilo-sistema .inicio-nome {
+  display: inline-block;
+  max-width: 100%;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  vertical-align: bottom;
+  padding-bottom: 0.06em;
+}

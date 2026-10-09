@@ -8,7 +8,7 @@ import { corteDasAnalisesValido, registrosValidos } from "../modulos/escritorio/
 
 type Regra = string | { [campo: string]: Regra } | [Regra];
 const id = "s!";
-const transacao: Regra = { id, tipo: "receita|despesa|transferencia", valor: "i", descricao: "s!", contaId: id, contaDestinoId: "?s!", categoriaId: "?s!", data: "d", criadaEm: "t", parcela: { numero: "i", total: "i" } };
+const transacao: Regra = { id, tipo: "receita|despesa|transferencia", valor: "i", descricao: "s!", contaId: id, contaDestinoId: "?s!", valorDestino: "?i", categoriaId: "?s!", data: "d", criadaEm: "t", parcela: { numero: "i", total: "i" } };
 const evento: Regra = { id, titulo: "s!", data: "d", hora: "?h", tipo: "evento|lembrete", repeticao: "nenhuma|diaria|semanal|mensal", excecoes: ["d"], feitos: ["d"] };
 const tarefa: Regra = { id, titulo: "s", descricao: "s", status: "a_fazer|em_andamento|concluida|reagendada|cancelada|em_aguardo", prioridade: "baixa|media|alta", checklist: [{ id, texto: "s", feito: "b" }], criadaEm: "t", ordem: "n", data: "?d", hora: "?h" };
 const esquemas: Record<string, Record<string, Regra>> = {
@@ -25,7 +25,8 @@ const esquemas: Record<string, Record<string, Regra>> = {
     registroRevisoes: [{ data: "d", quantidade: "i" }],
   },
   financas: {
-    contas: [{ id, nome: "s!", tipo: "corrente|poupanca|carteira|cartao|investimento", saldoInicial: "i", cor: "s", arquivada: "b" }],
+    contas: [{ id, nome: "s!", tipo: "corrente|poupanca|carteira|cartao|investimento", moeda: "?BRL|USD|EUR", saldoInicial: "i", cor: "s", arquivada: "b" }],
+    cotacoes: { USD: "n", EUR: "n", atualizadaEm: "?t", manual: "?b" },
     categorias: [{ id, nome: "s!", cor: "s", orcamento: "i", tipo: "receita|despesa" }],
     transacoes: [transacao], recorrentes: [{ id, descricao: "s!", valor: "i", contaId: id, dia: "i", frequencia: "mensal|anual", ativa: "b", geradoAte: "?d" }],
     assinaturasIgnoradas: ["s"], metasEconomia: [{ id, nome: "s", alvo: "i", guardado: "i", prazo: "?d" }], pessoas: [{ id, nome: "s!" }],

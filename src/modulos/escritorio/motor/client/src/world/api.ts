@@ -12,6 +12,8 @@ export interface WorldOptions {
   /** Frequência de passeios pelo escritório quando os agentes estão ociosos. */
   liveliness: 'calm' | 'normal' | 'lively';
   passearOcioso?: boolean;
+  /** Soma à chance de um ocioso procurar companhia ao sair da mesa (0 a 0,5). */
+  sociabilidade?: number;
   /** Câmera acompanha o agente selecionado. */
   followSelected: boolean;
   /** Ciclo dia/noite pela hora local (janelas, iluminação). */

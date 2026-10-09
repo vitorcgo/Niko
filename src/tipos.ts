@@ -181,10 +181,13 @@ export interface SessaoPomodoro {
 
 export type TipoConta = "corrente" | "poupanca" | "carteira" | "cartao" | "investimento";
 
+export type Moeda = "BRL" | "USD" | "EUR";
+
 export interface Conta {
   id: string;
   nome: string;
   tipo: TipoConta;
+  moeda?: Moeda;
   saldoInicial: number;
   cor: string;
   fechamentoDia?: number;
@@ -211,6 +214,7 @@ export interface Transacao {
   categoriaId?: string;
   contaId: string;
   contaDestinoId?: string;
+  valorDestino?: number;
   data: string;
   recorrenteId?: string;
   grupoParcelasId?: string;

@@ -10,20 +10,22 @@ import { Botao, Campo, Modal, Segmentado, Vazio, ConfirmarModal, AvisoFaixa, Cai
 import { Paginacao, usarPaginacao } from "../../componentes/Paginacao";
 import {
   useFinancas, saldoDaConta, gastoPorCategoria, receitasDoMes, gastosDoMes, parteDoUsuario, saldosComPessoas, simplificarDividas, dataDeCaixa, EU, CORES_CATEGORIA, geradoAteInicial,
+  moedaDaConta, cotacoesDe, valorEmReais, saldoDaContaEmReais, contasEmOutraMoeda,
 } from "../../estado/financas";
 import { useInterface } from "../../estado/interface";
 import { useConfig } from "../../estado/configuracoes";
 import { useAgentes } from "../../estado/agentes";
 import { T } from "../../textos/textos";
-import { formatarDinheiro, lerValorEmCentavos, centavosParaCampo } from "../../utilitarios/dinheiro";
-import { dataValida, formatar, hojeISO, paraISO, deISO, formatarData } from "../../utilitarios/datas";
+import { formatarDinheiro, lerValorEmCentavos, centavosParaCampo, converter, emReais, formatarCotacao, temCotacao, MOEDAS, SIMBOLO_DA_MOEDA, type Cotacoes } from "../../utilitarios/dinheiro";
+import { usarCotacoes } from "./usarCotacoes";
+import { dataValida, formatar, hojeISO, paraISO, deISO, formatarData, horarioRelativo } from "../../utilitarios/datas";
 import { baixarArquivo, contem, lerArquivoTexto, normalizarTexto, somar } from "../../utilitarios/basicos";
 import { detectarAssinaturas, assinaturasComValorNovo, lerCsv, lerOfx } from "../../utilitarios/assinaturas";
 import { tocarSom } from "../../ponte/sons";
 import { EVENTO_NOVO } from "../../janelas/area-de-trabalho/usarAtalhos";
 import { SeletorDeCategoria } from "../../componentes/SeletorDeCategoria";
 import { categoriaPelaDescricao } from "../../utilitarios/comandos";
-import type { Categoria, Conta, Recorrente, TipoConta, TipoTransacao, Transacao } from "../../tipos";
+import type { Categoria, Conta, Moeda, Recorrente, TipoConta, TipoTransacao, Transacao } from "../../tipos";
 
 type Aba = keyof typeof T.financas.abas;
 type Modo = "competencia" | "caixa";
@@ -65,24 +67,46 @@ function variaveis(v: Record<`--${string}`, string>): EstiloComVariaveis {
 }
 
 function semMoeda(centavos: number) {
-  return formatarDinheiro(centavos).replace(/^-?R\$\s*/, "");
+  return (centavos / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
-function comSinal(centavos: number) {
-  return centavos > 0 ? `+${formatarDinheiro(centavos)}` : formatarDinheiro(centavos);
+function comSinal(centavos: number, moeda: Moeda = "BRL") {
+  return centavos > 0 ? `+${formatarDinheiro(centavos, moeda)}` : formatarDinheiro(centavos, moeda);
 }
 
-function CampoDinheiro({ id, rotulo, valor, aoMudar, erro, obrigatorio, dica, negativo }: { id: string; rotulo: string; valor: string; aoMudar: (v: string) => void; erro?: string; obrigatorio?: boolean; dica?: string; negativo?: boolean }) {
+/** "≈ R$ 64,90" para valores em outra moeda; vazio em reais. */
+function textoEquivalente(centavos: number, moeda: Moeda, cotacoes: Cotacoes): string {
+  if (moeda === "BRL") return "";
+  return temCotacao(moeda, cotacoes) ? T.financas.moedas.equivalente(formatarDinheiro(emReais(centavos, moeda, cotacoes))) : T.financas.moedas.semCotacao;
+}
+
+function SeloMoeda({ moeda }: { moeda: Moeda }) {
+  if (moeda === "BRL") return null;
+  return <span className="fin-selo-moeda" title={T.financas.moedas.nomes[moeda]}>{moeda}</span>;
+}
+
+function ValorNaMoeda({ centavos, moeda, sinal = "" }: { centavos: number; moeda: Moeda; sinal?: string }) {
+  const cotacoes = useFinancas((s) => s.cotacoes);
+  const equivalente = textoEquivalente(centavos, moeda, cotacoesDe({ cotacoes }));
+  return (
+    <span className="fin-valor-moeda" title={equivalente || undefined}>
+      <span>{sinal}{formatarDinheiro(centavos, moeda)}</span>
+      {equivalente && <small className="fin-valor-equivalente">{equivalente}</small>}
+    </span>
+  );
+}
+
+function CampoDinheiro({ id, rotulo, valor, aoMudar, erro, obrigatorio, dica, negativo, moeda = "BRL", placeholder = "0,00" }: { id: string; rotulo: string; valor: string; aoMudar: (v: string) => void; erro?: string; obrigatorio?: boolean; dica?: string; negativo?: boolean; moeda?: Moeda; placeholder?: string }) {
   return (
     <Campo id={id} rotulo={rotulo} erro={erro} obrigatorio={obrigatorio} dica={dica}>
-      <div className="fin-dinheiro" data-erro={erro ? "sim" : undefined}>
-        <span className="fin-dinheiro-moeda" aria-hidden="true">R$</span>
+      <div className="fin-dinheiro" data-erro={erro ? "sim" : undefined} data-moeda={moeda}>
+        <span className="fin-dinheiro-moeda" aria-hidden="true">{SIMBOLO_DA_MOEDA[moeda]}</span>
         <input
           id={id}
           className="fin-dinheiro-campo"
           inputMode="decimal"
           value={valor}
-          placeholder="0,00"
+          placeholder={placeholder}
           aria-invalid={!!erro}
           onChange={(e) => aoMudar(e.target.value.replace(negativo ? /[^\d.,-]/g : /[^\d.,]/g, ""))}
         />
@@ -91,12 +115,12 @@ function CampoDinheiro({ id, rotulo, valor, aoMudar, erro, obrigatorio, dica, ne
   );
 }
 
-function ValorDestacado({ rotulo, valor }: { rotulo: string; valor: number }) {
+function ValorDestacado({ rotulo, valor, moeda = "BRL" }: { rotulo: string; valor: number; moeda?: Moeda }) {
   return (
     <div className="campo-grupo">
       <span className="campo-rotulo">{rotulo}</span>
       <div className="fin-dinheiro">
-        <span className="fin-dinheiro-moeda" aria-hidden="true">R$</span>
+        <span className="fin-dinheiro-moeda" aria-hidden="true">{SIMBOLO_DA_MOEDA[moeda]}</span>
         <span className="fin-dinheiro-campo privado">{semMoeda(valor)}</span>
       </div>
     </div>
@@ -183,12 +207,14 @@ function FormTransacao({ aberto, aoFechar, editando }: { aberto: boolean; aoFech
   const [destinoId, setDestinoId] = useState("");
   const [data, setData] = useState(hojeISO());
   const [parcelas, setParcelas] = useState("1");
+  const [valorDestino, setValorDestino] = useState("");
   const [erros, setErros] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (!aberto) return;
     setErros({});
     setNovaCategoria("");
+    setValorDestino(editando?.valorDestino ? centavosParaCampo(editando.valorDestino) : "");
     if (editando) {
       setTipo(editando.tipo);
       setValor(centavosParaCampo(editando.valor));
@@ -213,12 +239,28 @@ function FormTransacao({ aberto, aoFechar, editando }: { aberto: boolean; aoFech
   const tipoCategoria = tipo === "receita" ? "receita" : "despesa";
   const sugerida = !categoriaId && !novaCategoria && descricao ? fin.categorias.find((c) => c.id === fin.categorizar(descricao) && c.tipo === tipoCategoria)?.id : undefined;
   const precisaCategoria = tipo !== "transferencia" && !editando?.ajuste;
+  const cotacoes = cotacoesDe(fin);
+  const moeda = moedaDaConta(contas, contaId);
+  const moedaDestino = moedaDaConta(contas, destinoId);
+  const entreMoedas = tipo === "transferencia" && !!destinoId && moeda !== moedaDestino;
+  const valorDigitado = lerValorEmCentavos(valor) ?? 0;
+  const destinoSugerido = entreMoedas && valorDigitado > 0 ? converter(valorDigitado, moeda, moedaDestino, cotacoes) : 0;
+  const equivalente = valorDigitado > 0 ? textoEquivalente(valorDigitado, moeda, cotacoes) : "";
 
   const salvar = (e: React.FormEvent) => {
     e.preventDefault();
     const novos: Record<string, string> = {};
     const v = validarValor(valor);
     if (v.erro) novos.valor = v.erro;
+    let destinoFinal: number | undefined;
+    if (entreMoedas) {
+      if (valorDestino.trim()) {
+        const d = validarValor(valorDestino);
+        if (d.erro) novos.valorDestino = d.erro;
+        else destinoFinal = d.valor ?? undefined;
+      } else if (destinoSugerido > 0) destinoFinal = destinoSugerido;
+      else novos.valorDestino = T.financas.moedas.informeRecebido;
+    }
     if (!descricao.trim()) novos.descricao = T.validacao.obrigatorio;
     if (!contaId) novos.conta = T.validacao.contaObrigatoria;
     if (tipo === "transferencia" && (!destinoId || destinoId === contaId)) novos.destino = T.validacao.contasIguais;
@@ -238,6 +280,7 @@ function FormTransacao({ aberto, aoFechar, editando }: { aberto: boolean; aoFech
       categoriaId: categoriaFinal,
       contaId,
       contaDestinoId: tipo === "transferencia" ? destinoId : undefined,
+      valorDestino: destinoFinal,
       data,
     };
     if (editando) fin.atualizarTransacao(editando.id, dados);
@@ -268,7 +311,7 @@ function FormTransacao({ aberto, aoFechar, editando }: { aberto: boolean; aoFech
             { valor: "transferencia", rotulo: T.financas.tipos.transferencia, icone: <ArrowLeftRight size={13} /> },
           ]}
         />
-        <CampoDinheiro id="t-valor" rotulo={T.financas.valor} valor={valor} aoMudar={setValor} erro={erros.valor} obrigatorio />
+        <CampoDinheiro id="t-valor" rotulo={T.financas.valor} valor={valor} aoMudar={setValor} erro={erros.valor} obrigatorio moeda={moeda} dica={equivalente || undefined} />
         <Campo id="t-desc" rotulo={T.financas.descricao} obrigatorio erro={erros.descricao}>
           <input id="t-desc" className="campo" value={descricao} maxLength={120} aria-invalid={!!erros.descricao} onChange={(e) => setDescricao(e.target.value)} />
         </Campo>
@@ -316,6 +359,18 @@ function FormTransacao({ aberto, aoFechar, editando }: { aberto: boolean; aoFech
             </Campo>
           )}
         </div>
+        {entreMoedas && (
+          <CampoDinheiro
+            id="t-valor-destino"
+            rotulo={T.financas.moedas.valorRecebido(T.financas.moedas.nomes[moedaDestino])}
+            valor={valorDestino}
+            aoMudar={setValorDestino}
+            erro={erros.valorDestino}
+            moeda={moedaDestino}
+            placeholder={destinoSugerido > 0 ? semMoeda(destinoSugerido) : "0,00"}
+            dica={destinoSugerido > 0 ? T.financas.moedas.recebidoDica(formatarCotacao(converter(10000, moeda, moedaDestino, cotacoes) / 10000), SIMBOLO_DA_MOEDA[moeda], SIMBOLO_DA_MOEDA[moedaDestino]) : T.financas.moedas.semCotacao}
+          />
+        )}
         {tipo === "transferencia" && <AvisoFaixa>{T.financas.cartaoSemDobro}</AvisoFaixa>}
         <div className="formulario-acoes">
           <Botao onClick={aoFechar}>{T.geral.cancelar}</Botao>
@@ -362,8 +417,7 @@ function LinhaTransacao({ t, aoEditar, comData }: { t: Transacao; aoEditar: () =
         )}
       </span>
       <span className="fin-transacao-valor numero privado" data-tipo={t.tipo}>
-        {sinal}
-        {formatarDinheiro(t.valor)}
+        <ValorNaMoeda centavos={t.valor} moeda={moedaDaConta(fin.contas, t.contaId)} sinal={sinal} />
       </span>
       <span className="fin-acoes-ocultas">
         <Botao pequeno soIcone variante="fantasma" icone={<Pencil size={13} />} aria-label={T.geral.editar} onClick={aoEditar} />
@@ -479,7 +533,7 @@ function Importar({ aberto, aoFechar }: { aberto: boolean; aoFechar: () => void 
                           {fin.categorias.filter((c) => c.tipo === tipoDaLinha(l.valor)).map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
                         </select>
                       </td>
-                      <td className="fin-tabela-valor numero">{formatarDinheiro(l.valor)}</td>
+                      <td className="fin-tabela-valor numero">{formatarDinheiro(l.valor, moedaDaConta(fin.contas, contaId))}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -562,13 +616,82 @@ function SeletorMes({ mes, aoMudar }: { mes: string; aoMudar: (m: string) => voi
   );
 }
 
+function BarraDeCotacao() {
+  const { precisa, falhou, buscando, atualizar } = usarCotacoes();
+  const cotacoesSalvas = useFinancas((s) => s.cotacoes);
+  const definirCotacoes = useFinancas((s) => s.definirCotacoes);
+  const contas = useFinancas((s) => s.contas);
+  const moedas = useMemo(() => contasEmOutraMoeda(contas), [contas]);
+  const [editando, setEditando] = useState(false);
+  const [campos, setCampos] = useState<Record<"USD" | "EUR", string>>({ USD: "", EUR: "" });
+  const [erro, setErro] = useState("");
+  if (!precisa) return null;
+  const cotacoes = cotacoesDe({ cotacoes: cotacoesSalvas });
+  const M = T.financas.moedas;
+  const abrir = () => {
+    setCampos({ USD: cotacoes.USD ? formatarCotacao(cotacoes.USD) : "", EUR: cotacoes.EUR ? formatarCotacao(cotacoes.EUR) : "" });
+    setErro("");
+    setEditando(true);
+  };
+  const salvar = () => {
+    const lidas: Partial<Record<"USD" | "EUR", number>> = {};
+    for (const m of moedas) {
+      if (m === "BRL") continue;
+      const n = Number(campos[m].replace(/\./g, "").replace(",", "."));
+      if (!Number.isFinite(n) || n <= 0 || n >= 1000) {
+        setErro(M.cotacaoInvalida);
+        return;
+      }
+      lidas[m] = n;
+    }
+    definirCotacoes({ ...lidas, manual: true, atualizadaEm: new Date().toISOString() });
+    setEditando(false);
+  };
+  return (
+    <section className="fin-cotacao" data-falhou={falhou && !cotacoes.manual ? "sim" : undefined} aria-label={M.cotacao}>
+      <span className="fin-cotacao-rotulo"><Repeat size={13} />{M.cotacao}</span>
+      {editando ? (
+        <form className="fin-cotacao-form" onSubmit={(e) => { e.preventDefault(); salvar(); }}>
+          {moedas.filter((m): m is "USD" | "EUR" => m !== "BRL").map((m) => (
+            <label key={m} className="fin-cotacao-campo">
+              <span>{SIMBOLO_DA_MOEDA[m]} 1 = R$</span>
+              <input inputMode="decimal" value={campos[m]} aria-label={M.cotacaoDe(M.nomes[m])} onChange={(e) => setCampos({ ...campos, [m]: e.target.value.replace(/[^\d.,]/g, "") })} />
+            </label>
+          ))}
+          <Botao pequeno type="submit" variante="primario">{T.geral.salvar}</Botao>
+          <Botao pequeno variante="fantasma" onClick={() => setEditando(false)}>{T.geral.cancelar}</Botao>
+          {erro && <span className="campo-erro">{erro}</span>}
+        </form>
+      ) : (
+        <>
+          <span className="fin-cotacao-valores">
+            {moedas.filter((m): m is "USD" | "EUR" => m !== "BRL").map((m) => (
+              <span key={m} className="fin-cotacao-valor">
+                <b>{SIMBOLO_DA_MOEDA[m]} 1</b>
+                <span>{temCotacao(m, cotacoes) ? `R$ ${formatarCotacao(cotacoes[m])}` : M.semCotacaoCurta}</span>
+              </span>
+            ))}
+          </span>
+          <span className="fin-cotacao-estado">
+            {buscando ? M.buscando : falhou && !cotacoes.manual ? M.falhou : cotacoes.manual ? M.manual : cotacoes.atualizadaEm ? M.atualizada(horarioRelativo(cotacoes.atualizadaEm)) : ""}
+          </span>
+          <span className="fin-cotacao-acoes">
+            <Botao pequeno variante="fantasma" icone={<Pencil size={12} />} onClick={abrir}>{M.editar}</Botao>
+            <Botao pequeno variante="fantasma" disabled={buscando} onClick={() => { if (cotacoes.manual) definirCotacoes({ manual: false }); atualizar(); }}>{cotacoes.manual ? M.voltarAutomatico : M.atualizar}</Botao>
+          </span>
+        </>
+      )}
+    </section>
+  );
+}
+
 function VisaoGeral({ modo, mes }: { modo: Modo; mes: string }) {
   const fin = useFinancas();
   const gastos = gastoPorCategoria(fin, mes, modo);
-  const entradas = somar(receitasDoMes(fin, mes), (t) => t.valor);
+  const entradas = somar(receitasDoMes(fin, mes), (t) => valorEmReais(t, fin));
   const saidas = somar([...gastos.values()], (v) => v);
   const contasAtivas = fin.contas.filter((c) => !c.arquivada);
-  const saldoTotal = somar(contasAtivas, (c) => saldoDaConta(fin, c.id));
+  const saldoTotal = somar(contasAtivas, (c) => saldoDaContaEmReais(fin, c.id));
   const aReceber = somar([...saldosComPessoas(fin).values()].filter((v) => v > 0), (v) => v);
   const liquido = entradas - saidas;
   const textoSaldo = formatarDinheiro(saldoTotal);
@@ -576,7 +699,7 @@ function VisaoGeral({ modo, mes }: { modo: Modo; mes: string }) {
 
   const serie = Array.from({ length: 6 }, (_, i) => format(addMonths(deISO(`${mes}-01`), i - 5), "yyyy-MM")).map((m) => ({
     mes: m,
-    entradas: somar(receitasDoMes(fin, m), (t) => t.valor),
+    entradas: somar(receitasDoMes(fin, m), (t) => valorEmReais(t, fin)),
     saidas: somar([...gastoPorCategoria(fin, m, modo).values()], (v) => v),
   }));
   const maximo = Math.max(1, ...serie.flatMap((s) => [s.entradas, s.saidas]));
@@ -609,6 +732,7 @@ function VisaoGeral({ modo, mes }: { modo: Modo; mes: string }) {
 
   return (
     <>
+      <BarraDeCotacao />
       <section className="fin-hero">
         <div className="fin-hero-celula fin-hero-saldo">
           <span className="rotulo-secao">{T.financas.saldoTotal}</span>
@@ -698,7 +822,7 @@ function VisaoGeral({ modo, mes }: { modo: Modo; mes: string }) {
                     <span className="cortar">{r.descricao}</span>
                     <span className="fin-proxima-quando">{quandoFalta(r.falta)}</span>
                   </span>
-                  <span className="fin-proxima-valor numero privado">{formatarDinheiro(r.valor)}</span>
+                  <span className="fin-proxima-valor numero privado"><ValorNaMoeda centavos={r.valor} moeda={moedaDaConta(fin.contas, r.contaId)} /></span>
                 </div>
               ))}
             </div>
@@ -718,9 +842,9 @@ function VisaoGeral({ modo, mes }: { modo: Modo; mes: string }) {
                     <span className="fin-ponto" />
                     <span className="cortar">{c.nome}</span>
                   </span>
-                  <span className="fin-conta-mini-tipo">{T.financas.tiposConta[c.tipo]}</span>
+                  <span className="fin-conta-mini-tipo"><SeloMoeda moeda={moedaDaConta(fin.contas, c.id)} />{T.financas.tiposConta[c.tipo]}</span>
                 </span>
-                <span className="fin-conta-mini-saldo numero privado" data-negativo={saldo < 0 ? "sim" : undefined}>{formatarDinheiro(saldo)}</span>
+                <span className="fin-conta-mini-saldo numero privado" data-negativo={saldo < 0 ? "sim" : undefined}><ValorNaMoeda centavos={saldo} moeda={moedaDaConta(fin.contas, c.id)} /></span>
                 {c.tipo === "cartao" && (c.limite || c.vencimentoDia) ? (
                   <div className="fin-conta-mini-cartao">
                     {c.limite ? (
@@ -758,7 +882,7 @@ function Transacoes({ mes, buscaInicial, aoImportar }: { mes: string; buscaInici
     .sort((a, b) => b.data.localeCompare(a.data) || b.criadaEm.localeCompare(a.criadaEm));
   const paginas = usarPaginacao(lista, 40, `${mes}|${busca}|${conta}|${categoria}|${tipo}`);
   const porDia = paginas.visiveis.reduce<Record<string, Transacao[]>>((acc, t) => ((acc[t.data] ??= []).push(t), acc), {});
-  const totalDoDia = (dia: string) => somar(lista.filter((t) => t.data === dia), (t) => (t.tipo === "receita" ? t.valor : t.tipo === "despesa" ? -t.valor : 0));
+  const totalDoDia = (dia: string) => somar(lista.filter((t) => t.data === dia), (t) => (t.tipo === "receita" ? valorEmReais(t, fin) : t.tipo === "despesa" ? -valorEmReais(t, fin) : 0));
   const hoje = hojeISO();
   const ontem = paraISO(addDays(deISO(hoje), -1));
   const rotuloDia = (dia: string) => {
@@ -824,6 +948,7 @@ function FormConta({ aberto, aoFechar, aoCriar, aviso }: { aberto: boolean; aoFe
   const [fechamento, setFechamento] = useState("3");
   const [vencimento, setVencimento] = useState("10");
   const [limite, setLimite] = useState("");
+  const [moeda, setMoeda] = useState<Moeda>("BRL");
   const [erros, setErros] = useState<Record<string, string>>({});
 
   useEffect(() => {
@@ -832,6 +957,7 @@ function FormConta({ aberto, aoFechar, aoCriar, aviso }: { aberto: boolean; aoFe
     setTipo("corrente");
     setSaldo("0,00");
     setLimite("");
+    setMoeda("BRL");
     setErros({});
   }, [aberto]);
 
@@ -852,7 +978,7 @@ function FormConta({ aberto, aoFechar, aoCriar, aviso }: { aberto: boolean; aoFe
     if (l == null) novos.limite = T.validacao.valorInvalido;
     setErros(novos);
     if (Object.keys(novos).length) return;
-    const conta = fin.criarConta({ nome, tipo, saldoInicial: tipo === "cartao" ? 0 : s ?? 0, cor: CORES[fin.contas.length % CORES.length], fechamentoDia: tipo === "cartao" ? f : undefined, vencimentoDia: tipo === "cartao" ? v : undefined, limite: tipo === "cartao" ? l ?? 0 : undefined });
+    const conta = fin.criarConta({ nome, tipo, moeda, saldoInicial: tipo === "cartao" ? 0 : s ?? 0, cor: CORES[fin.contas.length % CORES.length], fechamentoDia: tipo === "cartao" ? f : undefined, vencimentoDia: tipo === "cartao" ? v : undefined, limite: tipo === "cartao" ? l ?? 0 : undefined });
     void tocarSom("pop");
     aoFechar();
     aoCriar?.(conta);
@@ -876,6 +1002,21 @@ function FormConta({ aberto, aoFechar, aoCriar, aviso }: { aberto: boolean; aoFe
             ))}
           </div>
         </div>
+        <div className="campo-grupo">
+          <span className="campo-rotulo" id="c-moeda">{T.financas.moedas.moeda}</span>
+          <div className="fin-moedas" role="radiogroup" aria-labelledby="c-moeda">
+            {MOEDAS.map((m) => (
+              <button key={m} type="button" role="radio" aria-checked={moeda === m} className="fin-moeda-opcao" onClick={() => setMoeda(m)}>
+                <span className="fin-moeda-simbolo">{SIMBOLO_DA_MOEDA[m]}</span>
+                <span className="fin-moeda-textos">
+                  <b>{T.financas.moedas.nomes[m]}</b>
+                  <small>{m}</small>
+                </span>
+              </button>
+            ))}
+          </div>
+          <span className="campo-dica">{T.financas.moedas.moedaDica}</span>
+        </div>
         {tipo === "cartao" ? (
           <>
             <div className="formulario-linha fin-duas">
@@ -886,10 +1027,10 @@ function FormConta({ aberto, aoFechar, aoCriar, aviso }: { aberto: boolean; aoFe
                 <input id="c-venc" className="campo" inputMode="numeric" value={vencimento} onChange={(e) => setVencimento(e.target.value.replace(/\D/g, ""))} />
               </Campo>
             </div>
-            <CampoDinheiro id="c-lim" rotulo={T.financas.limite} valor={limite} aoMudar={setLimite} erro={erros.limite} />
+            <CampoDinheiro id="c-lim" rotulo={T.financas.limite} valor={limite} aoMudar={setLimite} erro={erros.limite} moeda={moeda} />
           </>
         ) : (
-          <CampoDinheiro id="c-saldo" rotulo={T.financas.saldoInicial} valor={saldo} aoMudar={setSaldo} erro={erros.saldo} dica={T.financas.saldoInicialDica} />
+          <CampoDinheiro id="c-saldo" rotulo={T.financas.saldoInicial} valor={saldo} aoMudar={setSaldo} erro={erros.saldo} dica={T.financas.saldoInicialDica} moeda={moeda} />
         )}
         <div className="formulario-acoes">
           <Botao onClick={aoFechar}>{T.geral.cancelar}</Botao>
@@ -929,13 +1070,13 @@ function Contas() {
                   <span className="fin-conta-icone" aria-hidden="true">{ICONE_CONTA[c.tipo]}</span>
                   <span className="fin-conta-nome">
                     <b className="cortar">{c.nome}</b>
-                    <span>{T.financas.tiposConta[c.tipo]}</span>
+                    <span>{T.financas.tiposConta[c.tipo]}<SeloMoeda moeda={moedaDaConta(fin.contas, c.id)} /></span>
                   </span>
                   <Botao pequeno soIcone variante="fantasma" className="fin-botao-discreto" icone={<Trash2 size={13} />} aria-label={T.geral.excluir} onClick={() => setExcluir(c)} />
                 </div>
                 <div className="fin-conta-saldo">
                   <span className="rotulo-secao">{T.financas.saldo}</span>
-                  <span className="fin-conta-valor numero privado" data-negativo={s < 0 ? "sim" : undefined}>{formatarDinheiro(s)}</span>
+                  <span className="fin-conta-valor numero privado" data-negativo={s < 0 ? "sim" : undefined}><ValorNaMoeda centavos={s} moeda={moedaDaConta(fin.contas, c.id)} /></span>
                 </div>
                 <div className="fin-conta-rodape">
                   <Botao pequeno className="fin-botao-contorno" icone={<Scale size={12} />} onClick={() => { setAjuste(c); setSaldoReal(centavosParaCampo(s)); setErros({}); }}>{T.financas.ajustarSaldo}</Botao>
@@ -947,7 +1088,7 @@ function Contas() {
       )}
       <FormConta aberto={nova} aoFechar={() => setNova(false)} />
       <Modal aberto={!!ajuste} titulo={T.financas.ajustarSaldo} aoFechar={() => setAjuste(null)}>
-        {ajuste && <SubtituloModal><span className="privado">{T.financas.ajusteSub(ajuste.nome, formatarDinheiro(saldoDaConta(fin, ajuste.id)))}</span></SubtituloModal>}
+        {ajuste && <SubtituloModal><span className="privado">{T.financas.ajusteSub(ajuste.nome, formatarDinheiro(saldoDaConta(fin, ajuste.id), moedaDaConta(fin.contas, ajuste.id)))}</span></SubtituloModal>}
         <form
           className="formulario fin-form"
           noValidate
@@ -959,7 +1100,7 @@ function Contas() {
             setAjuste(null);
           }}
         >
-          <CampoDinheiro id="c-real" rotulo={T.financas.saldoReal} valor={saldoReal} aoMudar={setSaldoReal} erro={erros.real} dica={T.financas.ajusteDica} negativo />
+          <CampoDinheiro id="c-real" rotulo={T.financas.saldoReal} valor={saldoReal} aoMudar={setSaldoReal} erro={erros.real} dica={T.financas.ajusteDica} negativo moeda={moedaDaConta(fin.contas, ajuste?.id)} />
           <div className="formulario-acoes">
             <Botao onClick={() => setAjuste(null)}>{T.geral.cancelar}</Botao>
             <Botao type="submit" variante="primario">{T.geral.salvar}</Botao>
@@ -1025,7 +1166,7 @@ function Cartoes() {
                 <div className="fin-cartao-limite">
                   <span className="fin-cartao-limite-linha">
                     <span className="texto-3">{T.financas.limiteUsado}</span>
-                    <span className="numero privado">{T.financas.deTotal(formatarDinheiro(usado), formatarDinheiro(c.limite))}</span>
+                    <span className="numero privado">{T.financas.deTotal(formatarDinheiro(usado, moedaDaConta(fin.contas, c.id)), formatarDinheiro(c.limite, moedaDaConta(fin.contas, c.id)))}</span>
                   </span>
                   <div className="fin-trilho" data-nivel={uso > 0.9 ? "erro" : uso > 0.7 ? "alerta" : undefined} style={variaveis({ "--cor-conta": c.cor })} role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(Math.min(1, uso) * 100)} aria-label={T.financas.limiteUsado}>
                     <span style={{ width: `${Math.min(1, uso) * 100}%` }} />
@@ -1037,7 +1178,7 @@ function Cartoes() {
               <div className="fin-fatura-topo">
                 <span className="fin-fatura-resumo">
                   <span className="rotulo-secao">{T.financas.faturaRotulo(deslocamento === 0, nomeFatura)}</span>
-                  <span className="fin-fatura-total numero privado">{formatarDinheiro(atual.total)}</span>
+                  <span className="fin-fatura-total numero privado"><ValorNaMoeda centavos={atual.total} moeda={moedaDaConta(fin.contas, c.id)} /></span>
                   <span className="fin-dica">{T.financas.venceEm(formatar(atual.vencISO, "d 'de' MMM"))}</span>
                   <span className="fin-dica">{T.financas.cartaoSemDobro}</span>
                 </span>
@@ -1056,7 +1197,7 @@ function Cartoes() {
                   return (
                     <button key={d} type="button" className="fin-fatura-chip" aria-pressed={d === deslocamento} onClick={() => setDeslocamento(d)}>
                       <span>{formatarData(f.venc, "MMM")}</span>
-                      <span className="numero privado">{formatarDinheiro(f.total)}</span>
+                      <span className="numero privado">{formatarDinheiro(f.total, moedaDaConta(fin.contas, c.id))}</span>
                     </button>
                   );
                 })}
@@ -1068,12 +1209,23 @@ function Cartoes() {
       })}
       <FormTransacao aberto={!!editando} editando={editando} aoFechar={() => setEditando(null)} />
       <Modal aberto={!!pagando} titulo={T.financas.pagarFatura} aoFechar={() => setPagando(null)}>
-        {pagando && (
+        {pagando && (() => {
+          const moedaCartao = moedaDaConta(fin.contas, pagando.cartao.id);
+          const moedaPagamento = moedaDaConta(fin.contas, contaPagamento);
+          const cotacoes = cotacoesDe(fin);
+          const debito = converter(pagando.valor, moedaCartao, moedaPagamento, cotacoes);
+          const semCotacao = moedaCartao !== moedaPagamento && debito === 0;
+          return (
           <>
             <SubtituloModal>{T.financas.faturaSub(pagando.fatura, pagando.cartao.nome)}</SubtituloModal>
             <div className="formulario fin-form">
-              <ValorDestacado rotulo={T.financas.valor} valor={pagando.valor} />
-              <Campo id="pf-conta" rotulo={T.financas.pagarCom} dica={T.financas.pagarResumo(formatarDinheiro(pagando.valor), pagando.cartao.nome)}>
+              <ValorDestacado rotulo={T.financas.valor} valor={pagando.valor} moeda={moedaCartao} />
+              <Campo
+                id="pf-conta"
+                rotulo={T.financas.pagarCom}
+                erro={semCotacao ? T.financas.moedas.semCotacao : undefined}
+                dica={moedaCartao !== moedaPagamento && !semCotacao ? T.financas.moedas.pagarConvertido(formatarDinheiro(debito, moedaPagamento), formatarDinheiro(pagando.valor, moedaCartao)) : T.financas.pagarResumo(formatarDinheiro(pagando.valor, moedaCartao), pagando.cartao.nome)}
+              >
                 <select id="pf-conta" className="seletor" value={contaPagamento} onChange={(e) => setContaPagamento(e.target.value)}>
                   {fin.contas.filter((x) => x.tipo !== "cartao").map((x) => <option key={x.id} value={x.id}>{x.nome}</option>)}
                 </select>
@@ -1082,9 +1234,10 @@ function Cartoes() {
                 <Botao onClick={() => setPagando(null)}>{T.geral.cancelar}</Botao>
                 <Botao
                   variante="primario"
-                  disabled={!contaPagamento}
+                  disabled={!contaPagamento || semCotacao}
                   onClick={() => {
-                    fin.lancar({ tipo: "transferencia", valor: pagando.valor, descricao: T.financas.pagamentoFatura(pagando.cartao.nome), contaId: contaPagamento, contaDestinoId: pagando.cartao.id, data: hojeISO() });
+                    const entreMoedas = moedaCartao !== moedaPagamento;
+                    fin.lancar({ tipo: "transferencia", valor: entreMoedas ? debito : pagando.valor, valorDestino: entreMoedas ? pagando.valor : undefined, descricao: T.financas.pagamentoFatura(pagando.cartao.nome), contaId: contaPagamento, contaDestinoId: pagando.cartao.id, data: hojeISO() });
                     setPagando(null);
                     void tocarSom("approve");
                   }}
@@ -1094,7 +1247,8 @@ function Cartoes() {
               </div>
             </div>
           </>
-        )}
+          );
+        })()}
       </Modal>
     </section>
   );
@@ -1307,7 +1461,7 @@ function Recorrentes() {
         {candidatas.length === 0 ? <span className="fin-dica">{T.financas.semCandidatas}</span> : candidatas.map((c) => (
           <div key={c.chave} className="fin-candidata">
             <span className="fin-candidata-textos">
-              <span className="privado">{T.financas.candidataTitulo(c.descricao, formatarDinheiro(c.valor))}</span>
+              <span className="privado">{T.financas.candidataTitulo(c.descricao, formatarDinheiro(c.valor, moedaDaConta(fin.contas, c.contaId)))}</span>
               <span className="fin-candidata-sub">{T.financas.candidataSub(T.financas.ocorrencias(c.ocorrencias.length), c.frequencia === "mensal" ? T.financas.mensal : T.financas.anual, T.financas.proximaPrevista(formatar(c.proxima, "d 'de' MMM")))}</span>
             </span>
             <Botao pequeno variante="primario" className="fin-botao-medio" onClick={() => abrir(c)}>{T.financas.cadastrarRecorrente}</Botao>
@@ -1329,7 +1483,7 @@ function Recorrentes() {
               <span className="cortar">{r.descricao}</span>
               <span className="fin-recorrente-sub">{T.financas.recorrenteSub(r.frequencia === "mensal" ? T.financas.mensal : T.financas.anual, nomeCategoria(r.categoriaId, fin.categorias))}</span>
             </span>
-            <span className="fin-recorrente-valor numero privado">{formatarDinheiro(r.valor)}</span>
+            <span className="fin-recorrente-valor numero privado"><ValorNaMoeda centavos={r.valor} moeda={moedaDaConta(fin.contas, r.contaId)} /></span>
             <span title={r.ativa ? T.financas.ativa : T.financas.pausada}>
               <Alternador ligado={r.ativa} rotulo={r.ativa ? T.financas.ativa : T.financas.pausada} aoMudar={(v) => fin.atualizarRecorrente(r.id, { ativa: v })} />
             </span>
@@ -1375,7 +1529,7 @@ function Recorrentes() {
           <Campo id="r-desc" rotulo={T.financas.descricao} obrigatorio erro={erros.descricao}>
             <input id="r-desc" className="campo" value={descricao} maxLength={120} onChange={(e) => setDescricao(e.target.value)} />
           </Campo>
-          <CampoDinheiro id="r-valor" rotulo={T.financas.valor} valor={valor} aoMudar={setValor} erro={erros.valor} obrigatorio />
+          <CampoDinheiro id="r-valor" rotulo={T.financas.valor} valor={valor} aoMudar={setValor} erro={erros.valor} obrigatorio moeda={moedaDaConta(fin.contas, contaId)} />
           <div className="formulario-linha fin-duas">
             <Campo id="r-dia" rotulo={T.financas.dia} obrigatorio erro={erros.dia}>
               <input id="r-dia" className="campo" inputMode="numeric" value={dia} onChange={(e) => setDia(e.target.value.replace(/\D/g, ""))} />
@@ -2146,7 +2300,7 @@ export default function Financas() {
   }, []);
 
   const mostraMes = ["visao", "transacoes", "orcamento", "relatorios", "compras"].includes(aba);
-  const totalMes = somar(gastosDoMes(fin, mes, modo), (t) => parteDoUsuario(t, fin.divisoes));
+  const totalMes = somar(gastosDoMes(fin, mes, modo), (t) => valorEmReais(t, fin, parteDoUsuario(t, fin.divisoes)));
 
   return (
     <>

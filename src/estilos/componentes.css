@@ -222,6 +222,25 @@
   background: var(--destaque-sistema, #ff3b47);
 }
 
+.alternador::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 1px;
+  width: 50%;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='26 28 48 44'%3E%3Cpath d='M34.5 64V37.5L65 64V52' fill='none' stroke='white' stroke-width='10.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3Ccircle cx='66' cy='38' r='6' fill='white' fill-opacity='.7'/%3E%3C/svg%3E") center / 11px no-repeat;
+  opacity: 0;
+  transform: scale(0.3) rotate(-25deg);
+  transition: opacity 0.18s, transform 0.3s cubic-bezier(0.34, 1.45, 0.5, 1);
+  pointer-events: none;
+}
+
+.alternador[aria-checked="true"]::before {
+  opacity: 1;
+  transform: none;
+}
+
 .alternador[aria-checked="true"]::after {
   transform: translateX(16px);
 }

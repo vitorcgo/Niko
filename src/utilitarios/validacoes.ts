@@ -27,7 +27,8 @@ export function validarTransacao(dados: Omit<Transacao, "id" | "criadaEm">, cont
   if (dados.tipo === "transferencia") {
     exigir(contas.some((c) => c.id === dados.contaDestinoId), T.validacao.contaObrigatoria);
     exigir(dados.contaId !== dados.contaDestinoId, T.validacao.contasIguais);
-  } else exigir(!dados.contaDestinoId);
+    exigir(dados.valorDestino === undefined || (Number.isSafeInteger(dados.valorDestino) && dados.valorDestino > 0), T.validacao.valorPositivo);
+  } else exigir(!dados.contaDestinoId && dados.valorDestino === undefined);
   if (dados.categoriaId) exigir(categorias.some((c) => c.id === dados.categoriaId && (dados.tipo === "transferencia" || c.tipo === dados.tipo)));
 }
 
