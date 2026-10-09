@@ -14,6 +14,7 @@ import { useFinancas } from "../../estado/financas";
 import { useInterface } from "../../estado/interface";
 import { T } from "../../textos/textos";
 import { dataValida, deISO, formatar, formatarData, hojeISO, horaValida, paraISO } from "../../utilitarios/datas";
+import { lerEventosIcs } from "../../utilitarios/calendarioIcs";
 import { baixarArquivo, lerArquivoTexto } from "../../utilitarios/basicos";
 import { EVENTO_NOVO } from "../../janelas/area-de-trabalho/usarAtalhos";
 import type { Evento, Repeticao, Rota } from "../../tipos";
@@ -348,18 +349,11 @@ export default function Calendario() {
   const importarIcs = async (arquivo: File) => {
     try {
       const texto = await lerArquivoTexto(arquivo, 2 * 1024 * 1024);
-      const blocos = texto.replace(/\r\n[ \t]/g, "").split("BEGIN:VEVENT").slice(1, 500);
+      const eventosImportados = lerEventosIcs(texto);
       let n = 0;
-      for (const b of blocos) {
-        const resumo = /SUMMARY[^:]*:(.*)/.exec(b)?.[1]?.trim().replace(/\\,/g, ",").replace(/\\;/g, ";").replace(/\\n/g, " ");
-        const inicio = /DTSTART[^:]*:(\d{8})(T(\d{4}))?/.exec(b);
-        if (!resumo || !inicio) continue;
-        const data = `${inicio[1].slice(0, 4)}-${inicio[1].slice(4, 6)}-${inicio[1].slice(6, 8)}`;
-        if (!dataValida(data)) continue;
-        const rr = /RRULE:FREQ=(DAILY|WEEKLY|MONTHLY)/.exec(b)?.[1];
-        const excecoes = [...b.matchAll(/EXDATE[^:]*:([\d,TZ]+)/g)].flatMap((m) => m[1].split(",")).map((x) => `${x.slice(0, 4)}-${x.slice(4, 6)}-${x.slice(6, 8)}`).filter(dataValida);
-        const criado = criarEvento({ titulo: resumo.slice(0, 120), data, hora: inicio[3] ? `${inicio[3].slice(0, 2)}:${inicio[3].slice(2)}` : undefined, tipo: "evento", repeticao: rr === "DAILY" ? "diaria" : rr === "WEEKLY" ? "semanal" : rr === "MONTHLY" ? "mensal" : "nenhuma" });
-        if (rr && excecoes.length) atualizarEvento(criado.id, { excecoes: excecoes.slice(0, 400) });
+      for (const { excecoes, ...evento } of eventosImportados) {
+        const criado = criarEvento(evento);
+        if (evento.repeticao !== "nenhuma" && excecoes.length) atualizarEvento(criado.id, { excecoes });
         n++;
       }
       avisar(n ? T.calendario.importadosIcs(n) : T.validacao.arquivoInvalido);

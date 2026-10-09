@@ -55,6 +55,45 @@ const { validarBackup } = await vite.ssrLoadModule("/src/utilitarios/backupValid
 const { configuracoesValidas } = await vite.ssrLoadModule("/src/utilitarios/configuracoesValidas.ts");
 const armazenamento = await vite.ssrLoadModule("/src/ponte/armazenamento.ts");
 const { rotas } = await vite.ssrLoadModule("/servidor/ponte.ts");
+const { lerDataIcs, lerEventosIcs } = await vite.ssrLoadModule("/src/utilitarios/calendarioIcs.ts");
+
+test("ICS do Google converte 11:30 UTC para 08:30 em São Paulo", () => {
+  const texto = "BEGIN:VCALENDAR\r\nBEGIN:VEVENT\r\nDTSTART:20261008T113000Z\r\nSUMMARY:Bate Papo Cultura e Pessoas\r\nEND:VEVENT\r\nEND:VCALENDAR";
+  const [evento] = lerEventosIcs(texto, "America/Sao_Paulo");
+  assert.equal(evento.hora, "08:30");
+  assert.equal(evento.data, "2026-10-08");
+});
+
+test("ICS respeita TZID e converte a data ao atravessar meia-noite", () => {
+  assert.deepEqual(lerDataIcs("20261008T083000", ";TZID=America/Sao_Paulo", "America/Sao_Paulo"), { data: "2026-10-08", hora: "08:30" });
+  assert.deepEqual(lerDataIcs("20261008T083000", ';TZID="Europe/London"', "America/Sao_Paulo"), { data: "2026-10-08", hora: "04:30" });
+  assert.deepEqual(lerDataIcs("20261008T013000Z", "", "America/Sao_Paulo"), { data: "2026-10-07", hora: "22:30" });
+  assert.deepEqual(lerDataIcs("20261008T233000Z", "", "Asia/Tokyo"), { data: "2026-10-09", hora: "08:30" });
+});
+
+test("ICS preserva dia inteiro e horário sem fuso, como a exportação do Niko", () => {
+  assert.deepEqual(lerDataIcs("20261008", ";VALUE=DATE", "America/Sao_Paulo"), { data: "2026-10-08" });
+  assert.deepEqual(lerDataIcs("20261008T083000", "", "Asia/Tokyo"), { data: "2026-10-08", hora: "08:30" });
+});
+
+test("ICS usa o deslocamento de verão da data, não o de hoje", () => {
+  assert.deepEqual(lerDataIcs("20260708T083000", ";TZID=America/New_York", "America/Sao_Paulo"), { data: "2026-07-08", hora: "09:30" });
+  assert.deepEqual(lerDataIcs("20260108T083000", ";TZID=America/New_York", "America/Sao_Paulo"), { data: "2026-01-08", hora: "10:30" });
+  assert.deepEqual(lerDataIcs("20261101T013000", ";TZID=America/New_York", "UTC"), { data: "2026-11-01", hora: "05:30" });
+});
+
+test("ICS converte EXDATE com o mesmo critério e desdobra linhas longas", () => {
+  const [evento] = lerEventosIcs("BEGIN:VEVENT\nDTSTART:20261008T013000Z\nSUMMARY:Reunião\\, com\n continuação\nRRULE:FREQ=DAILY\nEXDATE:20261009T013000Z,20261010T013000Z\nEND:VEVENT", "America/Sao_Paulo");
+  assert.equal(evento.titulo, "Reunião, comcontinuação");
+  assert.equal(evento.repeticao, "diaria");
+  assert.deepEqual(evento.excecoes, ["2026-10-08", "2026-10-09"]);
+});
+
+test("ICS recusa datas, horas e fusos inválidos sem inventar outro horário", () => {
+  for (const valor of ["20260230T083000Z", "20261008T253000Z", "20261008T086000Z", "20261008T083099Z", "20261008T083000Zlixo"]) assert.equal(lerDataIcs(valor, "", "UTC"), null);
+  assert.throws(() => lerDataIcs("20261008T083000", ";TZID=Fuso/Inexistente", "UTC"), RangeError);
+  assert.deepEqual(lerEventosIcs("BEGIN:VEVENT\nDTSTART:20260230T083000Z\nSUMMARY:Inválido\nEND:VEVENT", "UTC"), []);
+});
 
 const conta = { id: "c", nome: "Conta", tipo: "corrente", saldoInicial: 0, cor: "#000000", arquivada: false };
 const transacao = { tipo: "despesa", descricao: "Compra", valor: 12345, contaId: "c", data: "2026-10-09" };
