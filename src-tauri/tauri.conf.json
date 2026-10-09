@@ -1,65 +1,63 @@
 {
-    "$schema":  "https://schema.tauri.app/config/2",
-    "productName":  "Niko",
-    "version":  "0.2.1",
-    "identifier":  "com.niko.desktop",
-    "build":  {
-                  "frontendDist":  "../dist",
-                  "devUrl":  "http://localhost:5420",
-                  "beforeDevCommand":  "",
-                  "beforeBuildCommand":  "pnpm build \u0026\u0026 pnpm ponte:build"
-              },
-    "app":  {
-                "windows":  [
-
-                            ],
-                "withGlobalTauri":  false,
-                "security":  {
-                                 "csp":  "default-src \u0027self\u0027; connect-src \u0027self\u0027 ipc: http://ipc.localhost http://127.0.0.1:47831; img-src \u0027self\u0027 data: blob: https:; style-src \u0027self\u0027 \u0027unsafe-inline\u0027; font-src \u0027self\u0027 data:; script-src \u0027self\u0027 \u0027wasm-unsafe-eval\u0027; media-src \u0027self\u0027 data: blob:; frame-src \u0027self\u0027 blob:"
-                             }
+    "$schema": "https://schema.tauri.app/config/2",
+    "productName": "Niko",
+    "version": "0.2.1",
+    "identifier": "com.niko.desktop",
+    "build": {
+        "frontendDist": "../dist",
+        "devUrl": "http://localhost:5420",
+        "beforeDevCommand": "",
+        "beforeBuildCommand": "pnpm build && pnpm bridge:build"
+    },
+    "app": {
+        "windows": [],
+        "withGlobalTauri": false,
+        "security": {
+            "csp": "default-src 'self'; connect-src 'self' ipc: http://ipc.localhost http://127.0.0.1:47831; img-src 'self' data: blob: https:; style-src 'self' 'unsafe-inline'; font-src 'self' data:; script-src 'self' 'wasm-unsafe-eval'; media-src 'self' data: blob:; frame-src 'self' blob:"
+        }
+    },
+    "bundle": {
+        "active": true,
+        "targets": [
+            "nsis",
+            "msi"
+        ],
+        "icon": [
+            "icons/32x32.png",
+            "icons/128x128.png",
+            "icons/128x128@2x.png",
+            "icons/icon.ico"
+        ],
+        "resources": {
+            "resources/node.exe": "resources/node.exe",
+            "resources/bridge.mjs": "resources/bridge.mjs"
+        },
+        "publisher": "vitorcgo",
+        "shortDescription": "Niko, seu sistema de vida para Windows",
+        "windows": {
+            "nsis": {
+                "installMode": "currentUser",
+                "languages": [
+                    "PortugueseBR"
+                ],
+                "displayLanguageSelector": false
             },
-    "bundle":  {
-                   "active":  true,
-                   "targets":  [
-                                   "nsis",
-                                   "msi"
-                               ],
-                   "icon":  [
-                                "icons/32x32.png",
-                                "icons/128x128.png",
-                                "icons/128x128@2x.png",
-                                "icons/icon.ico"
-                            ],
-                   "resources":  {
-                                     "recursos/node.exe":  "recursos/node.exe",
-                                     "recursos/ponte.mjs":  "recursos/ponte.mjs"
-                                 },
-                   "publisher":  "vitorcgo",
-                   "shortDescription":  "Niko, seu sistema de vida para Windows",
-                   "windows":  {
-                                   "nsis":  {
-                                                "installMode":  "currentUser",
-                                                "languages":  [
-                                                                  "PortugueseBR"
-                                                              ],
-                                                "displayLanguageSelector":  false
-                                            },
-                                   "wix":  {
-                                               "language":  "pt-BR",
-                                               "upgradeCode":  "ac8ba0fd-ee33-50ad-a11c-dd31ff03d717"
-                                           }
-                               },
-                   "createUpdaterArtifacts":  true
-               },
-    "plugins":  {
-                    "updater":  {
-                                    "pubkey":  "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDQ4NDg1ODRGQ0IyMThBOTgKUldTWWlpSExUMWhJU04zK0l4TUsxT0Z1aHkxQzVtOCtXZWZRd3pUZ3dYKzdOckhBay96OUFRczMK",
-                                    "endpoints":  [
-                                                      "https://github.com/vitorcgo/niko/releases/latest/download/latest.json"
-                                                  ],
-                                    "windows":  {
-                                                    "installMode":  "passive"
-                                                }
-                                }
-                }
+            "wix": {
+                "language": "pt-BR",
+                "upgradeCode": "ac8ba0fd-ee33-50ad-a11c-dd31ff03d717"
+            }
+        },
+        "createUpdaterArtifacts": true
+    },
+    "plugins": {
+        "updater": {
+            "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDQ4NDg1ODRGQ0IyMThBOTgKUldTWWlpSExUMWhJU04zK0l4TUsxT0Z1aHkxQzVtOCtXZWZRd3pUZ3dYKzdOckhBay96OUFRczMK",
+            "endpoints": [
+                "https://github.com/vitorcgo/niko/releases/latest/download/latest.json"
+            ],
+            "windows": {
+                "installMode": "passive"
+            }
+        }
+    }
 }

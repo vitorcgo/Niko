@@ -1,4 +1,4 @@
-# Dependências
+# Dependencies
 node_modules/
 .pnpm-store/
 
@@ -8,23 +8,19 @@ dist-ssr/
 *.tsbuildinfo
 src-tauri/target/
 src-tauri/gen/
-src-tauri/recursos/node.exe
-src-tauri/recursos/ponte.mjs
+src-tauri/resources/node.exe
+src-tauri/resources/bridge.mjs
 
-# Documentos internos
+# Internal documents
 planejamento/
 PENDENCIAS.md
 IDEIAS.md
 
-# Scripts e testes
-scripts/
-testes/
-
-# Vídeo e material de divulgação
+# Video and marketing assets
 niko-video/
 out/
 
-# Ferramentas e configurações locais de assistentes
+# Local assistant tools and settings
 CLAUDE.md
 AGENTS.md
 GEMINI.md
@@ -39,7 +35,7 @@ GEMINI.md
 .continue/
 .codex/
 
-# Segredos e chaves
+# Secrets and keys
 .env
 .env.*
 !.env.exemplo
@@ -51,7 +47,7 @@ GEMINI.md
 *.keystore
 credenciais*.json
 
-# Dados locais
+# Local data
 *.db
 *.db-journal
 *.sqlite
@@ -59,7 +55,7 @@ credenciais*.json
 *.log
 logs/
 
-# Editores e sistema
+# Editors and operating system
 .vscode/*
 !.vscode/extensions.json
 .idea/

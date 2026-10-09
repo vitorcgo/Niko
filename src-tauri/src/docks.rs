@@ -5,162 +5,168 @@ use std::time::Duration;
 use serde::Serialize;
 use tauri::{AppHandle, Emitter, Manager, Monitor, PhysicalPosition, PhysicalSize, WebviewWindow};
 
-use crate::{barra_windows, criar_sobreposta, Estado, ALTURA_DOCK, ALTURA_ILHA};
+use crate::{windows_taskbar, create_overlay, AppState, DOCK_HEIGHT, ISLAND_HEIGHT};
 
-pub const ROTULO_PRINCIPAL: &str = "dock";
-const ESCOLHA_TODOS: &str = "todos";
-const INTERVALO_DOS_MONITORES: Duration = Duration::from_secs(2);
+pub const PRIMARY_LABEL: &str = "dock";
+const SELECTION_ALL: &str = "todos";
+const MONITOR_INTERVAL: Duration = Duration::from_secs(2);
 
-static LIGADO: AtomicBool = AtomicBool::new(false);
-static ESCOLHA: Mutex<String> = Mutex::new(String::new());
-static ASSINATURA: Mutex<String> = Mutex::new(String::new());
-static SINCRONIZANDO: Mutex<()> = Mutex::new(());
-static MONITOR_DA_ILHA: Mutex<String> = Mutex::new(String::new());
+static ENABLED: AtomicBool = AtomicBool::new(false);
+static SELECTION: Mutex<String> = Mutex::new(String::new());
+static SIGNATURE: Mutex<String> = Mutex::new(String::new());
+static SYNCHRONIZATION_LOCK: Mutex<()> = Mutex::new(());
+static ISLAND_MONITOR: Mutex<String> = Mutex::new(String::new());
 
 #[derive(Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
-pub struct MonitorDoNiko {
-    nome: String,
-    rotulo: String,
-    numero: usize,
-    principal: bool,
-    largura: u32,
-    altura: u32,
+pub struct NikoMonitor {
+    #[serde(rename = "nome")]
+    name: String,
+    #[serde(rename = "rotulo")]
+    label: String,
+    #[serde(rename = "numero")]
+    number: usize,
+    #[serde(rename = "principal")]
+    primary: bool,
+    #[serde(rename = "largura")]
+    width: u32,
+    #[serde(rename = "altura")]
+    height: u32,
 }
 
-pub fn eh_dock(rotulo: &str) -> bool {
-    rotulo == ROTULO_PRINCIPAL || rotulo.starts_with("dock-")
+pub fn is_dock(label: &str) -> bool {
+    label == PRIMARY_LABEL || label.starts_with("dock-")
 }
 
-fn nome_do_monitor(monitor: &Monitor) -> String {
+fn monitor_name(monitor: &Monitor) -> String {
     monitor.name().cloned().unwrap_or_else(|| format!("{}x{}", monitor.position().x, monitor.position().y))
 }
 
-fn rotulo_do_monitor(nome: &str, principal: bool) -> String {
-    if principal {
-        return ROTULO_PRINCIPAL.to_string();
+fn monitor_label(name: &str, primary: bool) -> String {
+    if primary {
+        return PRIMARY_LABEL.to_string();
     }
-    let limpo: String = nome.chars().filter(|c| c.is_ascii_alphanumeric()).collect();
-    format!("dock-{}", if limpo.is_empty() { "monitor".to_string() } else { limpo })
+    let clean: String = name.chars().filter(|c| c.is_ascii_alphanumeric()).collect();
+    format!("dock-{}", if clean.is_empty() { "monitor".to_string() } else { clean })
 }
 
-fn monitores_ordenados(app: &AppHandle) -> Vec<(Monitor, MonitorDoNiko)> {
-    let nome_principal = app.primary_monitor().ok().flatten().map(|m| nome_do_monitor(&m));
-    let mut lista = app.available_monitors().unwrap_or_default();
-    lista.sort_by_key(|m| (Some(nome_do_monitor(m)) != nome_principal, m.position().x, m.position().y));
-    lista
+fn sorted_monitors(app: &AppHandle) -> Vec<(Monitor, NikoMonitor)> {
+    let primary_name = app.primary_monitor().ok().flatten().map(|m| monitor_name(&m));
+    let mut list = app.available_monitors().unwrap_or_default();
+    list.sort_by_key(|m| (Some(monitor_name(m)) != primary_name, m.position().x, m.position().y));
+    list
         .into_iter()
         .enumerate()
         .map(|(i, monitor)| {
-            let nome = nome_do_monitor(&monitor);
-            let principal = i == 0;
-            let info = MonitorDoNiko { rotulo: rotulo_do_monitor(&nome, principal), numero: i + 1, principal, largura: monitor.size().width, altura: monitor.size().height, nome };
+            let name = monitor_name(&monitor);
+            let primary = i == 0;
+            let info = NikoMonitor { label: monitor_label(&name, primary), number: i + 1, primary, width: monitor.size().width, height: monitor.size().height, name };
             (monitor, info)
         })
         .collect()
 }
 
-pub fn monitor_escolhido(escolha: &str, info: &MonitorDoNiko, lista: &[MonitorDoNiko]) -> bool {
-    if lista.len() < 2 {
-        return info.principal;
+pub fn is_monitor_selected(selection: &str, info: &NikoMonitor, list: &[NikoMonitor]) -> bool {
+    if list.len() < 2 {
+        return info.primary;
     }
-    if escolha.is_empty() || escolha == ESCOLHA_TODOS {
+    if selection.is_empty() || selection == SELECTION_ALL {
         return true;
     }
-    if lista.iter().any(|m| m.nome == escolha) {
-        return info.nome == escolha;
+    if list.iter().any(|m| m.name == selection) {
+        return info.name == selection;
     }
-    info.principal
+    info.primary
 }
 
-pub fn posicionar(janela: &WebviewWindow, monitor: &Monitor) {
-    let escala = monitor.scale_factor();
-    let (posicao, tamanho) = if barra_windows::barra_oculta() {
+pub fn position_dock(window: &WebviewWindow, monitor: &Monitor) {
+    let scale = monitor.scale_factor();
+    let (position, size) = if windows_taskbar::is_taskbar_hidden() {
         (*monitor.position(), *monitor.size())
     } else {
         let area = monitor.work_area();
         (area.position, area.size)
     };
-    let altura = (ALTURA_DOCK * escala).round() as i32;
-    let destino = PhysicalPosition::new(posicao.x, posicao.y + tamanho.height as i32 - altura);
-    let _ = janela.set_position(destino);
-    let _ = janela.set_size(PhysicalSize::new(tamanho.width, altura as u32));
-    let _ = janela.set_position(destino);
+    let height = (DOCK_HEIGHT * scale).round() as i32;
+    let destination = PhysicalPosition::new(position.x, position.y + size.height as i32 - height);
+    let _ = window.set_position(destination);
+    let _ = window.set_size(PhysicalSize::new(size.width, height as u32));
+    let _ = window.set_position(destination);
 }
 
-pub fn monitor_da_ilha(escolha: &str, lista: &[MonitorDoNiko]) -> usize {
-    lista.iter().position(|m| !escolha.is_empty() && m.nome == escolha).unwrap_or(0)
+pub fn monitor_island(selection: &str, list: &[NikoMonitor]) -> usize {
+    list.iter().position(|m| !selection.is_empty() && m.name == selection).unwrap_or(0)
 }
 
-pub fn posicionar_ilha(app: &AppHandle) {
-    let Some(janela) = app.get_webview_window("ilha") else { return };
-    let escolha = MONITOR_DA_ILHA.lock().map(|e| e.clone()).unwrap_or_default();
-    let mut monitores = monitores_ordenados(app);
-    if monitores.is_empty() {
+pub fn position_island(app: &AppHandle) {
+    let Some(window) = app.get_webview_window("ilha") else { return };
+    let selection = ISLAND_MONITOR.lock().map(|e| e.clone()).unwrap_or_default();
+    let mut monitors = sorted_monitors(app);
+    if monitors.is_empty() {
         return;
     }
-    let infos: Vec<MonitorDoNiko> = monitores.iter().map(|(_, i)| i.clone()).collect();
-    let (monitor, _) = monitores.swap_remove(monitor_da_ilha(&escolha, &infos));
-    let altura = (ALTURA_ILHA * monitor.scale_factor()).round() as u32;
-    let destino = *monitor.position();
-    let _ = janela.set_position(destino);
-    let _ = janela.set_size(PhysicalSize::new(monitor.size().width, altura));
-    let _ = janela.set_position(destino);
+    let infos: Vec<NikoMonitor> = monitors.iter().map(|(_, i)| i.clone()).collect();
+    let (monitor, _) = monitors.swap_remove(monitor_island(&selection, &infos));
+    let height = (ISLAND_HEIGHT * monitor.scale_factor()).round() as u32;
+    let destination = *monitor.position();
+    let _ = window.set_position(destination);
+    let _ = window.set_size(PhysicalSize::new(monitor.size().width, height));
+    let _ = window.set_position(destination);
 }
 
-pub fn reposicionar_todos(app: &AppHandle) {
-    posicionar_ilha(app);
-    posicionar_assistive(app);
-    for (monitor, info) in monitores_ordenados(app) {
-        if let Some(janela) = app.get_webview_window(&info.rotulo) {
-            posicionar(&janela, &monitor);
+pub fn reposition_all(app: &AppHandle) {
+    position_island(app);
+    position_assistive(app);
+    for (monitor, info) in sorted_monitors(app) {
+        if let Some(window) = app.get_webview_window(&info.label) {
+            position_dock(&window, &monitor);
         }
     }
 }
 
-pub fn posicionar_assistive(app: &AppHandle) {
-    let Some(janela) = app.get_webview_window("assistive") else { return };
-    let Some(monitor) = monitores_ordenados(app).into_iter().next().map(|(m, _)| m) else { return };
+pub fn position_assistive(app: &AppHandle) {
+    let Some(window) = app.get_webview_window("assistive") else { return };
+    let Some(monitor) = sorted_monitors(app).into_iter().next().map(|(m, _)| m) else { return };
     let area = monitor.work_area();
-    let _ = janela.set_position(area.position);
-    let _ = janela.set_size(area.size);
-    let _ = janela.set_position(area.position);
+    let _ = window.set_position(area.position);
+    let _ = window.set_size(area.size);
+    let _ = window.set_position(area.position);
 }
 
-fn assinatura(lista: &[(Monitor, MonitorDoNiko)]) -> String {
-    lista
+fn signature(list: &[(Monitor, NikoMonitor)]) -> String {
+    list
         .iter()
-        .map(|(m, i)| format!("{}:{}:{}:{}:{}:{}:{}", i.nome, i.principal, m.position().x, m.position().y, m.size().width, m.size().height, m.scale_factor()))
+        .map(|(m, i)| format!("{}:{}:{}:{}:{}:{}:{}", i.name, i.primary, m.position().x, m.position().y, m.size().width, m.size().height, m.scale_factor()))
         .collect::<Vec<_>>()
         .join("|")
 }
 
-pub fn sincronizar(app: &AppHandle) {
-    let Ok(_vez) = SINCRONIZANDO.lock() else { return };
-    let ligado = LIGADO.load(Ordering::SeqCst);
-    let escolha = ESCOLHA.lock().map(|e| e.clone()).unwrap_or_default();
-    let monitores = monitores_ordenados(app);
-    let infos: Vec<MonitorDoNiko> = monitores.iter().map(|(_, i)| i.clone()).collect();
-    let desejados: Vec<String> = monitores.iter().filter(|(_, i)| i.principal || (ligado && monitor_escolhido(&escolha, i, &infos))).map(|(_, i)| i.rotulo.clone()).collect();
+pub fn synchronize(app: &AppHandle) {
+    let Ok(_guard) = SYNCHRONIZATION_LOCK.lock() else { return };
+    let enabled = ENABLED.load(Ordering::SeqCst);
+    let selection = SELECTION.lock().map(|e| e.clone()).unwrap_or_default();
+    let monitors = sorted_monitors(app);
+    let infos: Vec<NikoMonitor> = monitors.iter().map(|(_, i)| i.clone()).collect();
+    let desired: Vec<String> = monitors.iter().filter(|(_, i)| i.primary || (enabled && is_monitor_selected(&selection, i, &infos))).map(|(_, i)| i.label.clone()).collect();
 
-    for (rotulo, janela) in app.webview_windows() {
-        if rotulo == ROTULO_PRINCIPAL || !eh_dock(&rotulo) || desejados.contains(&rotulo) {
+    for (label, window) in app.webview_windows() {
+        if label == PRIMARY_LABEL || !is_dock(&label) || desired.contains(&label) {
             continue;
         }
-        barra_windows::reservar_espaco_do_dock(&janela, false);
-        if let Ok(mut areas) = app.state::<Estado>().areas.lock() {
-            areas.remove(&rotulo);
+        windows_taskbar::reserve_space_dock(&window, false);
+        if let Ok(mut areas) = app.state::<AppState>().areas.lock() {
+            areas.remove(&label);
         }
-        let _ = janela.destroy();
+        let _ = window.destroy();
     }
 
-    for (monitor, info) in &monitores {
-        if !desejados.contains(&info.rotulo) {
+    for (monitor, info) in &monitors {
+        if !desired.contains(&info.label) {
             continue;
         }
-        let janela = match app.get_webview_window(&info.rotulo) {
+        let window = match app.get_webview_window(&info.label) {
             Some(j) => j,
-            None => match criar_sobreposta(app, &info.rotulo, 0.0, 0.0, 400.0, ALTURA_DOCK) {
+            None => match create_overlay(app, &info.label, 0.0, 0.0, 400.0, DOCK_HEIGHT) {
                 Ok(j) => {
                     let _ = j.set_ignore_cursor_events(true);
                     j
@@ -168,46 +174,43 @@ pub fn sincronizar(app: &AppHandle) {
                 Err(_) => continue,
             },
         };
-        posicionar(&janela, monitor);
+        position_dock(&window, monitor);
     }
 
-    posicionar_ilha(app);
-    posicionar_assistive(app);
-    if let Ok(mut atual) = ASSINATURA.lock() {
-        *atual = assinatura(&monitores);
+    position_island(app);
+    position_assistive(app);
+    if let Ok(mut current) = SIGNATURE.lock() {
+        *current = signature(&monitors);
     }
     let _ = app.emit("niko://monitores", infos);
 }
 
-#[tauri::command]
-pub fn monitores(app: AppHandle) -> Vec<MonitorDoNiko> {
-    monitores_ordenados(&app).into_iter().map(|(_, i)| i).collect()
+pub fn monitors(app: AppHandle) -> Vec<NikoMonitor> {
+    sorted_monitors(&app).into_iter().map(|(_, i)| i).collect()
 }
 
-#[tauri::command]
-pub async fn definir_docks(app: AppHandle, ligado: bool, escolha: String) {
-    LIGADO.store(ligado, Ordering::SeqCst);
-    if let Ok(mut atual) = ESCOLHA.lock() {
-        *atual = escolha.chars().take(200).collect();
+pub async fn set_docks(app: AppHandle, enabled: bool, selection: String) {
+    ENABLED.store(enabled, Ordering::SeqCst);
+    if let Ok(mut current) = SELECTION.lock() {
+        *current = selection.chars().take(200).collect();
     }
-    sincronizar(&app);
+    synchronize(&app);
 }
 
-#[tauri::command]
-pub fn definir_monitor_da_ilha(app: AppHandle, escolha: String) {
-    if let Ok(mut atual) = MONITOR_DA_ILHA.lock() {
-        *atual = escolha.chars().take(200).collect();
+pub fn set_island_monitor(app: AppHandle, selection: String) {
+    if let Ok(mut current) = ISLAND_MONITOR.lock() {
+        *current = selection.chars().take(200).collect();
     }
-    posicionar_ilha(&app);
+    position_island(&app);
 }
 
-pub fn vigiar_monitores(app: AppHandle) {
+pub fn watch_monitors(app: AppHandle) {
     std::thread::spawn(move || loop {
-        std::thread::sleep(INTERVALO_DOS_MONITORES);
-        let atual = assinatura(&monitores_ordenados(&app));
-        let mudou = ASSINATURA.lock().map(|a| *a != atual).unwrap_or(false);
-        if mudou {
-            sincronizar(&app);
+        std::thread::sleep(MONITOR_INTERVAL);
+        let current = signature(&sorted_monitors(&app));
+        let changed = SIGNATURE.lock().map(|a| *a != current).unwrap_or(false);
+        if changed {
+            synchronize(&app);
         }
     });
 }

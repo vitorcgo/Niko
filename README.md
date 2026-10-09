@@ -159,7 +159,7 @@ Abra o endereço que aparecer no terminal (por padrão `http://localhost:5420`).
 
 ```powershell
 pnpm install
-pnpm ponte:build
+pnpm bridge:build
 pnpm dev
 ```
 
@@ -172,11 +172,11 @@ pnpm tauri dev
 ### Outros comandos
 
 ```powershell
-pnpm verificar   # checagem de tipos em modo estrito
+pnpm verify   # checagem de tipos em modo estrito
 pnpm test        # todos os testes isolados, executados em sequência
 pnpm build       # build da interface em dist/
-pnpm chat:testar # testes do chat com provedor falso, sem rede ou banco real
-pnpm midia:testar # testes de mídia pausada e consultas fora de ordem
+pnpm chat:test # testes do chat com provedor falso, sem rede ou banco real
+pnpm media:test # testes de mídia pausada e consultas fora de ordem
 pnpm app         # gera o instalador do Windows
 ```
 
@@ -185,7 +185,7 @@ pnpm app         # gera o instalador do Windows
 Informe a versão explicitamente, sem editar os arquivos à mão:
 
 ```powershell
-pnpm lancar 0.1.2 "Descrição das novidades"
+pnpm release 0.1.2 "Descrição das novidades"
 ```
 
 O comando sincroniza `package.json`, `src-tauri/tauri.conf.json`, a versão do pacote Niko em `src-tauri/Cargo.toml` e `src-tauri/Cargo.lock`, além do selo de versão deste README. Antes de escrever, valida os arquivos, recusa redução de versão e consulta o GitHub para impedir uma release duplicada. Em builds feitos a partir de uma tag no GitHub Actions, a tag precisa ser `v` seguida da mesma versão.
@@ -197,33 +197,35 @@ Use a mesma chave de atualização das versões anteriores. O script usa `TAURI_
 Comandos que não geram instalador:
 
 ```powershell
-pnpm lancar:verificar
-pnpm lancar 0.1.2 --verificar
-pnpm lancar:testar
+pnpm release:verify
+pnpm release 0.1.2 --check
+pnpm release:test
 ```
 
 O primeiro confere se as quatro versões concordam. O segundo mostra uma prévia da sincronização, sem alterar arquivos nem consultar o GitHub. O terceiro executa os testes das proteções de release.
 
-Para reconstruir deliberadamente uma versão já publicada, use `pnpm lancar 0.1.1 --recompilar "Notas da versão"`. Essa opção dispensa a consulta de duplicidade no GitHub, mas mantém as validações dos arquivos e do build. Não substitua uma release publicada usando esses arquivos.
+Para reconstruir deliberadamente uma versão já publicada, use `pnpm release 0.1.1 --rebuild "Notas da versão"`. Essa opção dispensa a consulta de duplicidade no GitHub, mas mantém as validações dos arquivos e do build. Não substitua uma release publicada usando esses arquivos.
 
 ## Estrutura
 
 ```text
 src/
-  janelas/        área de trabalho, ilha, dock e janela do sistema
-  modulos/        uma pasta por área do sistema
-  componentes/    botões, campos, modais, editor e gráficos
-  personagens/    personagens do time e suas animações
-  estado/         stores de cada área
-  ponte/          comunicação com o lado nativo
-  servicos/       lembretes, pomodoro, recorrentes, orçamento e conquistas
-  textos/         todos os textos da interface
-  utilitarios/    datas, dinheiro, comandos e sanitização
-servidor/         ponte local: banco, credenciais, mídia, janelas e conexões
+  windows/        área de trabalho, ilha, dock e janela do sistema
+  features/        uma pasta por área do sistema
+  components/    botões, campos, modais, editor e gráficos
+  characters/     personagens do time e suas animações
+  state/         stores de cada área
+  bridge/          comunicação com o lado nativo
+  services/       lembretes, pomodoro, recorrentes, orçamento e conquistas
+  i18n/         todos os textos da interface
+  utils/    datas, dinheiro, comandos e sanitização
+server/         ponte local: banco, credenciais, mídia, janelas e conexões
 src-tauri/        app desktop em Rust
 scripts/          build da ponte, personagens e lançamento de versões
 public/           personagens e sons
 ```
+
+As convenções de código e as exceções de compatibilidade estão em [CODE_STYLE.md](CODE_STYLE.md).
 
 ## Licença
 

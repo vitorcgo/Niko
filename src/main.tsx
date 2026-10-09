@@ -6,54 +6,54 @@ import "@fontsource/ibm-plex-mono/600.css";
 import "@fontsource/inter/400.css";
 import "@fontsource/inter/500.css";
 import "@fontsource/inter/600.css";
-import "./estilos/tokens.css";
-import "./estilos/base.css";
-import "./estilos/componentes.css";
-import "./estilos/sistema.css";
-import "./estilos/modulos.css";
-import { iniciarArmazenamento } from "./ponte/armazenamento";
-import { JANELA, NATIVO, prepararPonte, desviarLinksExternos } from "./desktop/desktop";
-import { T } from "./textos/textos";
+import "./styles/tokens.css";
+import "./styles/base.css";
+import "./styles/components.css";
+import "./styles/system.css";
+import "./styles/features.css";
+import { startStorage } from "./bridge/storage";
+import { WINDOW, NATIVE, prepareBridge, redirectLinksExternal } from "./desktop/desktop";
+import { T } from "./i18n/ptBR";
 
 document.documentElement.dataset.tema = "claro";
 
-const SELETOR_DAS_SOBREPOSTAS = ".ilha-raiz, .ilha-gatilho, .ilha-barra, .ilha-pop, .dock, .dock-gatilho, .dock-previa";
+const SELECTOR_OVERLAYS = ".ilha-raiz, .ilha-gatilho, .ilha-barra, .ilha-pop, .dock, .dock-gatilho, .dock-previa";
 
-async function iniciar() {
-  const sobreposta = JANELA === "ilha" || JANELA === "dock" || JANELA === "assistive";
-  if (sobreposta) document.documentElement.classList.add("janela-sobreposta");
+async function start() {
+  const overlay = WINDOW === "ilha" || WINDOW === "dock" || WINDOW === "assistive";
+  if (overlay) document.documentElement.classList.add("janela-sobreposta");
   document.addEventListener("contextmenu", (e) => {
-    const alvo = e.target as HTMLElement | null;
-    if (alvo?.closest("input, textarea, [contenteditable='true']")) return;
-    if (sobreposta || alvo?.closest(SELETOR_DAS_SOBREPOSTAS)) e.preventDefault();
+    const target = e.target as HTMLElement | null;
+    if (target?.closest("input, textarea, [contenteditable='true']")) return;
+    if (overlay || target?.closest(SELECTOR_OVERLAYS)) e.preventDefault();
   });
-  await prepararPonte();
-  desviarLinksExternos();
-  let modo = "local";
-  for (let tentativa = 0; tentativa < (NATIVO ? 120 : 1); tentativa++) {
-    modo = await iniciarArmazenamento();
-    if (modo === "banco") break;
+  await prepareBridge();
+  redirectLinksExternal();
+  let mode = "local";
+  for (let attempt = 0; attempt < (NATIVE ? 120 : 1); attempt++) {
+    mode = await startStorage();
+    if (mode === "banco") break;
     await new Promise((r) => setTimeout(r, 500));
   }
-  const raiz = document.getElementById("raiz");
-  if (!raiz) return;
-  if (NATIVO && modo !== "banco") {
-    if (JANELA !== "sistema") return;
-    raiz.innerHTML = `<div class="falha-ponte"><h1>${T.app.ponteFalhou}</h1><p>${T.app.ponteFalhouDica}</p></div>`;
+  const root = document.getElementById("raiz");
+  if (!root) return;
+  if (NATIVE && mode !== "banco") {
+    if (WINDOW !== "sistema") return;
+    root.innerHTML = `<div class="falha-ponte"><h1>${T.app.ponteFalhou}</h1><p>${T.app.ponteFalhouDica}</p></div>`;
     return;
   }
-  if (sobreposta) document.documentElement.classList.add("janela-sobreposta");
-  let Raiz: () => React.ReactElement;
-  if (!NATIVO) Raiz = (await import("./janelas/area-de-trabalho/AreaDeTrabalho")).AreaDeTrabalho;
+  if (overlay) document.documentElement.classList.add("janela-sobreposta");
+  let Root: () => React.ReactElement;
+  if (!NATIVE) Root = (await import("./windows/desktop/Desktop")).Desktop;
   else {
-    const apps = await import("./desktop/Aplicativos");
-    Raiz = JANELA === "ilha" ? apps.AppIlha : JANELA === "dock" ? apps.AppDock : JANELA === "assistive" ? apps.AppAssistive : apps.AppSistema;
+    const apps = await import("./desktop/Applications");
+    Root = WINDOW === "ilha" ? apps.AppIsland : WINDOW === "dock" ? apps.AppDock : WINDOW === "assistive" ? apps.AppAssistive : apps.AppSystem;
   }
-  createRoot(raiz).render(
+  createRoot(root).render(
     <StrictMode>
-      <Raiz />
+      <Root />
     </StrictMode>,
   );
 }
 
-void iniciar();
+void start();

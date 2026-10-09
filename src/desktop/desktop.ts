@@ -1,120 +1,120 @@
 import { useEffect, useState } from "react";
 import { emitTo, listen } from "@tauri-apps/api/event";
-import type { Rota, ServicoId } from "../tipos";
+import type { Route, ServiceId } from "../types";
 
-export type NomeJanela = "sistema" | "ilha" | "dock" | "assistive";
+export type NameWindow = "sistema" | "ilha" | "dock" | "assistive";
 
-interface InternosTauri {
+interface InternalsTauri {
   metadata?: { currentWindow?: { label?: string } };
 }
 
-const internos = typeof window !== "undefined" ? (window as unknown as { __TAURI_INTERNALS__?: InternosTauri }).__TAURI_INTERNALS__ : undefined;
+const internals = typeof window !== "undefined" ? (window as unknown as { __TAURI_INTERNALS__?: InternalsTauri }).__TAURI_INTERNALS__ : undefined;
 
-export const NATIVO = Boolean(internos);
+export const NATIVE = Boolean(internals);
 
-export const ROTULO: string | null = NATIVO ? internos?.metadata?.currentWindow?.label ?? "sistema" : null;
+export const LABEL: string | null = NATIVE ? internals?.metadata?.currentWindow?.label ?? "sistema" : null;
 
-export function tipoDaJanela(rotulo: string): NomeJanela {
-  if (rotulo === "dock" || rotulo.startsWith("dock-")) return "dock";
-  if (rotulo === "assistive") return "assistive";
-  return rotulo === "ilha" ? "ilha" : "sistema";
+export function typeWindow(label: string): NameWindow {
+  if (label === "dock" || label.startsWith("dock-")) return "dock";
+  if (label === "assistive") return "assistive";
+  return label === "ilha" ? "ilha" : "sistema";
 }
 
-export const JANELA: NomeJanela | null = ROTULO === null ? null : tipoDaJanela(ROTULO);
+export const WINDOW: NameWindow | null = LABEL === null ? null : typeWindow(LABEL);
 
-export type Comando =
-  | { tipo: "irPara"; rota: Rota; parametros?: Record<string, string> }
-  | { tipo: "abrirConexao"; id: ServicoId }
+export type Command =
+  | { tipo: "irPara"; rota: Route; parametros?: Record<string, string> }
+  | { tipo: "abrirConexao"; id: ServiceId }
   | { tipo: "abrirBusca" }
   | { tipo: "abrirCaptura" };
 
-const canal = !NATIVO && typeof BroadcastChannel !== "undefined" ? new BroadcastChannel("niko-comandos") : null;
+const channel = !NATIVE && typeof BroadcastChannel !== "undefined" ? new BroadcastChannel("niko-comandos") : null;
 
-export function enviarComando(c: Comando) {
-  if (NATIVO) {
-    void emitTo("sistema", "niko-comandos", c).catch((erro) => console.error("Falha ao enviar comando para a janela do Niko", erro));
-  } else canal?.postMessage(c);
-  void mostrarSistema();
+export function sendCommand(c: Command) {
+  if (NATIVE) {
+    void emitTo("sistema", "niko-comandos", c).catch((error) => console.error("Falha ao enviar comando para a janela do Niko", error));
+  } else channel?.postMessage(c);
+  void showSystem();
 }
 
-export function ouvirComandos(fn: (c: Comando) => void): () => void {
-  if (NATIVO) {
-    let ativo = true;
-    let desligar: () => void = () => undefined;
-    void listen<Comando>("niko-comandos", (e) => {
-      if (ativo) fn(e.payload);
+export function listenCommands(fn: (c: Command) => void): () => void {
+  if (NATIVE) {
+    let active = true;
+    let disable: () => void = () => undefined;
+    void listen<Command>("niko-comandos", (e) => {
+      if (active) fn(e.payload);
     }, { target: { kind: "WebviewWindow", label: "sistema" } }).then((f) => {
-      if (ativo) desligar = f;
+      if (active) disable = f;
       else f();
-    }).catch((erro) => console.error("Falha ao receber comandos na janela do Niko", erro));
+    }).catch((error) => console.error("Falha ao receber comandos na janela do Niko", error));
     return () => {
-      if (!ativo) return;
-      ativo = false;
-      desligar();
+      if (!active) return;
+      active = false;
+      disable();
     };
   }
-  if (!canal) return () => undefined;
-  const aoReceber = (e: MessageEvent<Comando>) => fn(e.data);
-  canal.addEventListener("message", aoReceber);
-  return () => canal.removeEventListener("message", aoReceber);
+  if (!channel) return () => undefined;
+  const onReceive = (e: MessageEvent<Command>) => fn(e.data);
+  channel.addEventListener("message", onReceive);
+  return () => channel.removeEventListener("message", onReceive);
 }
 
-export function foraDoSistema(): boolean {
-  return NATIVO && JANELA !== "sistema";
+export function outsideSystem(): boolean {
+  return NATIVE && WINDOW !== "sistema";
 }
 
-async function invocar<T>(comando: string, args?: Record<string, unknown>): Promise<T | null> {
-  if (!NATIVO) return null;
+async function invokeNative<T>(command: string, args?: Record<string, unknown>): Promise<T | null> {
+  if (!NATIVE) return null;
   try {
     const { invoke } = await import("@tauri-apps/api/core");
-    return await invoke<T>(comando, args);
+    return await invoke<T>(command, args);
   } catch {
     return null;
   }
 }
 
-function ehLinkExterno(url: string): boolean {
+function isLinkExternal(url: string): boolean {
   return /^https?:\/\//i.test(url) && !url.startsWith(window.location.origin);
 }
 
-export function abrirLink(url: string) {
-  if (!ehLinkExterno(url)) return;
-  if (NATIVO) void invocar("abrir_link", { url });
+export function openLink(url: string) {
+  if (!isLinkExternal(url)) return;
+  if (NATIVE) void invokeNative("abrir_link", { url });
   else window.open(url, "_blank", "noopener,noreferrer");
 }
 
-export function desviarLinksExternos() {
-  if (!NATIVO) return;
+export function redirectLinksExternal() {
+  if (!NATIVE) return;
   document.addEventListener(
     "click",
     (e) => {
       const link = (e.target as Element | null)?.closest?.("a[href]") as HTMLAnchorElement | null;
-      if (!link || !ehLinkExterno(link.href)) return;
+      if (!link || !isLinkExternal(link.href)) return;
       e.preventDefault();
-      abrirLink(link.href);
+      openLink(link.href);
     },
     true,
   );
 }
 
-export function mostrarSistema() {
-  return invocar("mostrar_sistema");
+export function showSystem() {
+  return invokeNative("mostrar_sistema");
 }
 
-export function prepararAtualizacao() {
-  return invocar<void>("preparar_atualizacao");
+export function prepareUpdate() {
+  return invokeNative<void>("preparar_atualizacao");
 }
 
-export function liberarSistemaInicial() {
-  return invocar("liberar_sistema_inicial");
+export function releaseSystemInitial() {
+  return invokeNative("liberar_sistema_inicial");
 }
 
-export function tempoOciosoMs() {
-  return invocar<number>("tempo_ocioso_ms");
+export function timeIdleMs() {
+  return invokeNative<number>("tempo_ocioso_ms");
 }
 
-export async function versaoDoApp(): Promise<string> {
-  if (!NATIVO) return "web";
+export async function versionApp(): Promise<string> {
+  if (!NATIVE) return "web";
   try {
     const { getVersion } = await import("@tauri-apps/api/app");
     return await getVersion();
@@ -123,136 +123,136 @@ export async function versaoDoApp(): Promise<string> {
   }
 }
 
-export interface ResultadoDoAtalho {
+export interface ResultShortcut {
   acao: string;
   teclas: string;
   situacao: string;
 }
 
-export function definirAtalhosGlobais(lista: { acao: string; teclas: string }[]) {
-  return invocar<ResultadoDoAtalho[]>("definir_atalhos", { lista });
+export function setShortcutsGlobal(list: { acao: string; teclas: string }[]) {
+  return invokeNative<ResultShortcut[]>("definir_atalhos", { lista: list });
 }
 
-export async function ouvirAtalho(fn: (acao: string) => void): Promise<() => void> {
-  if (!NATIVO || !ROTULO) return () => undefined;
+export async function listenShortcut(fn: (action: string) => void): Promise<() => void> {
+  if (!NATIVE || !LABEL) return () => undefined;
   const { listen } = await import("@tauri-apps/api/event");
-  return listen<string>("niko://atalho", (e) => fn(e.payload), { target: { kind: "WebviewWindow", label: ROTULO } });
+  return listen<string>("niko://atalho", (e) => fn(e.payload), { target: { kind: "WebviewWindow", label: LABEL } });
 }
 
-export function informarAreaInterativa(retangulos: { x: number; y: number; w: number; h: number }[]) {
-  return invocar("area_interativa", { janela: ROTULO, retangulos });
+export function reportAreaInteractive(rectangles: { x: number; y: number; w: number; h: number }[]) {
+  return invokeNative("area_interativa", { janela: LABEL, retangulos: rectangles });
 }
 
-export async function janelaAtual() {
+export async function windowCurrent() {
   const { getCurrentWindow } = await import("@tauri-apps/api/window");
   return getCurrentWindow();
 }
 
-export async function ouvirEvento(nome: string, fn: () => void, soDestaJanela = false): Promise<() => void> {
-  if (!NATIVO) return () => undefined;
+export async function listenEvent(nameValue: string, fn: () => void, onlyDestaWindow = false): Promise<() => void> {
+  if (!NATIVE) return () => undefined;
   const { listen } = await import("@tauri-apps/api/event");
-  return listen(nome, fn, soDestaJanela && ROTULO ? { target: { kind: "WebviewWindow", label: ROTULO } } : undefined);
+  return listen(nameValue, fn, onlyDestaWindow && LABEL ? { target: { kind: "WebviewWindow", label: LABEL } } : undefined);
 }
 
-function enviarPelaPonte(base: string, token: string | null) {
+function sendPelaBridge(base: string, token: string | null) {
   const original = window.fetch.bind(window);
-  window.fetch = (entrada: RequestInfo | URL, opcoes?: RequestInit) => {
-    if (typeof entrada === "string" && entrada.startsWith("/ponte")) {
-      const cabecalhos = new Headers(opcoes?.headers);
-      if (token) cabecalhos.set("x-niko-token", token);
-      return original(`${base}${entrada}`, { ...opcoes, headers: cabecalhos });
+  window.fetch = (input: RequestInfo | URL, options?: RequestInit) => {
+    if (typeof input === "string" && input.startsWith("/ponte")) {
+      const headers = new Headers(options?.headers);
+      if (token) headers.set("x-niko-token", token);
+      return original(`${base}${input}`, { ...options, headers: headers });
     }
-    return original(entrada, opcoes);
+    return original(input, options);
   };
 }
 
-export async function prepararPonte() {
-  if (NATIVO && window.location.hostname === "tauri.localhost") {
-    const [token, porta] = await Promise.all([invocar<string>("token_ponte"), invocar<number>("porta_ponte")]);
-    enviarPelaPonte(`http://127.0.0.1:${porta ?? 47831}`, token);
+export async function prepareBridge() {
+  if (NATIVE && window.location.hostname === "tauri.localhost") {
+    const [token, port] = await Promise.all([invokeNative<string>("token_ponte"), invokeNative<number>("porta_ponte")]);
+    sendPelaBridge(`http://127.0.0.1:${port ?? 47831}`, token);
     return;
   }
-  const tokenDeDesenvolvimento = document.querySelector<HTMLMetaElement>('meta[name="niko-token"]')?.content;
-  if (tokenDeDesenvolvimento) enviarPelaPonte("", tokenDeDesenvolvimento);
+  const tokenDevelopment = document.querySelector<HTMLMetaElement>('meta[name="niko-token"]')?.content;
+  if (tokenDevelopment) sendPelaBridge("", tokenDevelopment);
 }
 
-export async function sincronizarInicioComWindows(ligado: boolean) {
-  if (!NATIVO) return;
+export async function synchronizeStartWithWindows(enabled: boolean) {
+  if (!NATIVE) return;
   try {
     const { enable, disable, isEnabled } = await import("@tauri-apps/plugin-autostart");
-    const atual = await isEnabled();
-    if (ligado && !atual) await enable();
-    if (!ligado && atual) await disable();
+    const current = await isEnabled();
+    if (enabled && !current) await enable();
+    if (!enabled && current) await disable();
   } catch {
     return;
   }
 }
 
-const INTERVALO_SEGURANCA_AREA_MS = 1000;
+const INTERVAL_SECURITY_AREA_MS = 1000;
 
-export function usarAreaInterativa(seletores: string[]) {
-  const chaveSeletores = seletores.join(",");
+export function useAreaInteractive(selectors: string[]) {
+  const keySelectors = selectors.join(",");
   useEffect(() => {
-    if (!NATIVO) return;
-    let anterior = "";
-    let quadro = 0;
-    const medir = () => {
-      quadro = 0;
-      const retangulos = [...document.querySelectorAll(chaveSeletores)]
+    if (!NATIVE) return;
+    let previous = "";
+    let board = 0;
+    const measure = () => {
+      board = 0;
+      const rectangles = [...document.querySelectorAll(keySelectors)]
         .map((el) => el.getBoundingClientRect())
         .filter((r) => r.width > 0 && r.height > 0)
         .map((r) => ({ x: Math.round(r.left), y: Math.round(r.top), w: Math.round(r.width), h: Math.round(r.height) }));
-      const atual = JSON.stringify(retangulos);
-      if (atual === anterior) return;
-      anterior = atual;
-      void informarAreaInterativa(retangulos);
+      const current = JSON.stringify(rectangles);
+      if (current === previous) return;
+      previous = current;
+      void reportAreaInteractive(rectangles);
     };
-    const agendar = () => {
-      if (!quadro) quadro = window.requestAnimationFrame(medir);
+    const schedule = () => {
+      if (!board) board = window.requestAnimationFrame(measure);
     };
-    const atributos = new MutationObserver(agendar);
-    const observarAlvos = () => {
-      atributos.disconnect();
-      for (const el of document.querySelectorAll(chaveSeletores)) {
-        for (let no: Element | null = el; no && no !== document.body; no = no.parentElement) atributos.observe(no, { attributes: true, attributeFilter: ["style", "class"] });
+    const attributes = new MutationObserver(schedule);
+    const observeTargets = () => {
+      attributes.disconnect();
+      for (const el of document.querySelectorAll(keySelectors)) {
+        for (let node: Element | null = el; node && node !== document.body; node = node.parentElement) attributes.observe(node, { attributes: true, attributeFilter: ["style", "class"] });
       }
     };
-    const estrutura = new MutationObserver(() => {
-      observarAlvos();
-      agendar();
+    const structure = new MutationObserver(() => {
+      observeTargets();
+      schedule();
     });
-    observarAlvos();
-    medir();
-    estrutura.observe(document.body, { subtree: true, childList: true });
-    const eventos = ["resize", "transitionend", "animationend"] as const;
-    for (const e of eventos) window.addEventListener(e, agendar, true);
-    const seguranca = window.setInterval(agendar, INTERVALO_SEGURANCA_AREA_MS);
+    observeTargets();
+    measure();
+    structure.observe(document.body, { subtree: true, childList: true });
+    const events = ["resize", "transitionend", "animationend"] as const;
+    for (const e of events) window.addEventListener(e, schedule, true);
+    const security = window.setInterval(schedule, INTERVAL_SECURITY_AREA_MS);
     return () => {
-      atributos.disconnect();
-      estrutura.disconnect();
-      for (const e of eventos) window.removeEventListener(e, agendar, true);
-      window.clearInterval(seguranca);
-      window.cancelAnimationFrame(quadro);
+      attributes.disconnect();
+      structure.disconnect();
+      for (const e of events) window.removeEventListener(e, schedule, true);
+      window.clearInterval(security);
+      window.cancelAnimationFrame(board);
     };
-  }, [chaveSeletores]);
+  }, [keySelectors]);
 }
 
-export function usarCursorFora(fn: () => void) {
+export function useCursorOutside(fn: () => void) {
   useEffect(() => {
-    if (!NATIVO) return;
-    let desligar: () => void = () => undefined;
-    let ativo = true;
-    void ouvirEvento("niko://cursor-fora", fn, true).then((f) => {
-      if (ativo) desligar = f;
+    if (!NATIVE) return;
+    let disable: () => void = () => undefined;
+    let active = true;
+    void listenEvent("niko://cursor-fora", fn, true).then((f) => {
+      if (active) disable = f;
       else f();
     });
     return () => {
-      ativo = false;
-      desligar();
+      active = false;
+      disable();
     };
   }, [fn]);
 }
-export interface AppAberto {
+export interface AppOpen {
   id: string;
   pid: number;
   titulo: string;
@@ -267,7 +267,7 @@ export interface AppAberto {
   nomeDoGrupo?: string | null;
 }
 
-export interface MonitorDoNiko {
+export interface NikoMonitor {
   nome: string;
   rotulo: string;
   numero: number;
@@ -276,67 +276,67 @@ export interface MonitorDoNiko {
   altura: number;
 }
 
-export function definirDocks(ligado: boolean, escolha: string) {
-  return invocar("definir_docks", { ligado, escolha });
+export function setDocks(enabled: boolean, selection: string) {
+  return invokeNative("definir_docks", { ligado: enabled, escolha: selection });
 }
 
-export function devolverFoco() {
-  return invocar("devolver_foco");
+export function returnFocus() {
+  return invokeNative("devolver_foco");
 }
 
-export function definirMonitorDaIlha(escolha: string) {
-  return invocar("definir_monitor_da_ilha", { escolha });
+export function setMonitorIsland(selection: string) {
+  return invokeNative("definir_monitor_da_ilha", { escolha: selection });
 }
 
-export function usarMonitores(): MonitorDoNiko[] {
-  const [lista, setLista] = useState<MonitorDoNiko[]>([]);
+export function useMonitors(): NikoMonitor[] {
+  const [list, setList] = useState<NikoMonitor[]>([]);
   useEffect(() => {
-    if (!NATIVO) return;
-    let vivo = true;
-    let desligar: () => void = () => undefined;
-    void invocar<MonitorDoNiko[]>("monitores").then((r) => vivo && r && setLista(r));
+    if (!NATIVE) return;
+    let alive = true;
+    let disable: () => void = () => undefined;
+    void invokeNative<NikoMonitor[]>("monitores").then((r) => alive && r && setList(r));
     void import("@tauri-apps/api/event").then(({ listen }) =>
-      listen<MonitorDoNiko[]>("niko://monitores", (e) => vivo && setLista(e.payload)).then((f) => {
-        if (vivo) desligar = f;
+      listen<NikoMonitor[]>("niko://monitores", (e) => alive && setList(e.payload)).then((f) => {
+        if (alive) disable = f;
         else f();
       }),
     );
     return () => {
-      vivo = false;
-      desligar();
+      alive = false;
+      disable();
     };
   }, []);
-  return lista;
+  return list;
 }
 
-export function usarAppsAbertos(ativo: boolean): [AppAberto[], () => void] {
-  const [apps, setApps] = useState<AppAberto[]>([]);
-  const [versao, setVersao] = useState(0);
+export function useAppsOpen(active: boolean): [AppOpen[], () => void] {
+  const [apps, setApps] = useState<AppOpen[]>([]);
+  const [version, setVersion] = useState(0);
   useEffect(() => {
-    if (!NATIVO || !ativo) return;
-    let vivo = true;
-    const ler = async () => {
+    if (!NATIVE || !active) return;
+    let alive = true;
+    const read = async () => {
       try {
         const r = await fetch("/ponte/janelas", { headers: { "x-niko": "1" } });
         if (!r.ok) return;
-        const j = (await r.json()) as { janelas?: AppAberto[] | AppAberto };
-        const lista = Array.isArray(j.janelas) ? j.janelas : j.janelas ? [j.janelas] : [];
-        if (vivo) setApps(lista);
+        const j = (await r.json()) as { janelas?: AppOpen[] | AppOpen };
+        const list = Array.isArray(j.janelas) ? j.janelas : j.janelas ? [j.janelas] : [];
+        if (alive) setApps(list);
       } catch {
         return;
       }
     };
-    void ler();
-    const t = window.setInterval(() => void ler(), 2000);
+    void read();
+    const t = window.setInterval(() => void read(), 2000);
     return () => {
-      vivo = false;
+      alive = false;
       window.clearInterval(t);
     };
-  }, [ativo, versao]);
-  return [apps, () => setVersao((v) => v + 1)];
+  }, [active, version]);
+  return [apps, () => setVersion((v) => v + 1)];
 }
 
-export interface AreaMiniatura {
+export interface AreaThumbnail {
   janela: string;
   x: number;
   y: number;
@@ -344,31 +344,31 @@ export interface AreaMiniatura {
   h: number;
 }
 
-export function mostrarMiniaturas(itens: AreaMiniatura[]) {
-  return invocar("miniaturas_janelas", { itens });
+export function showThumbnails(items: AreaThumbnail[]) {
+  return invokeNative("miniaturas_janelas", { itens: items });
 }
 
-export function ocultarBarraDoWindows(ocultar: boolean) {
-  return invocar("barra_windows", { ocultarBarra: ocultar });
+export function hideBarWindows(hide: boolean) {
+  return invokeNative("barra_windows", { ocultarBarra: hide });
 }
 
-export function reservarEspacoDoDock(reservar: boolean) {
-  return invocar("reservar_dock", { reservar });
+export function reserveSpaceDock(reserve: boolean) {
+  return invokeNative("reservar_dock", { reservar: reserve });
 }
 
-export type TipoDaFrente = "area_de_trabalho" | "sobreposta" | "app";
+export type ForegroundType = "area_de_trabalho" | "sobreposta" | "app";
 
-export interface EstadoDaFrente {
+export interface ForegroundState {
   cobre: boolean;
   telaCheia: boolean;
   maximizada: boolean;
-  frente: TipoDaFrente;
+  frente: ForegroundType;
 }
 
-const FRENTE_LIVRE: EstadoDaFrente = { cobre: false, telaCheia: false, maximizada: false, frente: "area_de_trabalho" };
+const FRONT_FREE: ForegroundState = { cobre: false, telaCheia: false, maximizada: false, frente: "area_de_trabalho" };
 
-export async function permitirNotificacoes(): Promise<boolean> {
-  if (!NATIVO) return false;
+export async function allowNotifications(): Promise<boolean> {
+  if (!NATIVE) return false;
   try {
     const { isPermissionGranted, requestPermission } = await import("@tauri-apps/plugin-notification");
     if (await isPermissionGranted()) return true;
@@ -378,61 +378,61 @@ export async function permitirNotificacoes(): Promise<boolean> {
   }
 }
 
-export async function notificarWindows(titulo: string, corpo: string): Promise<void> {
-  if (!NATIVO) return;
+export async function notifyWindows(title: string, body: string): Promise<void> {
+  if (!NATIVE) return;
   try {
     const { isPermissionGranted, sendNotification } = await import("@tauri-apps/plugin-notification");
-    if (await isPermissionGranted()) sendNotification({ title: titulo, body: corpo });
+    if (await isPermissionGranted()) sendNotification({ title: title, body: body });
   } catch {
     return;
   }
 }
 
-export async function frenteCobreAIlha(): Promise<boolean> {
-  const r = await invocar<EstadoDaFrente>("frente_cobre_tela");
+export async function frontCoversAIsland(): Promise<boolean> {
+  const r = await invokeNative<ForegroundState>("frente_cobre_tela");
   return Boolean(r?.cobre);
 }
 
-export async function frenteEmTelaCheia(): Promise<boolean> {
-  const r = await invocar<EstadoDaFrente>("frente_cobre_tela");
+export async function frontAtScreenFull(): Promise<boolean> {
+  const r = await invokeNative<ForegroundState>("frente_cobre_tela");
   return Boolean(r?.telaCheia);
 }
 
-export function usarEstadoDaFrente(ativo: boolean): EstadoDaFrente {
-  const [estado, setEstado] = useState<EstadoDaFrente>(FRENTE_LIVRE);
+export function useStateFront(active: boolean): ForegroundState {
+  const [state, setState] = useState<ForegroundState>(FRONT_FREE);
   useEffect(() => {
-    if (!NATIVO || !ativo) {
-      setEstado(FRENTE_LIVRE);
+    if (!NATIVE || !active) {
+      setState(FRONT_FREE);
       return;
     }
-    let vivo = true;
-    const ler = async () => {
-      const r = await invocar<EstadoDaFrente>("frente_cobre_tela");
-      if (!vivo) return;
-      const cobre = Boolean(r?.cobre);
-      const telaCheia = Boolean(r?.telaCheia);
-      const maximizada = Boolean(r?.maximizada);
-      const frente: TipoDaFrente = r?.frente === "app" || r?.frente === "sobreposta" ? r.frente : "area_de_trabalho";
-      setEstado((anterior) => (anterior.cobre === cobre && anterior.telaCheia === telaCheia && anterior.maximizada === maximizada && anterior.frente === frente ? anterior : { cobre, telaCheia, maximizada, frente }));
+    let alive = true;
+    const read = async () => {
+      const r = await invokeNative<ForegroundState>("frente_cobre_tela");
+      if (!alive) return;
+      const covers = Boolean(r?.cobre);
+      const screenFull = Boolean(r?.telaCheia);
+      const maximized = Boolean(r?.maximizada);
+      const front: ForegroundType = r?.frente === "app" || r?.frente === "sobreposta" ? r.frente : "area_de_trabalho";
+      setState((previous) => (previous.cobre === covers && previous.telaCheia === screenFull && previous.maximizada === maximized && previous.frente === front ? previous : { cobre: covers, telaCheia: screenFull, maximizada: maximized, frente: front }));
     };
-    void ler();
-    const t = window.setInterval(() => void ler(), 800);
+    void read();
+    const t = window.setInterval(() => void read(), 800);
     return () => {
-      vivo = false;
+      alive = false;
       window.clearInterval(t);
     };
-  }, [ativo]);
-  return estado;
+  }, [active]);
+  return state;
 }
 
-export async function agirNaJanela(acao: "focar" | "minimizar" | "fechar", id: string) {
+export async function actWindow(action: "focar" | "minimizar" | "fechar", id: string) {
   try {
-    await fetch(`/ponte/janelas/${acao}`, { method: "POST", headers: { "x-niko": "1", "content-type": "application/json" }, body: JSON.stringify({ janela: id }) });
+    await fetch(`/ponte/janelas/${action}`, { method: "POST", headers: { "x-niko": "1", "content-type": "application/json" }, body: JSON.stringify({ janela: id }) });
   } catch {
     return;
   }
 }
 
-export function alternarSistemaNativo() {
-  return invocar("alternar_sistema");
+export function toggleSystemNative() {
+  return invokeNative("alternar_sistema");
 }
