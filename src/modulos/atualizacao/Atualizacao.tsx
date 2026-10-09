@@ -43,10 +43,10 @@ export default function Atualizacao() {
       <CabecalhoAba titulo={T.atualizacao.titulo} subtitulo={T.atualizacao.subtitulo} />
       <section className="atualizacao-painel">
         <div className="atualizacao-versao">
-          <span className="rotulo-secao">{T.atualizacao.versaoAtual}</span>
+          <span className="rotulo-secao">{T.getCurrentSystemVersion()}</span>
           <strong className="atualizacao-versao-numero">{atualizacao.versaoAtual || T.geral.carregando}</strong>
           <span className="atualizacao-versao-detalhe">
-            {T.atualizacao.plataforma}
+            {T.getCurrentSystemVersion()}
             {atualizacao.ultimaVerificacao && (
               <>
                 {" · "}

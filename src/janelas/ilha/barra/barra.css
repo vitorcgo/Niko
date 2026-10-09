@@ -28,6 +28,17 @@
   font-size: calc(12px * var(--escala-barra, 1));
 }
 
+/* Backing layer for the native macOS menu bar. The island itself is rendered
+   above this by .ilha-raiz (z-index: 1000). */
+.ilha-barra::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 -1px;
+  z-index: -1;
+  background: var(--fundo-do-tema, var(--fundo));
+  pointer-events: none;
+}
+
 .ilha-barra-faixa {
   position: absolute;
   top: 0;

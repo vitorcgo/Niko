@@ -79,7 +79,7 @@ function ehLinkExterno(url: string): boolean {
 
 export function abrirLink(url: string) {
   if (!ehLinkExterno(url)) return;
-  if (NATIVO) void invocar("abrir_link", { url });
+  if (NATIVO) void import("@tauri-apps/plugin-opener").then(({ openUrl }) => openUrl(url)).catch((erro) => console.error("Falha ao abrir link externo", erro));
   else window.open(url, "_blank", "noopener,noreferrer");
 }
 

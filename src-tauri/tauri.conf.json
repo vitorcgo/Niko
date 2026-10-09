@@ -6,7 +6,7 @@
     "build":  {
                   "frontendDist":  "../dist",
                   "devUrl":  "http://localhost:5420",
-                  "beforeDevCommand":  "",
+                  "beforeDevCommand":  "pnpm dev",
                   "beforeBuildCommand":  "pnpm build \u0026\u0026 pnpm ponte:build"
               },
     "app":  {
@@ -20,10 +20,6 @@
             },
     "bundle":  {
                    "active":  true,
-                   "targets":  [
-                                   "nsis",
-                                   "msi"
-                               ],
                    "icon":  [
                                 "icons/32x32.png",
                                 "icons/128x128.png",
@@ -31,11 +27,13 @@
                                 "icons/icon.ico"
                             ],
                    "resources":  {
-                                     "recursos/node.exe":  "recursos/node.exe",
                                      "recursos/ponte.mjs":  "recursos/ponte.mjs"
                                  },
+                   "externalBin":  [
+                                       "binaries/node"
+                                   ],
                    "publisher":  "vitorcgo",
-                   "shortDescription":  "Niko, seu sistema de vida para Windows",
+                   "shortDescription":  "Niko, seu sistema de vida",
                    "windows":  {
                                    "nsis":  {
                                                 "installMode":  "currentUser",

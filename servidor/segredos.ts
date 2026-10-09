@@ -1,4 +1,4 @@
-import { spawn } from "node:child_process";
+import { execFile, spawn } from "node:child_process";
 import { garantirScript } from "./scriptsTemporarios";
 
 const CODIGO = `
@@ -59,6 +59,24 @@ const TEMPO_LIMITE_MS = 20000;
 const cache = new Map<string, string | null>();
 const leiturasEmAndamento = new Map<string, Promise<string | null>>();
 
+function executarMac(acao: "gravar" | "ler" | "apagar", id: string, segredo?: string): Promise<string | null> {
+  const servico = PREFIXO + id;
+  const argumentos = acao === "gravar"
+    ? ["add-generic-password", "-a", "niko", "-s", servico, "-w", segredo ?? "", "-U"]
+    : acao === "ler"
+      ? ["find-generic-password", "-a", "niko", "-s", servico, "-w"]
+      : ["delete-generic-password", "-a", "niko", "-s", servico];
+  return new Promise((resolver, rejeitar) => {
+    execFile("/usr/bin/security", argumentos, { timeout: TEMPO_LIMITE_MS, encoding: "utf8" }, (erro, saida) => {
+      if (erro) {
+        if (acao !== "gravar" && "code" in erro && erro.code === 44) return resolver(null);
+        return rejeitar(erro);
+      }
+      resolver(acao === "ler" ? saida.trimEnd() : null);
+    });
+  });
+}
+
 function executar(entrada: Record<string, string>): Promise<{ ok?: boolean; valor?: string | null }> {
   return new Promise((resolver, rejeitar) => {
     const processo = spawn("powershell.exe", ["-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File", garantirScript("niko-credencial", SCRIPT)], { windowsHide: true });
@@ -94,9 +112,11 @@ function validarId(id: string) {
 export async function gravarSegredo(id: string, segredo: string) {
   validarId(id);
   if (!segredo || segredo.length > 4000) throw new Error("segredo_invalido");
-  if (process.platform !== "win32") throw new Error("somente_windows");
-  const r = await executar({ acao: "gravar", alvo: PREFIXO + id, segredo });
-  if (!r.ok) throw new Error("falha_ao_gravar");
+  if (process.platform === "darwin") await executarMac("gravar", id, segredo);
+  else if (process.platform === "win32") {
+    const r = await executar({ acao: "gravar", alvo: PREFIXO + id, segredo });
+    if (!r.ok) throw new Error("falha_ao_gravar");
+  } else throw new Error("plataforma_sem_cofre");
   leiturasEmAndamento.delete(id);
   cache.set(id, segredo);
 }
@@ -104,10 +124,10 @@ export async function gravarSegredo(id: string, segredo: string) {
 export async function lerSegredo(id: string): Promise<string | null> {
   validarId(id);
   if (cache.has(id)) return cache.get(id) ?? null;
-  if (process.platform !== "win32") return null;
+  if (process.platform !== "win32" && process.platform !== "darwin") return null;
   const emAndamento = leiturasEmAndamento.get(id);
   if (emAndamento) return emAndamento;
-  const leitura = executar({ acao: "ler", alvo: PREFIXO + id })
+  const leitura = (process.platform === "darwin" ? executarMac("ler", id).then((valor) => ({ valor })) : executar({ acao: "ler", alvo: PREFIXO + id }))
     .then((r) => {
       const valor = r.valor ?? null;
       if (leiturasEmAndamento.get(id) === leitura) cache.set(id, valor);
@@ -124,6 +144,6 @@ export async function apagarSegredo(id: string) {
   validarId(id);
   cache.delete(id);
   leiturasEmAndamento.delete(id);
-  if (process.platform !== "win32") return;
-  await executar({ acao: "apagar", alvo: PREFIXO + id });
+  if (process.platform === "darwin") await executarMac("apagar", id);
+  else if (process.platform === "win32") await executar({ acao: "apagar", alvo: PREFIXO + id });
 }

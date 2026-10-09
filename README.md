@@ -213,6 +213,24 @@ Perguntas sobre Cloudflare e Supabase são encaminhadas ao Java. Menções expl�
 - Rust estável, para a versão desktop
 - WebView2, que já vem no Windows 11
 
+### Com Nix
+
+Para abrir a interface web com todas as dependências de desenvolvimento disponíveis:
+
+```sh
+nix run
+```
+
+Na primeira execução, o comando instala as dependências travadas em `pnpm-lock.yaml` e inicia o Vite. Para entrar no ambiente com Node.js, pnpm, Rust e Cargo e executar os comandos do projeto manualmente:
+
+```sh
+nix develop
+pnpm verificar
+pnpm test
+```
+
+O shell inclui também as bibliotecas nativas do Tauri no Linux. O aplicativo desktop completo continua específico para Windows por usar APIs nativas do sistema; em macOS e Linux, `nix run` executa a interface no navegador.
+
 ### Interface no navegador
 
 ```powershell

@@ -21,8 +21,13 @@ import type { ComandoDoSistema } from "../ponte/ponteLocal";
 import type { Buscador } from "../utilitarios/buscaApps";
 import type { AcaoGlobal, SituacaoDoAtalho } from "../utilitarios/atalhos";
 import manifesto from "../../package.json";
+import { sistemaAtual } from "../utilitarios/sistema";
 
 export const T = {
+  getCurrentSystemVersion: () => {
+    const sistema = sistemaAtual();
+    return T.atualizacao.plataformas[sistema.plataforma](sistema.versao);
+  },
   app: {
     ponteFalhou: "O Niko não conseguiu iniciar o serviço local.",
     ponteFalhouDica: "Feche pelo ícone da bandeja e abra de novo. Se continuar, o erro está em %APPDATA%\\com.niko.desktop\\ponte.log e niko.log.",
@@ -121,7 +126,12 @@ export const T = {
     titulo: "Atualização",
     subtitulo: "Acompanhe as versões do Niko e mantenha seu app atualizado.",
     versaoAtual: "Versão atual",
-    plataforma: "Windows 10 e 11",
+    plataformas: {
+      windows: (versao?: string) => (versao ? `Windows ${versao}` : "Windows"),
+      macos: (versao?: string) => (versao ? `macOS ${versao}` : "macOS"),
+      linux: (versao?: string) => (versao ? `Linux ${versao}` : "Linux"),
+      desconhecido: (_versao?: string) => "Windows, macOS e Linux",
+    },
     verificar: "Verificar atualizações",
     verificando: "Verificando atualizações...",
     pronto: "Veja se há uma nova versão do Niko.",
@@ -2472,6 +2482,7 @@ export const T = {
     nunca: "Nunca",
     abrirHover: "Abrir ao passar o mouse",
     lateraisIlha: "Barra completa no topo",
+    // TODO: it is nice to be generic over the system name, I think we could call that just "barra principal", because both mac and windows has a main bar. 
     lateraisDica: "Na área de trabalho, mostra uma aba de cada lado da ilha: personalização, o Iniciar do Windows e as tarefas à esquerda, e a bandeja, o Wi-Fi, o volume e os controles do Windows à direita. Com um app na frente, fica só a ilha.",
     notificacoesIlha: "Notificações na ilha",
     notificacoesOpcoes: { importantes: "Só importantes", todas: "Todas", nenhuma: "Nenhuma" },

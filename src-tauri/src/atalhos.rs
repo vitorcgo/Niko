@@ -5,6 +5,7 @@ use std::sync::Mutex;
 use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Emitter, Manager};
 use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut};
+#[cfg(windows)]
 use windows::Win32::UI::Input::KeyboardAndMouse::{
     GetKeyboardLayoutList, MapVirtualKeyExW, ToUnicodeEx, HKL, MAPVK_VK_TO_VSC_EX, VIRTUAL_KEY, VK_0, VK_A, VK_CONTROL, VK_LCONTROL, VK_LMENU, VK_LSHIFT, VK_MENU,
     VK_OEM_1, VK_OEM_2, VK_OEM_3, VK_OEM_4, VK_OEM_5, VK_OEM_6, VK_OEM_7, VK_OEM_COMMA, VK_OEM_MINUS, VK_OEM_PERIOD, VK_OEM_PLUS, VK_RMENU, VK_SHIFT,
@@ -32,6 +33,7 @@ pub struct ResultadoDoAtalho {
     situacao: &'static str,
 }
 
+#[cfg(windows)]
 fn tecla_virtual(codigo: Code) -> Option<VIRTUAL_KEY> {
     let letras = [
         Code::KeyA, Code::KeyB, Code::KeyC, Code::KeyD, Code::KeyE, Code::KeyF, Code::KeyG, Code::KeyH, Code::KeyI, Code::KeyJ, Code::KeyK, Code::KeyL, Code::KeyM,
@@ -60,6 +62,7 @@ fn tecla_virtual(codigo: Code) -> Option<VIRTUAL_KEY> {
     })
 }
 
+#[cfg(windows)]
 fn digita_com_altgr(atalho: &Shortcut) -> bool {
     let mods = atalho.mods;
     if !(mods.contains(Modifiers::CONTROL) && mods.contains(Modifiers::ALT)) {
@@ -84,6 +87,11 @@ fn digita_com_altgr(atalho: &Shortcut) -> bool {
             ToUnicodeEx(vk.0 as u32, varredura, &estado, &mut texto, 4, Some(*layout)) != 0
         })
     }
+}
+
+#[cfg(not(windows))]
+fn digita_com_altgr(_atalho: &Shortcut) -> bool {
+    false
 }
 
 pub fn ler(teclas: &str) -> Option<Shortcut> {

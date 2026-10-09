@@ -19,6 +19,8 @@
     "autostart:allow-is-enabled",
     "updater:default",
     "process:allow-restart",
-    "notification:default"
+    "notification:default",
+    "opener:allow-open-url",
+    "os:default"
   ]
 }

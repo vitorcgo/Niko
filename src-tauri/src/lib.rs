@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use std::process::{Child, Command};
-use std::sync::atomic::{AtomicBool, AtomicIsize, Ordering};
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex;
 use std::time::Duration;
 
@@ -11,9 +11,21 @@ use tauri::{AppHandle, Emitter, Manager, RunEvent, WebviewUrl, WebviewWindow, We
 use tauri_plugin_global_shortcut::ShortcutState;
 
 mod atalhos;
+#[cfg(windows)]
 mod barra_windows;
 mod docks;
+#[cfg(windows)]
 mod janela_frente;
+#[cfg(windows)]
+mod miniaturas;
+#[cfg(not(windows))]
+#[path = "barra_portatil.rs"]
+mod barra_windows;
+#[cfg(not(windows))]
+#[path = "janela_frente_portatil.rs"]
+mod janela_frente;
+#[cfg(not(windows))]
+#[path = "miniaturas_portatil.rs"]
 mod miniaturas;
 
 const PORTA: u16 = 47831;
@@ -35,10 +47,8 @@ struct Estado {
 }
 
 fn gerar_token() -> String {
-    use windows::Win32::Security::Cryptography::{BCryptGenRandom, BCRYPT_USE_SYSTEM_PREFERRED_RNG};
     let mut bytes = [0u8; 32];
-    let status = unsafe { BCryptGenRandom(None, &mut bytes, BCRYPT_USE_SYSTEM_PREFERRED_RNG) };
-    assert!(status.is_ok(), "falha ao gerar o token da ponte");
+    getrandom::fill(&mut bytes).expect("falha ao gerar o token da ponte");
     bytes.iter().map(|b| format!("{:02x}", b)).collect()
 }
 
@@ -64,7 +74,6 @@ fn mostrar_sistema(app: AppHandle) {
     mostrar(&app);
 }
 
-static ULTIMA_FRENTE: AtomicIsize = AtomicIsize::new(0);
 static ABERTURA_PENDENTE: AtomicBool = AtomicBool::new(false);
 const LIMITE_DA_ABERTURA: Duration = Duration::from_secs(9);
 
@@ -80,6 +89,7 @@ fn liberar_sistema_inicial(app: AppHandle) {
 }
 
 #[tauri::command]
+#[cfg(windows)]
 fn tempo_ocioso_ms() -> u64 {
     use windows::Win32::System::SystemInformation::GetTickCount;
     use windows::Win32::UI::Input::KeyboardAndMouse::{GetLastInputInfo, LASTINPUTINFO};
@@ -90,6 +100,16 @@ fn tempo_ocioso_ms() -> u64 {
     u64::from(unsafe { GetTickCount() }.wrapping_sub(info.dwTime))
 }
 
+#[tauri::command]
+#[cfg(not(windows))]
+fn tempo_ocioso_ms() -> u64 {
+    0
+}
+
+#[cfg(windows)]
+static ULTIMA_FRENTE: std::sync::atomic::AtomicIsize = std::sync::atomic::AtomicIsize::new(0);
+
+#[cfg(windows)]
 fn registrar_frente(app: &AppHandle) {
     let frente = unsafe { windows::Win32::UI::WindowsAndMessaging::GetForegroundWindow() }.0 as isize;
     if frente == 0 {
@@ -101,7 +121,11 @@ fn registrar_frente(app: &AppHandle) {
     }
 }
 
+#[cfg(not(windows))]
+fn registrar_frente(_app: &AppHandle) {}
+
 #[tauri::command]
+#[cfg(windows)]
 fn devolver_foco() {
     let anterior = ULTIMA_FRENTE.load(Ordering::Relaxed);
     if anterior != 0 {
@@ -113,39 +137,19 @@ fn devolver_foco() {
 }
 
 #[tauri::command]
+#[cfg(not(windows))]
+fn devolver_foco() {}
+
+#[tauri::command]
 fn alternar_sistema(app: AppHandle) {
     if let Some(janela) = app.get_webview_window("sistema") {
         let visivel = janela.is_visible().unwrap_or(false) && !janela.is_minimized().unwrap_or(false);
-        let focada = janela.hwnd().map(|h| h.0 as isize == ULTIMA_FRENTE.load(Ordering::Relaxed)).unwrap_or(false);
+        let focada = janela.is_focused().unwrap_or(false);
         if visivel && focada {
             let _ = janela.minimize();
         } else {
             mostrar(&app);
         }
-    }
-}
-
-#[tauri::command]
-fn abrir_link(url: String) -> Result<(), String> {
-    let endereco = url.trim();
-    if !(endereco.starts_with("https://") || endereco.starts_with("http://")) || endereco.chars().any(|c| c.is_whitespace() || c.is_control()) {
-        return Err("link_invalido".into());
-    }
-    let largo: Vec<u16> = endereco.encode_utf16().chain(std::iter::once(0)).collect();
-    let resultado = unsafe {
-        windows::Win32::UI::Shell::ShellExecuteW(
-            None,
-            windows::core::w!("open"),
-            windows::core::PCWSTR(largo.as_ptr()),
-            None,
-            None,
-            windows::Win32::UI::WindowsAndMessaging::SW_SHOWNORMAL,
-        )
-    };
-    if resultado.0 as isize > 32 {
-        Ok(())
-    } else {
-        Err("falha_ao_abrir".into())
     }
 }
 
@@ -212,6 +216,27 @@ fn criar_sobreposta(app: &AppHandle, rotulo: &str, y: f64, x: f64, largura: f64,
         .build()
 }
 
+#[cfg(target_os = "macos")]
+fn sobrepor_barra_do_macos(janela: &WebviewWindow) {
+    use objc2_app_kit::{NSStatusWindowLevel, NSWindow, NSWindowCollectionBehavior};
+
+    let Ok(ponteiro) = janela.ns_window() else { return };
+    // A barra do Niko ocupa o topo físico da tela; o nível de status a mantém
+    // acima da barra de menus, inclusive em outros Spaces e apps em tela cheia.
+    unsafe {
+        let janela_nativa = &*(ponteiro.cast::<NSWindow>());
+        janela_nativa.setLevel(NSStatusWindowLevel);
+        janela_nativa.setCollectionBehavior(
+            janela_nativa.collectionBehavior()
+                | NSWindowCollectionBehavior::CanJoinAllSpaces
+                | NSWindowCollectionBehavior::FullScreenAuxiliary,
+        );
+    }
+}
+
+#[cfg(not(target_os = "macos"))]
+fn sobrepor_barra_do_macos(_janela: &WebviewWindow) {}
+
 fn vigiar_cursor(app: AppHandle) {
     std::thread::spawn(move || {
         let mut fora: HashMap<String, bool> = HashMap::new();
@@ -271,7 +296,10 @@ fn iniciar_ponte(app: &AppHandle, token: &str, reinicio: bool) {
         return;
     };
     let recursos = sem_prefixo(pasta.join("recursos"));
-    let node = recursos.join("node.exe");
+    let node = std::env::current_exe()
+        .ok()
+        .and_then(|executavel| executavel.parent().map(|pasta| pasta.join(if cfg!(windows) { "node.exe" } else { "node" })))
+        .unwrap_or_else(|| recursos.join(if cfg!(windows) { "node.exe" } else { "node" }));
     let script = recursos.join("ponte.mjs");
     let saida_erro = dados.as_ref().and_then(|p| {
         let caminho = sem_prefixo(p.join("ponte.log"));
@@ -383,6 +411,8 @@ pub fn run() {
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_notification::init())
+        .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_os::init())
         .plugin(tauri_plugin_autostart::init(tauri_plugin_autostart::MacosLauncher::LaunchAgent, Some(vec!["--escondido"])))
         .plugin(
             tauri_plugin_global_shortcut::Builder::new()
@@ -419,7 +449,6 @@ pub fn run() {
             liberar_sistema_inicial,
             preparar_atualizacao,
             tempo_ocioso_ms,
-            abrir_link,
             sair,
             barra_windows::barra_windows,
             barra_windows::reservar_dock,
@@ -456,6 +485,7 @@ pub fn run() {
                 .decorations(false)
                 .inner_size(1320.0_f64.min(mw - 40.0), 860.0_f64.min(mh - 40.0))
                 .min_inner_size(960.0, 600.0)
+                .maximized(true)
                 .background_color(tauri::window::Color(14, 14, 16, 255))
                 .disable_drag_drop_handler()
                 .center()
@@ -477,7 +507,8 @@ pub fn run() {
                 }
             });
 
-            criar_sobreposta(&handle, "ilha", tela_y, tela_x, tela_largura, ALTURA_ILHA)?;
+            let ilha = criar_sobreposta(&handle, "ilha", tela_y, tela_x, tela_largura, ALTURA_ILHA)?;
+            sobrepor_barra_do_macos(&ilha);
             criar_sobreposta(&handle, "dock", my + mh - ALTURA_DOCK, mx, mw, ALTURA_DOCK)?;
             criar_sobreposta(&handle, "assistive", my, mx, mw, mh)?;
             for rotulo in ["ilha", "dock", "assistive"] {

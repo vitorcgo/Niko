@@ -31,6 +31,7 @@ export function usarTema() {
     const raiz = document.documentElement;
     raiz.dataset.tema = efetivo;
     raiz.dataset.paleta = paleta;
+    raiz.style.setProperty("--fundo-do-tema", getComputedStyle(raiz).getPropertyValue("--fundo"));
     raiz.dataset.reduzirAnimacoes = reduzir ? "sim" : "nao";
     raiz.dataset.privacidade = privacidade ? "sim" : "nao";
     const escolhida = destaque && hexValido(destaque) ? destaque : null;
