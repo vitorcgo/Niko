@@ -7,6 +7,7 @@ import {
 import { useConfig, type AbaIlha, type SecaoHoje, type VisaoIlha } from "../../estado/configuracoes";
 import { estadoComAviso, useIlha } from "../../estado/ilha";
 import { useInterface } from "../../estado/interface";
+import { useComunicacao } from "../../estado/comunicacao";
 import { useAgentes, AGENTES, estadoDoAgente, alertaFresco } from "../../estado/agentes";
 import { usePomodoro, restanteAtual, formatarRelogio } from "../../estado/pomodoro";
 import { useMidia, fundoDaCapa, midiaAtivaNaIlha } from "../../estado/midia";
@@ -38,7 +39,8 @@ import { EspacoDoPersonagem, PersonagemContinuo } from "./animacoes/PersonagemCo
 import { EtapaDeTrabalho, EtapasAnimadas } from "./animacoes/EtapasAnimadas";
 import { atributosDoFundo, usarAparenciaDeBorda, variaveisDaBorda } from "../aparencia";
 import { movimentoDaVisibilidade } from "./animacoes/visibilidade";
-import type { AgenteId, EstadoAgente } from "../../tipos";
+import type { AgenteId, EstadoAgente, ServicoId } from "../../tipos";
+import { alturaDasConexoes } from "./alturaDasConexoes";
 import "./ilha.css";
 
 const ICONE_ABA: Record<AbaIlha, LucideIcon> = {
@@ -51,13 +53,12 @@ const ICONE_ABA: Record<AbaIlha, LucideIcon> = {
   claude: CodeXml,
 };
 
-const VISAO_ABA: Record<VisaoIlha, () => React.JSX.Element | null> = {
+const VISAO_ABA: Record<Exclude<VisaoIlha, "conexoes">, () => React.JSX.Element | null> = {
   hoje: VisaoHoje,
   captura: VisaoCaptura,
   midia: VisaoMidia,
   foco: VisaoFoco,
   chat: VisaoChat,
-  conexoes: VisaoConexoes,
   avisos: VisaoAvisos,
   claude: VisaoClaude,
 };
@@ -67,14 +68,15 @@ const ALTURA_ABA: Record<Exclude<VisaoIlha, "hoje">, number> = {
   midia: 184,
   foco: 176,
   chat: 300,
-  conexoes: 500,
+  conexoes: 350,
   avisos: 178,
   claude: 296,
 };
 
 const ALTURA_DO_HOJE: Record<SecaoHoje, number> = { agenda: 318, tarefas: 258, habitos: 238 };
 
-function alturaDaVisao(visao: VisaoIlha, secaoHoje: SecaoHoje) {
+function alturaDaVisao(visao: VisaoIlha, secaoHoje: SecaoHoje, alturaConexoes: number) {
+  if (visao === "conexoes") return alturaConexoes;
   return visao === "hoje" ? ALTURA_DO_HOJE[secaoHoje] : ALTURA_ABA[visao];
 }
 
@@ -130,6 +132,8 @@ export function Ilha() {
   const estado = useIlha((s) => s.estado);
   const aba = useIlha((s) => s.aba);
   const secaoHoje = useIlha((s) => s.secaoHoje);
+  const [conexaoSelecionada, setConexaoSelecionada] = useState<ServicoId | null>(null);
+  const conexaoLigada = useComunicacao((s) => Boolean(s.conexoes.find((c) => c.id === conexaoSelecionada)?.ligada));
   const revelacao = useIlha((s) => s.revelacao);
   const saudacao = useIlha((s) => s.saudacao);
   const encerrarSaudacao = useIlha((s) => s.encerrarSaudacao);
@@ -260,6 +264,9 @@ export function Ilha() {
 
   const pedidoPendente = pedidosClaude.length > 0;
   const estadoEfetivo = saudando ? "compacta" : coberta && estado !== "expandida" && !revelacao && !pedidoPendente ? "escondida" : (cfg.modo === "fixo" || pedidoPendente) && estado === "escondida" ? "compacta" : estadoComAviso(estado, Boolean(revelacao));
+  useEffect(() => {
+    if (estadoEfetivo !== "expandida" || abaAtual !== "conexoes") setConexaoSelecionada(null);
+  }, [estadoEfetivo, abaAtual]);
   const oculta = coberta && estadoEfetivo === "escondida";
   const movimentoDeVisibilidade = movimentoDaVisibilidade(oculta, Boolean(reduzirAnimacoes));
 
@@ -356,18 +363,19 @@ export function Ilha() {
   if (!cfg.ativa || frente.telaCheia) return null;
 
   const escala = ESCALA[cfg.tamanho];
+  const alturaConexoes = alturaDasConexoes(conexaoSelecionada, conexaoLigada);
   const alvo = saudando
     ? { w: LARGURA_DA_SAUDACAO, h: ALTURA_DA_SAUDACAO, r: 40 }
     : estadoEfetivo === "escondida"
       ? { w: 120, h: 6, r: 6 }
       : estadoEfetivo === "compacta"
         ? { w: compacta.largura, h: compacta.tipo === "revelacao" ? 56 : compacta.tipo === "midia" ? ALTURA_COMPACTA_MIDIA : ALTURA_COMPACTA, r: compacta.tipo === "midia" || compacta.tipo === "revelacao" ? 14 : 12 }
-        : { w: LARGURA_ABA[abaAtual] ?? LARGURA_EXPANDIDA, h: alturaDaVisao(abaAtual, secaoHoje), r: 30 };
+        : { w: LARGURA_ABA[abaAtual] ?? LARGURA_EXPANDIDA, h: alturaDaVisao(abaAtual, secaoHoje, alturaConexoes), r: 30 };
   const crescendo = alvo.w * alvo.h >= anterior.current.w * anterior.current.h;
   anterior.current = { w: alvo.w, h: alvo.h };
   const transicao = crescendo ? MOLA : FECHAR;
 
-  const VisaoAtual = VISAO_ABA[abaAtual];
+  const VisaoAtual = abaAtual === "conexoes" ? null : VISAO_ABA[abaAtual];
   const agenteLateral: AgenteId = abaAtual === "avisos" && alertas[0] ? alertas[0].agenteId : AGENTE_DA_ABA[abaAtual] ?? (trabalhando[0] as AgenteId | undefined) ?? agenteDaVez;
   const agenteCompacto = ["agente", "pomodoro", "relogio", "nada"].includes(compacta.tipo) ? agenteDaVez : compacta.tipo === "trabalho" ? trabalhando[0] : compacta.tipo === "revelacao" && !revelacao?.marca ? revelacao?.agente : undefined;
   const agenteContinuo = estadoEfetivo === "expandida" ? agenteLateral : agenteCompacto ?? agenteDaVez;
@@ -736,7 +744,7 @@ export function Ilha() {
                   </div>
                   <div className="ilha-miolo">
                   {!ABAS_SEM_LATERAL.includes(abaAtual) && <motion.div className="ilha-lateral" initial={{ opacity: 0 }} animate={{ opacity: 1, transition: { delay: 0.2, duration: 0.2 } }}>
-                    <EspacoDoPersonagem agente={agenteLateral} tamanho={alturaDaVisao(abaAtual, secaoHoje) < 200 ? 50 : 70} posicao="expandida" />
+                    <EspacoDoPersonagem agente={agenteLateral} tamanho={alturaDaVisao(abaAtual, secaoHoje, alturaConexoes) < 200 ? 50 : 70} posicao="expandida" />
                     <span className="ilha-lateral-nome cortar">{nomes[agenteLateral]}</span>
                     {abaAtual === "claude" && sessaoLateral ? (
                       <>
@@ -757,7 +765,7 @@ export function Ilha() {
                         animate={{ opacity: 1, scale: 1, filter: "blur(0px)", transition: { duration: 0.24, ease: [0.3, 1.2, 0.4, 1] } }}
                         exit={{ opacity: 0, scale: 0.97, filter: "blur(6px)", transition: { duration: 0.12 } }}
                       >
-                        <VisaoAtual />
+                        {abaAtual === "conexoes" ? <VisaoConexoes aberta={conexaoSelecionada} aoSelecionar={setConexaoSelecionada} /> : VisaoAtual && <VisaoAtual />}
                       </motion.div>
                     </AnimatePresence>
                   </div>

@@ -13,6 +13,26 @@ const { useIlha } = await servidor.ssrLoadModule("/src/estado/ilha.ts");
 const { controle, sistema } = await servidor.ssrLoadModule("/src/ponte/ponteLocal.ts");
 const { areaDeTrabalhoNaFrente, focoDaAreaPeloElemento, mostrarLateraisDaIlha } = await servidor.ssrLoadModule("/src/janelas/ilha/barra/visibilidadeDaBarra.ts");
 
+test("grade de conexões mantém 350 px e somente os detalhes do GitHub conectado usam 500 px", async () => {
+  const { alturaDasConexoes } = await servidor.ssrLoadModule("/src/janelas/ilha/alturaDasConexoes.ts");
+  assert.equal(alturaDasConexoes(null, true), 350);
+  assert.equal(alturaDasConexoes(null, false), 350);
+  assert.equal(alturaDasConexoes("github", true), 500);
+  assert.equal(alturaDasConexoes("github", false), 350);
+  for (const servico of ["stripe", "vercel", "resend", "notion", "calcom", "n8n", "google", "supabase", "cloudflare"])
+    assert.equal(alturaDasConexoes(servico, true), 350);
+});
+
+test("voltar, fechar ou trocar de aba restaura a grade compacta sem perder a rolagem dos commits", () => {
+  const ilha = readFileSync(new URL("../src/janelas/ilha/Ilha.tsx", import.meta.url), "utf8");
+  const visoes = readFileSync(new URL("../src/janelas/ilha/Visoes.tsx", import.meta.url), "utf8");
+  const detalhes = readFileSync(new URL("../src/janelas/ilha/ConexaoNaIlha.tsx", import.meta.url), "utf8");
+  assert.match(ilha, /estadoEfetivo !== "expandida" \|\| abaAtual !== "conexoes"\) setConexaoSelecionada\(null\)/);
+  assert.match(ilha, /<VisaoConexoes aberta=\{conexaoSelecionada\} aoSelecionar=\{setConexaoSelecionada\}/);
+  assert.match(visoes, /onClick=\{\(\) => aoSelecionar\(null\)\}/);
+  assert.match(detalhes, /ilha-rolagem ilha-conexao-conteudo/);
+});
+
 test("laterais seguem o foco, não o tamanho da janela, e preservam foco ao usar sobreposições", () => {
   const area = { frente: "area_de_trabalho", telaCheia: false, maximizada: false, cobre: false };
   assert.equal(areaDeTrabalhoNaFrente(area, false), true);

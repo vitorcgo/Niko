@@ -33,7 +33,7 @@ import { SeletorDeCategoria } from "../../componentes/SeletorDeCategoria";
 import { formatarDinheiro } from "../../utilitarios/dinheiro";
 import { tocarSom } from "../../ponte/sons";
 import { addMonths, eachDayOfInterval, endOfMonth, endOfWeek, isSameMonth, startOfMonth, startOfWeek } from "date-fns";
-import type { CartaoConfirmacao, EtapaPomodoro } from "../../tipos";
+import type { CartaoConfirmacao, EtapaPomodoro, ServicoId } from "../../tipos";
 
 function Cartao({ veu, children }: { veu?: string; children: React.ReactNode }) {
   return (
@@ -515,13 +515,12 @@ function SecaoHabitos() {
   );
 }
 
-export function VisaoConexoes() {
+export function VisaoConexoes({ aberta, aoSelecionar }: { aberta: ServicoId | null; aoSelecionar: (servico: ServicoId | null) => void }) {
   const conexoes = useComunicacao((s) => s.conexoes);
   const eventos = useComunicacao((s) => s.eventosConexao);
   const marcarFalhasVistas = useComunicacao((s) => s.marcarFalhasVistas);
   const abrirJanela = useInterface((s) => s.abrirJanelaConexao);
   const irPara = useInterface((s) => s.irPara);
-  const [aberta, setAberta] = useState<string | null>(null);
   const lista = [...conexoes].sort((a, b) => Number(b.ligada) - Number(a.ligada) || Number(b.fixadaNaIlha) - Number(a.fixadaNaIlha));
   const ligadas = conexoes.filter((c) => c.ligada).length;
   const atual = conexoes.find((c) => c.id === aberta);
@@ -554,7 +553,7 @@ export function VisaoConexoes() {
                       onClick={() => {
                         void tocarSom("blip");
                         if (falhas > 0) marcarFalhasVistas(c.id);
-                        setAberta(c.id);
+                        aoSelecionar(c.id);
                       }}
                     >
                       <span className="ilha-conexao-logo"><Marca marca={c.id} tamanho={17} /></span>
@@ -575,7 +574,7 @@ export function VisaoConexoes() {
         ) : (
           <motion.div key={atual.id} className="coluna" style={{ gap: 8, minHeight: 0, flex: 1 }} initial={{ opacity: 0, x: 18 }} animate={{ opacity: 1, x: 0, transition: { type: "spring", visualDuration: 0.28, bounce: 0.2 } }} exit={{ opacity: 0, x: 18, transition: { duration: 0.15 } }}>
             <div className="linha" style={{ gap: 8 }}>
-              <button type="button" className="ilha-botao ilha-botao-icone" aria-label={T.geral.voltar} title={T.geral.voltar} onClick={() => setAberta(null)}>
+              <button type="button" className="ilha-botao ilha-botao-icone" aria-label={T.geral.voltar} title={T.geral.voltar} onClick={() => aoSelecionar(null)}>
                 <ChevronLeft size={14} />
               </button>
               <span className="ilha-conexao-logo" style={{ ["--marca" as string]: `#${MARCAS[atual.id].hex}` }}><Marca marca={atual.id} tamanho={17} /></span>
