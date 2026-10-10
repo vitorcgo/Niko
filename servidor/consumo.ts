@@ -132,8 +132,8 @@ async function lerCodex(): Promise<UsoFerramenta> {
   }
 }
 
-async function arquivoMaisRecente(pasta: string, profundidade = 2): Promise<{ caminho: string; modificado: number } | null> {
-  let melhor: { caminho: string; modificado: number } | null = null;
+async function arquivoMaisRecente(pasta: string, profundidade = 2): Promise<{ caminho: string; modificado: number; tamanho: number } | null> {
+  let melhor: { caminho: string; modificado: number; tamanho: number } | null = null;
   const visitar = async (dir: string, nivel: number): Promise<void> => {
     let itens: Dirent[] = [];
     try {
@@ -150,7 +150,7 @@ async function arquivoMaisRecente(pasta: string, profundidade = 2): Promise<{ ca
       if (!item.name.endsWith(".jsonl")) continue;
       try {
         const info = await stat(caminho);
-        if (!melhor || info.mtimeMs > melhor.modificado) melhor = { caminho, modificado: info.mtimeMs };
+        if (!melhor || info.mtimeMs > melhor.modificado) melhor = { caminho, modificado: info.mtimeMs, tamanho: info.size };
       } catch {
         continue;
       }
@@ -173,9 +173,15 @@ async function lerFinal(caminho: string, limite = 8 * 1024 * 1024): Promise<stri
   }
 }
 
+let ultimaSessaoLida: { caminho: string; modificado: number; tamanho: number; sessao: SessaoAtual } | null = null;
+
 async function lerSessaoAtual(): Promise<SessaoAtual | null> {
   const recente = await arquivoMaisRecente(join(homedir(), ".claude", "projects"));
-  if (!recente) return null;
+  if (!recente) {
+    ultimaSessaoLida = null;
+    return null;
+  }
+  if (ultimaSessaoLida && ultimaSessaoLida.caminho === recente.caminho && ultimaSessaoLida.modificado === recente.modificado && ultimaSessaoLida.tamanho === recente.tamanho) return { ...ultimaSessaoLida.sessao };
   const sessao: SessaoAtual = {
     projeto: basename(join(recente.caminho, "..")).replace(/^[A-Za-z]--/, "").replace(/-/g, "\\"),
     arquivo: basename(recente.caminho),
@@ -214,6 +220,7 @@ async function lerSessaoAtual(): Promise<SessaoAtual | null> {
     sessao.cacheCriado += uso.cache_creation_input_tokens ?? 0;
     sessao.cacheLido += uso.cache_read_input_tokens ?? 0;
   }
+  ultimaSessaoLida = { ...recente, sessao: { ...sessao } };
   return sessao;
 }
 

@@ -4,7 +4,7 @@ import type { AgenteId } from "../../tipos";
 import { AGENTES } from "../../estado/agentes";
 import { useConfig } from "../../estado/configuracoes";
 import { restaurarPersonalizacao, salvarPersonalizacao, type PersonalizacaoAgente } from "../../estado/personalizacaoAgentes";
-import { aparenciaPadrao, FORMATOS_AGENTE, LIMITE_PERSONA, personaValida } from "../../personagens/personalizacao";
+import { aparenciaOriginal, FORMATOS_AGENTE, LIMITE_PERSONA, personaValida } from "../../personagens/personalizacao";
 import { Personagem } from "../../personagens/Personagem";
 import { MoldePersonagem } from "../../personagens/MoldePersonagem";
 import { Botao, Campo, ConfirmarModal } from "../../componentes/basicos";
@@ -54,7 +54,7 @@ export function PersonalizacaoDoTime() {
             <Campo id="time-cor" rotulo={textos.cor}><div className="time-cor"><input id="time-cor" type="color" value={dados.aparencia.cor} onChange={(e) => editar({ aparencia: { ...dados.aparencia, cor: e.target.value } })} /><code>{dados.aparencia.cor.toUpperCase()}</code></div></Campo>
             <fieldset className="time-formatos"><legend>{textos.formato}</legend><div>{FORMATOS_AGENTE.map((formato) => {
               const modelo = formato === "padrao" ? selecionado : formato;
-              return <button type="button" key={formato} aria-label={textos.formatos[formato]} aria-pressed={dados.aparencia.formato === formato} onClick={() => editar({ aparencia: { ...dados.aparencia, formato } })}>{formato === "padrao" ? <><Personagem agente={modelo} tamanho={34} estado="ocioso" interativo={false} olhar={false} aparencia={aparenciaPadrao(modelo)} /><span>{textos.formatos.padrao}</span></> : <MoldePersonagem agente={modelo} />}</button>;
+              return <button type="button" key={formato} aria-label={textos.formatos[formato]} aria-pressed={dados.aparencia.formato === formato} onClick={() => editar({ aparencia: { ...dados.aparencia, formato } })}>{formato === "padrao" ? <><Personagem agente={modelo} tamanho={34} estado="ocioso" interativo={false} olhar={false} aparencia={aparenciaOriginal(modelo)} /><span>{textos.formatos.padrao}</span></> : <MoldePersonagem agente={modelo} />}</button>;
             })}</div></fieldset>
           </div>
           <Campo id="time-persona" rotulo={textos.persona} dica={textos.personaDica}><textarea id="time-persona" className="campo time-persona" maxLength={LIMITE_PERSONA} rows={4} value={dados.persona} placeholder={textos.personaExemplo} aria-describedby="time-persona-dica time-persona-contagem" onChange={(e) => editar({ persona: e.target.value })} /></Campo>

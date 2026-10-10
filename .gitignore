@@ -21,6 +21,8 @@ scripts/*
 !scripts/validacoes.test.mjs
 !scripts/escritorio.test.mjs
 !scripts/personalizacao-agentes.test.mjs
+!scripts/concorrencia.test.mjs
+!scripts/testar.mjs
 testes/
 
 # Vídeo e material de divulgação

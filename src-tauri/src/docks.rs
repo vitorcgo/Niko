@@ -214,11 +214,14 @@ pub fn vigiar_monitores(app: AppHandle) {
     tauri::async_runtime::spawn(async move {
         loop {
             tokio::time::sleep(INTERVALO_DOS_MONITORES).await;
-            let atual = assinatura(&monitores_ordenados(&app));
-            let mudou = ASSINATURA.lock().map(|a| *a != atual).unwrap_or(false);
-            if mudou {
-                sincronizar(&app);
-            }
+            if crate::ENCERRANDO.load(Ordering::Relaxed) { return; }
+            let alvo = app.clone();
+            if tauri::async_runtime::spawn_blocking(move || {
+                if crate::ENCERRANDO.load(Ordering::Relaxed) { return; }
+                let atual = assinatura(&monitores_ordenados(&alvo));
+                let mudou = ASSINATURA.lock().map(|a| *a != atual).unwrap_or(false);
+                if mudou && !crate::ENCERRANDO.load(Ordering::Relaxed) { sincronizar(&alvo); }
+            }).await.is_err() { return; }
         }
     });
 }

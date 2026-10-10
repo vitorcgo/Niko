@@ -7,6 +7,13 @@ export const COR_AGENTE: Record<AgenteId, string> = {
   operador: "#FFC20E",
 };
 
+export const COR_PADRAO_AGENTE: Record<AgenteId, string> = {
+  organizador: "#FF0000",
+  tutor: "#00E300",
+  java: "#5B8DEF",
+  operador: "#FFC20E",
+};
+
 export const ESTADOS_SVG: EstadoAgente[] = ["ocioso", "ouvindo", "pensando", "escrevendo", "sucesso", "alerta", "erro", "dormindo"];
 
 export function caminhoPersonagem(agente: AgenteId, estado: EstadoAgente): string {

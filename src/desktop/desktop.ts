@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { emitTo, listen } from "@tauri-apps/api/event";
 import type { Rota, ServicoId } from "../tipos";
+import { iniciarConsultaPeriodica } from "./consultaPeriodica";
 
 export type NomeJanela = "sistema" | "ilha" | "dock" | "assistive";
 
@@ -314,24 +315,17 @@ export function usarAppsAbertos(ativo: boolean): [AppAberto[], () => void] {
   const [versao, setVersao] = useState(0);
   useEffect(() => {
     if (!NATIVO || !ativo) return;
-    let vivo = true;
-    const ler = async () => {
+    return iniciarConsultaPeriodica(async (sinal) => {
       try {
-        const r = await fetch("/ponte/janelas", { headers: { "x-niko": "1" } });
+        const r = await fetch("/ponte/janelas", { headers: { "x-niko": "1" }, signal: sinal });
         if (!r.ok) return;
         const j = (await r.json()) as { janelas?: AppAberto[] | AppAberto };
         const lista = Array.isArray(j.janelas) ? j.janelas : j.janelas ? [j.janelas] : [];
-        if (vivo) setApps(lista);
+        if (!sinal.aborted) setApps(lista);
       } catch {
         return;
       }
-    };
-    void ler();
-    const t = window.setInterval(() => void ler(), 2000);
-    return () => {
-      vivo = false;
-      window.clearInterval(t);
-    };
+    }, 2000);
   }, [ativo, versao]);
   return [apps, () => setVersao((v) => v + 1)];
 }
@@ -405,22 +399,15 @@ export function usarEstadoDaFrente(ativo: boolean): EstadoDaFrente {
       setEstado(FRENTE_LIVRE);
       return;
     }
-    let vivo = true;
-    const ler = async () => {
+    return iniciarConsultaPeriodica(async (sinal) => {
       const r = await invocar<EstadoDaFrente>("frente_cobre_tela");
-      if (!vivo) return;
+      if (sinal.aborted || !r) return;
       const cobre = Boolean(r?.cobre);
       const telaCheia = Boolean(r?.telaCheia);
       const maximizada = Boolean(r?.maximizada);
       const frente: TipoDaFrente = r?.frente === "app" || r?.frente === "sobreposta" ? r.frente : "area_de_trabalho";
       setEstado((anterior) => (anterior.cobre === cobre && anterior.telaCheia === telaCheia && anterior.maximizada === maximizada && anterior.frente === frente ? anterior : { cobre, telaCheia, maximizada, frente }));
-    };
-    void ler();
-    const t = window.setInterval(() => void ler(), 800);
-    return () => {
-      vivo = false;
-      window.clearInterval(t);
-    };
+    }, 800);
   }, [ativo]);
   return estado;
 }

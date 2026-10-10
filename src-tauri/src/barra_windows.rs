@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use std::path::PathBuf;
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::Mutex;
 use std::time::Duration;
 
@@ -11,6 +11,8 @@ use windows::Win32::UI::Shell::{DefSubclassProc, RemoveWindowSubclass, SetWindow
 use windows::Win32::UI::WindowsAndMessaging::{FindWindowExW, FindWindowW, IsWindowVisible, PostMessageW, ShowWindow, SW_HIDE, SW_SHOWNA, WM_ACTIVATE, WM_APP, WM_DISPLAYCHANGE, WM_DPICHANGED, WM_NCDESTROY, WM_WINDOWPOSCHANGED};
 
 static OCULTA: AtomicBool = AtomicBool::new(false);
+static GERACAO_DA_BARRA: AtomicU64 = AtomicU64::new(0);
+static ALTERANDO_BARRA: Mutex<()> = Mutex::new(());
 
 pub fn barra_oculta() -> bool {
     OCULTA.load(Ordering::SeqCst)
@@ -66,20 +68,36 @@ fn reposicionar_dock(app: &AppHandle) {
     let app = app.clone();
     tauri::async_runtime::spawn(async move {
         tokio::time::sleep(Duration::from_millis(400)).await;
-        crate::docks::reposicionar_todos(&app);
+        if crate::ENCERRANDO.load(Ordering::Relaxed) { return; }
+        let _ = tauri::async_runtime::spawn_blocking(move || {
+            if !crate::ENCERRANDO.load(Ordering::Relaxed) { crate::docks::reposicionar_todos(&app); }
+        }).await;
     });
 }
 
-fn vigiar_barra() {
-    tauri::async_runtime::spawn(async {
-        while OCULTA.load(Ordering::SeqCst) {
-            esconder_barras();
+fn vigia_valida(geracao: u64, atual: u64, oculta: bool) -> bool {
+    oculta && geracao == atual
+}
+
+fn vigiar_barra(geracao: u64) {
+    tauri::async_runtime::spawn(async move {
+        loop {
+            if crate::ENCERRANDO.load(Ordering::Relaxed) { return; }
+            let continua = tauri::async_runtime::spawn_blocking(move || {
+                let Ok(_vez) = ALTERANDO_BARRA.lock() else { return false };
+                if crate::ENCERRANDO.load(Ordering::Relaxed) || !vigia_valida(geracao, GERACAO_DA_BARRA.load(Ordering::SeqCst), OCULTA.load(Ordering::SeqCst)) { return false; }
+                esconder_barras();
+                true
+            }).await.unwrap_or(false);
+            if !continua { return; }
             tokio::time::sleep(Duration::from_millis(1000)).await;
         }
     });
 }
 
 pub fn ocultar(app: &AppHandle) {
+    let Ok(_vez) = ALTERANDO_BARRA.lock() else { return };
+    if crate::ENCERRANDO.load(Ordering::Relaxed) { return; }
     if OCULTA.swap(true, Ordering::SeqCst) {
         return;
     }
@@ -91,11 +109,14 @@ pub fn ocultar(app: &AppHandle) {
     }
     definir_estado_da_barra(original | ABS_AUTOHIDE);
     esconder_barras();
-    vigiar_barra();
+    let geracao = GERACAO_DA_BARRA.fetch_add(1, Ordering::SeqCst).wrapping_add(1);
+    vigiar_barra(geracao);
     reposicionar_dock(app);
 }
 
 pub fn restaurar(app: &AppHandle) {
+    let Ok(_vez) = ALTERANDO_BARRA.lock() else { return };
+    GERACAO_DA_BARRA.fetch_add(1, Ordering::SeqCst);
     let arquivo = arquivo_recuperacao(app);
     let guardado = arquivo.as_ref().and_then(|a| std::fs::read_to_string(a).ok()).and_then(|t| t.trim().parse::<u32>().ok());
     let estava_oculta = OCULTA.swap(false, Ordering::SeqCst);
@@ -261,6 +282,14 @@ fn atualizar_reserva(dock: &WebviewWindow, reservar: bool) {
 #[cfg(test)]
 mod testes_da_reserva {
     use super::*;
+
+    #[test]
+    fn religar_a_barra_nao_reativa_a_vigia_anterior() {
+        assert!(vigia_valida(1, 1, true));
+        assert!(!vigia_valida(1, 2, false));
+        assert!(!vigia_valida(1, 3, true));
+        assert!(vigia_valida(3, 3, true));
+    }
 
     #[test]
     fn sobreposta_termina_na_base_aprovada_sem_descontar_a_reserva_novamente() {

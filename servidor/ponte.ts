@@ -124,7 +124,7 @@ export const rotas: Connect.NextHandleFunction = async (req, res, proximo) => {
     if (arquivo) {
       const banco = String(req.headers["x-niko-banco"] ?? "");
       const [, materia, id, acao] = arquivo;
-      if (!id && req.method === "GET") return responder(res, 200, { arquivos: listarArquivos(banco, materia) });
+      if (!id && req.method === "GET") return responder(res, 200, { arquivos: await listarArquivos(banco, materia) });
       if (!id && req.method === "POST") return responder(res, 200, await receberArquivo(req, banco, materia, url.searchParams.get("nome") ?? ""));
       if (!id && req.method === "DELETE") return responder(res, 200, excluirArquivosDaMateria(banco, materia));
       if (id && !acao && req.method === "GET") return enviarConteudo(res, banco, materia, id);

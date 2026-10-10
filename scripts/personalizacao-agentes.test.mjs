@@ -30,6 +30,46 @@ const { personalizarSvg } = await vite.ssrLoadModule("/src/personagens/artePerso
 const { default: PaginaAgentes } = await vite.ssrLoadModule("/src/modulos/agentes/Agentes.tsx");
 const { useInterface } = await vite.ssrLoadModule("/src/estado/interface.ts");
 
+test("o time inicial usa quatro estrelas nas novas cores sem trocar os nomes", () => {
+  const cores = { organizador: "#FF0000", tutor: "#00E300", operador: "#FFC20E", java: "#5B8DEF" };
+  assert.deepEqual(CONFIG_PADRAO.agentes.nomes, { organizador: "Rubi", tutor: "Nanquim", operador: "Sol", java: "Java" });
+  useConfig.getState().definir(CONFIG_PADRAO);
+  for (const [agente, cor] of Object.entries(cores)) {
+    const esperado = { formato: "operador", cor };
+    assert.deepEqual(CONFIG_PADRAO.agentes.aparencias[agente], esperado);
+    assert.deepEqual(regras.aparenciaPadrao(agente), esperado);
+    assert.deepEqual(regras.aparenciaValida(undefined, agente), esperado);
+    for (const estado of ESTADOS_SVG) {
+      const html = renderToStaticMarkup(createElement(Personagem, { agente, estado, tamanho: 64, interativo: false, olhar: false }));
+      assert.match(html, /data-formato="operador"/);
+      assert.match(html, /data-modelo="operador"/);
+      assert.ok(html.includes(`data-cor="${cor}"`));
+      assert.match(html, /style="width:64px;height:64px"/);
+    }
+  }
+});
+
+test("novos padrões não sobrescrevem formatos, cores, nomes ou personas já salvos", () => {
+  const agentes = structuredClone(CONFIG_PADRAO.agentes);
+  for (const [indice, agente] of ["organizador", "tutor", "operador", "java"].entries()) {
+    agentes.nomes[agente] = `Meu agente ${indice}`;
+    agentes.personas[agente] = "Explique com exemplos.";
+    agentes.aparencias[agente] = { formato: indice % 2 === 0 ? "padrao" : "tutor", cor: "#123456" };
+  }
+  assert.deepEqual(configuracoesValidas({ agentes }, CONFIG_PADRAO).agentes, agentes);
+});
+
+test("a aparência original permanece disponível separadamente do novo padrão", () => {
+  for (const agente of ["organizador", "tutor", "operador", "java"]) {
+    const original = regras.aparenciaOriginal(agente);
+    assert.equal(original.formato, "padrao");
+    assert.equal(regras.modeloDoAgente(agente, original.formato), agente);
+    assert.deepEqual(regras.aparenciaValida(original, agente), original);
+    const html = renderToStaticMarkup(createElement(Personagem, { agente, interativo: false, olhar: false, aparencia: original }));
+    assert.ok(html.includes(`/personagens/${agente}/ocioso.svg`));
+  }
+});
+
 test("configurações antigas recebem a aparência e a persona padrão sem perder nomes", () => {
   const antigas = { agentes: { nomes: { organizador: "Ana" }, inatividadeMin: 25 } };
   assert.doesNotThrow(() => validarFormatoConfiguracoes(antigas, CONFIG_PADRAO));
@@ -123,6 +163,7 @@ test("opções de formato mostram só moldes sem nomes, e Original continua pint
   assert.equal((formatos.match(/<img/g) ?? []).length, 1);
   assert.doesNotMatch(formatos, /<span>(Rubi|Nanquim|Java|Sol)<\/span>/);
   assert.match(formatos, /<span>Original<\/span>/);
+  assert.match(formatos, /\/personagens\/organizador\/ocioso.svg/);
 });
 
 test("a página do time tem seleção acessível, formato, cor, nome e persona", () => {
@@ -132,8 +173,8 @@ test("a página do time tem seleção acessível, formato, cor, nome e persona",
   for (const rotulo of ["Nome", "Cargo", "Formato", "Cor", "Persona", "Salvar agente", "Restaurar padrão"]) assert.ok(html.includes(rotulo), rotulo);
   assert.match(html, /maxlength="2000"/i);
   assert.match(html, /Os comandos locais continuam funcionando sem IA/);
-  assert.equal((html.match(/width="88" height="88"/g) ?? []).length, 4);
-  assert.match(html, /width="208" height="208"/);
+  assert.equal((html.match(/class="personagem"[^>]*style="width:88px;height:88px"/g) ?? []).length, 4);
+  assert.match(html, /class="personagem"[^>]*style="width:208px;height:208px"/);
   assert.match(html, /time-edicao/);
 });
 

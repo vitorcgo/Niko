@@ -1,5 +1,6 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
-import { createReadStream, createWriteStream, existsSync, mkdirSync, readdirSync, renameSync, rmSync, statSync, unlinkSync, copyFileSync } from "node:fs";
+import { constants, createReadStream, createWriteStream, existsSync, mkdirSync, readdirSync, renameSync, rmSync, statSync, unlinkSync } from "node:fs";
+import { copyFile, mkdir, readdir, stat } from "node:fs/promises";
 import { execFile, spawn } from "node:child_process";
 import { homedir } from "node:os";
 import { extname, join, parse } from "node:path";
@@ -86,18 +87,28 @@ function localizar(banco: string, materia: string, id: string) {
   return { caminho: join(pasta, nome), nome: nome.slice(id.length + SEPARADOR.length) };
 }
 
-export function listarArquivos(banco: string, materia: string): ArquivoDaMateria[] {
+export async function listarArquivos(banco: string, materia: string): Promise<ArquivoDaMateria[]> {
   const pasta = pastaDaMateria(banco, materia);
-  if (!existsSync(pasta)) return [];
-  return readdirSync(pasta)
-    .filter((n) => n.includes(SEPARADOR) && !n.endsWith(".parcial"))
-    .map((n) => {
+  let nomes: string[];
+  try {
+    nomes = await readdir(pasta);
+  } catch (erro) {
+    if ((erro as NodeJS.ErrnoException).code === "ENOENT") return [];
+    throw erro;
+  }
+  const arquivos: ArquivoDaMateria[] = [];
+  for (const n of nomes.filter((n) => n.includes(SEPARADOR) && !n.endsWith(".parcial"))) {
+    try {
       const indice = n.indexOf(SEPARADOR);
-      const info = statSync(join(pasta, n));
+      const info = await stat(join(pasta, n));
+      if (!info.isFile()) continue;
       const nome = n.slice(indice + SEPARADOR.length);
-      return { id: n.slice(0, indice), nome, extensao: extname(nome).toLowerCase().slice(1), tamanho: info.size, criadoEm: info.birthtime.toISOString() };
-    })
-    .sort((a, b) => b.criadoEm.localeCompare(a.criadoEm));
+      arquivos.push({ id: n.slice(0, indice), nome, extensao: extname(nome).toLowerCase().slice(1), tamanho: info.size, criadoEm: info.birthtime.toISOString() });
+    } catch (erro) {
+      if ((erro as NodeJS.ErrnoException).code !== "ENOENT") throw erro;
+    }
+  }
+  return arquivos.sort((a, b) => b.criadoEm.localeCompare(a.criadoEm));
 }
 
 export function receberArquivo(req: IncomingMessage, banco: string, materia: string, nomeOriginal: string): Promise<ArquivoDaMateria> {
@@ -186,11 +197,18 @@ function pastaDownloads(): Promise<string> {
   });
 }
 
-function caminhoLivre(pasta: string, nome: string) {
+export async function copiarSemSubstituir(caminho: string, pasta: string, nome: string): Promise<string> {
   const { name, ext } = parse(nome);
-  let destino = join(pasta, nome);
-  for (let i = 2; existsSync(destino) && i < 1000; i++) destino = join(pasta, `${name} (${i})${ext}`);
-  return destino;
+  for (let i = 1; i < 1000; i++) {
+    const destino = join(pasta, i === 1 ? nome : `${name} (${i})${ext}`);
+    try {
+      await copyFile(caminho, destino, constants.COPYFILE_EXCL);
+      return destino;
+    } catch (erro) {
+      if ((erro as NodeJS.ErrnoException).code !== "EEXIST") throw erro;
+    }
+  }
+  throw new Error("sem_nome_disponivel");
 }
 
 function abrirNoWindows(argumentos: string[]) {
@@ -203,9 +221,8 @@ function abrirNoWindows(argumentos: string[]) {
 export async function baixarArquivo(banco: string, materia: string, id: string) {
   const { caminho, nome } = localizar(banco, materia, id);
   const pasta = await pastaDownloads();
-  mkdirSync(pasta, { recursive: true });
-  const destino = caminhoLivre(pasta, nome);
-  copyFileSync(caminho, destino);
+  await mkdir(pasta, { recursive: true });
+  const destino = await copiarSemSubstituir(caminho, pasta, nome);
   abrirNoWindows(["/select,", destino]);
   return { caminho: destino };
 }

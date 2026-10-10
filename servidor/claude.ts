@@ -379,29 +379,42 @@ export function lerCorpoJson(req: IncomingMessage): Promise<Record<string, unkno
 
 const EVENTOS_COM_MODELO = new Set(["SessionStart", "UserPromptSubmit", "Stop", "SubagentStop"]);
 const BYTES_DO_FIM_DO_TRANSCRIPT = 256 * 1024;
+const modelosDosTranscripts = new Map<string, { modificado: number; tamanho: number; modelo: string | undefined }>();
 
 /** Lê só o fim do transcript da sessão e devolve o modelo da última resposta do assistente. */
 export function modeloDoTranscript(caminho: string): string | undefined {
   if (!isAbsolute(caminho) || !caminho.endsWith(".jsonl") || caminho.length > 1000) return undefined;
   let descritor: number | undefined;
   try {
-    const tamanho = statSync(caminho).size;
+    const info = statSync(caminho);
+    const tamanho = info.size;
+    const guardado = modelosDosTranscripts.get(caminho);
+    if (guardado && guardado.modificado === info.mtimeMs && guardado.tamanho === tamanho) return guardado.modelo;
     const inicio = Math.max(0, tamanho - BYTES_DO_FIM_DO_TRANSCRIPT);
     const buffer = Buffer.alloc(tamanho - inicio);
     descritor = openSync(caminho, "r");
     readSync(descritor, buffer, 0, buffer.length, inicio);
     const linhas = buffer.toString("utf8").split("\n");
+    let encontrado: string | undefined;
     for (let i = linhas.length - 1; i >= 0; i--) {
       if (!linhas[i].includes('"model"')) continue;
       try {
         const linha = JSON.parse(linhas[i]) as { type?: string; message?: { model?: unknown } };
         const modelo = linha.type === "assistant" ? linha.message?.model : undefined;
-        if (typeof modelo === "string" && modelo && !modelo.startsWith("<")) return modelo.slice(0, 80);
+        if (typeof modelo === "string" && modelo && !modelo.startsWith("<")) {
+          encontrado = modelo.slice(0, 80);
+          break;
+        }
       } catch {
         // linha cortada no começo do trecho lido
       }
     }
+    modelosDosTranscripts.delete(caminho);
+    modelosDosTranscripts.set(caminho, { modificado: info.mtimeMs, tamanho, modelo: encontrado });
+    if (modelosDosTranscripts.size > 64) modelosDosTranscripts.delete(modelosDosTranscripts.keys().next().value!);
+    return encontrado;
   } catch {
+    modelosDosTranscripts.delete(caminho);
     return undefined;
   } finally {
     if (descritor !== undefined) closeSync(descritor);

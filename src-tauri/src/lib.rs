@@ -235,31 +235,46 @@ fn vigiar_cursor(app: AppHandle) {
         let mut fora: HashMap<String, bool> = HashMap::new();
         loop {
             tokio::time::sleep(Duration::from_millis(45)).await;
-            registrar_frente(&app);
-            let areas = match app.state::<Estado>().areas.lock() {
-                Ok(a) => a.clone(),
-                Err(_) => continue,
-            };
-            let sobrepostas: Vec<(String, WebviewWindow)> = app.webview_windows().into_iter().filter(|(r, _)| r == "ilha" || r == "assistive" || docks::eh_dock(r)).collect();
-            fora.retain(|r, _| sobrepostas.iter().any(|(s, _)| s == r));
-            for (rotulo, janela) in &sobrepostas {
-                let rotulo = rotulo.as_str();
-                let (Ok(cursor), Ok(origem), Ok(escala)) = (janela.cursor_position(), janela.outer_position(), janela.scale_factor()) else { continue };
-                let x = (cursor.x - origem.x as f64) / escala;
-                let y = (cursor.y - origem.y as f64) / escala;
-                let dentro = areas.get(rotulo).map(|lista| lista.iter().any(|r| x >= r.x - 4.0 && x <= r.x + r.w + 4.0 && y >= r.y - 4.0 && y <= r.y + r.h + 4.0)).unwrap_or(false);
-                let estava_fora = *fora.get(rotulo).unwrap_or(&false);
-                let agora_fora = !dentro;
-                if !fora.contains_key(rotulo) || estava_fora != agora_fora {
-                    let _ = janela.set_ignore_cursor_events(agora_fora);
-                    if agora_fora {
-                        let _ = janela.emit_to(rotulo, "niko://cursor-fora", ());
-                    }
-                    fora.insert(rotulo.to_string(), agora_fora);
-                }
+            if ENCERRANDO.load(Ordering::Relaxed) { return; }
+            let alvo = app.clone();
+            match tauri::async_runtime::spawn_blocking(move || atualizar_cursor(&alvo, fora)).await {
+                Ok(atual) => fora = atual,
+                Err(_) => return,
             }
         }
     });
+}
+
+fn atualizar_cursor(app: &AppHandle, mut fora: HashMap<String, bool>) -> HashMap<String, bool> {
+    if ENCERRANDO.load(Ordering::Relaxed) { return fora; }
+    registrar_frente(app);
+    let areas = match app.state::<Estado>().areas.lock() {
+        Ok(a) => a.clone(),
+        Err(_) => return fora,
+    };
+    let Ok(cursor) = app.cursor_position() else { return fora };
+    let sobrepostas: Vec<(String, WebviewWindow)> = app.webview_windows().into_iter().filter(|(r, _)| r == "ilha" || r == "assistive" || docks::eh_dock(r)).collect();
+    fora.retain(|r, _| sobrepostas.iter().any(|(s, _)| s == r));
+    for (rotulo, janela) in &sobrepostas {
+        if ENCERRANDO.load(Ordering::Relaxed) { break; }
+        let rotulo = rotulo.as_str();
+        if !janela.is_visible().unwrap_or(false) { continue; }
+        let dentro = if let Some(lista) = areas.get(rotulo).filter(|a| !a.is_empty()) {
+            let (Ok(origem), Ok(escala)) = (janela.outer_position(), janela.scale_factor()) else { continue };
+            let x = (cursor.x - origem.x as f64) / escala;
+            let y = (cursor.y - origem.y as f64) / escala;
+            lista.iter().any(|r| x >= r.x - 4.0 && x <= r.x + r.w + 4.0 && y >= r.y - 4.0 && y <= r.y + r.h + 4.0)
+        } else { false };
+        let agora_fora = !dentro;
+        if fora.get(rotulo) != Some(&agora_fora) {
+            if janela.set_ignore_cursor_events(agora_fora).is_err() { continue; }
+            if agora_fora {
+                let _ = janela.emit_to(rotulo, "niko://cursor-fora", ());
+            }
+            fora.insert(rotulo.to_string(), agora_fora);
+        }
+    }
+    fora
 }
 
 fn sem_prefixo(caminho: std::path::PathBuf) -> std::path::PathBuf {
@@ -315,12 +330,14 @@ fn iniciar_ponte(app: &AppHandle, token: &str, reinicio: bool) {
         use std::os::windows::process::CommandExt;
         comando.creation_flags(0x0800_0000);
     }
+    let estado = app.state::<Estado>();
+    let Ok(mut ponte) = estado.ponte.lock() else { return };
+    if ENCERRANDO.load(Ordering::Relaxed) { return; }
+    if ponte.as_mut().is_some_and(|filho| !matches!(filho.try_wait(), Ok(Some(_)))) { return; }
     match comando.spawn() {
         Ok(filho) => {
             registrar(format!("ponte iniciada: {} {} (pid {})", node.display(), script.display(), filho.id()));
-            if let Ok(mut ponte) = app.state::<Estado>().ponte.lock() {
-                *ponte = Some(filho);
-            }
+            *ponte = Some(filho);
         }
         Err(erro) => registrar(format!("falha ao iniciar a ponte: {} {} {}", node.display(), script.display(), erro)),
     }
@@ -328,16 +345,16 @@ fn iniciar_ponte(app: &AppHandle, token: &str, reinicio: bool) {
 
 fn parar_ponte(app: &AppHandle) {
     ENCERRANDO.store(true, Ordering::Relaxed);
-    if let Ok(mut ponte) = app.state::<Estado>().ponte.lock() {
-        if let Some(mut filho) = ponte.take() {
-            let _ = filho.kill();
-            let _ = filho.wait();
-        }
+    let filho = app.state::<Estado>().ponte.lock().ok().and_then(|mut ponte| ponte.take());
+    if let Some(mut filho) = filho {
+        let _ = filho.kill();
+        let _ = filho.wait();
     }
 }
 
 #[tauri::command]
 async fn preparar_atualizacao(app: AppHandle) {
+    ENCERRANDO.store(true, Ordering::Relaxed);
     let _ = app.emit("niko://saindo", ());
     tokio::time::sleep(ESPERA_PARA_SALVAR).await;
     for (rotulo, janela) in app.webview_windows() {
@@ -345,8 +362,10 @@ async fn preparar_atualizacao(app: AppHandle) {
             barra_windows::reservar_espaco_do_dock(&janela, false);
         }
     }
-    barra_windows::restaurar(&app);
-    parar_ponte(&app);
+    let _ = tauri::async_runtime::spawn_blocking(move || {
+        barra_windows::restaurar(&app);
+        parar_ponte(&app);
+    }).await;
 }
 
 static ENCERRANDO: AtomicBool = AtomicBool::new(false);
@@ -385,7 +404,9 @@ fn vigiar_ponte(app: AppHandle, token: String) {
             if ENCERRANDO.load(Ordering::Relaxed) {
                 return;
             }
-            iniciar_ponte(&app, &token, true);
+            let alvo = app.clone();
+            let chave = token.clone();
+            if tauri::async_runtime::spawn_blocking(move || iniciar_ponte(&alvo, &chave, true)).await.is_err() { return; }
             estavel_desde = std::time::Instant::now();
         }
     });
@@ -449,7 +470,9 @@ pub fn run() {
         .setup(move |app| {
             let handle = app.handle().clone();
             barra_windows::restaurar(&handle);
-            iniciar_ponte(&handle, &token, false);
+            let alvo_da_ponte = handle.clone();
+            let chave_da_ponte = token.clone();
+            tauri::async_runtime::spawn_blocking(move || iniciar_ponte(&alvo_da_ponte, &chave_da_ponte, false));
             vigiar_ponte(handle.clone(), token.clone());
 
             let monitor = app.primary_monitor()?.or(app.available_monitors()?.into_iter().next());
@@ -535,6 +558,7 @@ pub fn run() {
 
     app.run(|handle, evento| {
         if let RunEvent::Exit = evento {
+            ENCERRANDO.store(true, Ordering::Relaxed);
             for (rotulo, janela) in handle.webview_windows() {
                 if docks::eh_dock(&rotulo) {
                     barra_windows::reservar_espaco_do_dock(&janela, false);
