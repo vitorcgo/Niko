@@ -10,17 +10,18 @@ import { ASSISTIVE_PADRAO, validarAssistive, type ConfigAssistive } from "../jan
 import { configuracoesValidas } from "../utilitarios/configuracoesValidas";
 import { objeto } from "../utilitarios/validacoes";
 import { aparenciaPadrao, type AparenciaAgente } from "../personagens/personalizacao";
+import { SEM_ACESSORIOS, type AcessoriosAgente } from "../personagens/acessorios";
 
 const DESTAQUE_ESCURO_PADRAO = "#a78bfa";
 
 export type Tema = "claro" | "escuro" | "sistema";
 export type Paleta = "padrao" | "areia" | "grafite" | "floresta" | "oceano";
 export type ModoBorda = "fixo" | "esconder" | "inteligente";
-export type AbaIlha = "hoje" | "midia" | "foco" | "chat" | "conexoes" | "avisos" | "claude";
+export type AbaIlha = "hoje" | "midia" | "foco" | "chat" | "conexoes" | "avisos" | "claude" | "time";
 export type VisaoIlha = AbaIlha | "captura";
 export type SecaoHoje = "agenda" | "tarefas" | "habitos";
 
-export const ABAS_ILHA: AbaIlha[] = ["hoje", "claude", "conexoes", "chat", "midia", "foco", "avisos"];
+export const ABAS_ILHA: AbaIlha[] = ["hoje", "time", "claude", "conexoes", "chat", "midia", "foco", "avisos"];
 const ABAS_JUNTADAS_NO_HOJE = ["hoje", "calendario", "habitos"];
 
 export function juntarAbasNoHoje(ordem: string[], blocos: Record<string, boolean>) {
@@ -143,7 +144,7 @@ export interface Configuracoes {
   pomodoro: { foco: number; curta: number; longa: number; ciclos: number; autoProxima: boolean; tique: boolean };
   agua: { meta: number; copo: number };
   sons: { ligado: boolean; volume: number; categorias: Record<CategoriaSom, boolean> };
-  agentes: { nomes: Record<AgenteId, string>; cargos: Record<AgenteId, string>; aparencias: Record<AgenteId, AparenciaAgente>; personas: Record<AgenteId, string>; inatividadeMin: number; favorito: AgenteId };
+  agentes: { nomes: Record<AgenteId, string>; cargos: Record<AgenteId, string>; aparencias: Record<AgenteId, AparenciaAgente>; acessorios: Record<AgenteId, AcessoriosAgente>; coresAcessorios: Record<AgenteId, string | null>; personas: Record<AgenteId, string>; inatividadeMin: number; favorito: AgenteId };
   consumo: { precoEntrada: number; precoSaida: number; limiteMensal: number; lerPlanos: boolean };
   ia: { provedorId: string | null; modelo: string; reservas: string[]; modelos: Record<string, string>; autoAprovar: CartaoConfirmacao["tipo"][] };
   privacidade: boolean;
@@ -181,7 +182,7 @@ export const CONFIG_PADRAO: Configuracoes = {
   ilha: {
     ativa: true,
     modo: "inteligente",
-    blocos: { hoje: true, midia: true, foco: true, chat: true, conexoes: true, avisos: true, claude: true },
+    blocos: { hoje: true, midia: true, foco: true, chat: true, conexoes: true, avisos: true, claude: true, time: true },
     ordemAbas: ABAS_ILHA,
     repouso: "agente",
     tamanho: "media",
@@ -209,6 +210,8 @@ export const CONFIG_PADRAO: Configuracoes = {
     nomes: { organizador: "Rubi", tutor: "Nanquim", operador: "Sol", java: "Java" },
     cargos: { organizador: "Gerente de projetos", tutor: "Professor", operador: "Analista de operações", java: "Engenheiro de software" },
     aparencias: { organizador: aparenciaPadrao("organizador"), tutor: aparenciaPadrao("tutor"), operador: aparenciaPadrao("operador"), java: aparenciaPadrao("java") },
+    acessorios: { organizador: { ...SEM_ACESSORIOS }, tutor: { ...SEM_ACESSORIOS }, operador: { ...SEM_ACESSORIOS }, java: { ...SEM_ACESSORIOS } },
+    coresAcessorios: { organizador: null, tutor: null, operador: null, java: null },
     personas: { organizador: "", tutor: "", operador: "", java: "" },
     inatividadeMin: 10,
     favorito: "organizador",

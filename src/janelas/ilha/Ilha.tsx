@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import {
   Plus, Music, Timer, CalendarDays, MessageCircle, Plug, Bell, Volume2, VolumeX, AppWindow, ChevronUp, Pin, PinOff, Check, CircleAlert, Download, CodeXml, ShieldAlert, LoaderCircle,
-  type LucideIcon,
+  Users, type LucideIcon,
 } from "lucide-react";
 import { useConfig, type AbaIlha, type SecaoHoje, type VisaoIlha } from "../../estado/configuracoes";
 import { estadoComAviso, useIlha } from "../../estado/ilha";
@@ -41,6 +41,7 @@ import { atributosDoFundo, usarAparenciaDeBorda, variaveisDaBorda } from "../apa
 import { movimentoDaVisibilidade } from "./animacoes/visibilidade";
 import type { AgenteId, EstadoAgente, ServicoId } from "../../tipos";
 import { alturaDasConexoes } from "./alturaDasConexoes";
+import { VisaoTime } from "./VisaoTime";
 import "./ilha.css";
 
 const ICONE_ABA: Record<AbaIlha, LucideIcon> = {
@@ -51,6 +52,7 @@ const ICONE_ABA: Record<AbaIlha, LucideIcon> = {
   conexoes: Plug,
   avisos: Bell,
   claude: CodeXml,
+  time: Users,
 };
 
 const VISAO_ABA: Record<Exclude<VisaoIlha, "conexoes">, () => React.JSX.Element | null> = {
@@ -61,6 +63,7 @@ const VISAO_ABA: Record<Exclude<VisaoIlha, "conexoes">, () => React.JSX.Element 
   chat: VisaoChat,
   avisos: VisaoAvisos,
   claude: VisaoClaude,
+  time: VisaoTime,
 };
 
 const ALTURA_ABA: Record<Exclude<VisaoIlha, "hoje">, number> = {
@@ -71,6 +74,7 @@ const ALTURA_ABA: Record<Exclude<VisaoIlha, "hoje">, number> = {
   conexoes: 350,
   avisos: 178,
   claude: 296,
+  time: 430,
 };
 
 const ALTURA_DO_HOJE: Record<SecaoHoje, number> = { agenda: 318, tarefas: 258, habitos: 238 };
@@ -80,8 +84,7 @@ function alturaDaVisao(visao: VisaoIlha, secaoHoje: SecaoHoje, alturaConexoes: n
   return visao === "hoje" ? ALTURA_DO_HOJE[secaoHoje] : ALTURA_ABA[visao];
 }
 
-// Abas mais largas que o padrão: a de IAs é larga e baixa, com o uso de cada ferramenta numa faixa.
-const LARGURA_ABA: Partial<Record<VisaoIlha, number>> = { claude: 820 };
+const LARGURA_ABA: Partial<Record<VisaoIlha, number>> = { claude: 820, time: 780 };
 
 const ESCALA = { pequena: 0.85, media: 1, grande: 1.15 };
 
@@ -95,7 +98,7 @@ const ALTURA_COMPACTA_MIDIA = 34;
 const TAMANHO_DA_CAPA_COMPACTA = 28;
 const AGENTE_DA_ABA: Partial<Record<VisaoIlha, AgenteId>> = { hoje: "organizador", foco: "tutor", conexoes: "java", claude: "java" };
 const RODIZIO_MS = 8 * 60_000;
-const ABAS_SEM_LATERAL: VisaoIlha[] = ["chat", "midia"];
+const ABAS_SEM_LATERAL: VisaoIlha[] = ["chat", "midia", "time"];
 const LIMIAR_DA_ROLAGEM = 40;
 const INTERVALO_ENTRE_TROCAS_MS = 180;
 
@@ -285,7 +288,7 @@ export function Ilha() {
   }, [estadoEfetivo]);
 
   useEffect(() => {
-    if (estadoEfetivo !== "expandida" || sobre || barraEmUso || cfg.fechamentoSeg === 0 || abaAtual === "claude" || fixada) {
+    if (estadoEfetivo !== "expandida" || sobre || barraEmUso || cfg.fechamentoSeg === 0 || abaAtual === "claude" || abaAtual === "time" || fixada) {
       setRestanteFechar(null);
       return;
     }
@@ -715,7 +718,7 @@ export function Ilha() {
                         aria-label={T.ilha.abrirSistema}
                         data-dica={T.ilha.abrirSistema}
                         onClick={() => {
-                          const rota = { hoje: secaoHoje === "agenda" ? "calendario" : "journal", captura: "inicio", midia: "inicio", foco: "estudos", chat: "chat", conexoes: "conexoes", avisos: "inicio", claude: "configuracoes" } as const;
+                          const rota = { hoje: secaoHoje === "agenda" ? "calendario" : "journal", captura: "inicio", midia: "inicio", foco: "estudos", chat: "chat", conexoes: "conexoes", avisos: "inicio", claude: "configuracoes", time: "agentes" } as const;
                           irPara(rota[abaAtual]);
                           recolher();
                           void tocarSom("open");

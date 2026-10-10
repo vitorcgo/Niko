@@ -1,0 +1,53 @@
+.time-na-ilha { min-width: 0; height: 100%; padding: 0; }
+.time-editor-compacto { position: relative; padding: 14px 16px; border: 0; background: transparent; }
+.time-editor-compacto .time-grade { display: block; }
+.time-seletor { position: absolute; top: 14px; left: 16px; display: flex; align-items: center; gap: 8px; width: 150px; color: var(--texto-2); }
+.time-seletor select { min-width: 0; width: 100%; height: 32px; padding: 0 8px; border: 0; border-radius: 8px; color: var(--texto); background: var(--superficie); font: inherit; font-size: 12px; cursor: pointer; }
+.time-editor-compacto .time-formulario { gap: 16px; }
+.time-editor-compacto .time-secoes { padding-left: 170px; flex-wrap: wrap; gap: 8px; }
+.time-editor-compacto .time-secoes button { min-height: 32px; padding: 6px 12px; font-size: 12px; }
+.time-editor-compacto .time-edicao { grid-template-columns: 168px minmax(0, 1fr); gap: 20px; }
+.time-editor-compacto .time-previa { position: relative; padding: 12px 0 0; gap: 14px; border: 0; border-radius: 0; background: transparent; }
+.time-editor-compacto .time-previa-rotulo,
+.time-editor-compacto .time-previa > div:not(.time-previa-corpo) { display: none; }
+.time-editor-compacto .time-previa-corpo { min-height: 176px; }
+.time-editor-compacto .time-previa-estado { font-size: 0; gap: 0; }
+.time-editor-compacto .time-previa-estado select { height: 30px; padding: 4px 8px; font-size: 11px; }
+.time-editor-compacto .time-previa > .botao { position: absolute; right: 0; top: 0; width: 28px; height: 28px; min-height: 0; padding: 0; font-size: 0; gap: 0; border-radius: 50%; }
+.time-editor-compacto .time-controles { min-height: 230px; max-height: 238px; overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain; gap: 14px; padding: 2px; }
+.time-editor-compacto .time-campos { gap: 12px; }
+.time-editor-compacto .time-acoes { flex-wrap: wrap; gap: 10px; padding-top: 12px; }
+.time-editor-compacto .time-acoes .botao { min-height: 32px; padding: 6px 10px; font-size: 11px; }
+.time-editor-compacto .time-salvo { flex: 1; min-width: 0; font-size: 10px; }
+.guarda-roupa-compacto { gap: 12px; align-content: start; }
+.guarda-roupa-legenda { display: flex; align-items: center; justify-content: space-between; min-width: 0; gap: 12px; min-height: 20px; font-size: 12px; }
+.guarda-roupa-legenda strong { font-weight: 600; }
+.guarda-roupa-legenda span { color: var(--texto-2); font-size: 11px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.guarda-roupa-compacto .guarda-roupa-filtros { flex-wrap: wrap; gap: 6px; }
+.guarda-roupa-compacto .guarda-roupa-filtros button { min-height: 26px; font-size: 10px; padding: 4px 8px; border-radius: 7px; }
+.guarda-roupa-compacto .guarda-roupa-grade { display: grid; grid-template-columns: repeat(auto-fit, minmax(48px, 1fr)); gap: 8px; min-width: 0; }
+.guarda-roupa-compacto .guarda-roupa-peca { width: 100%; height: 54px; justify-content: center; padding: 2px; border-radius: 9px; }
+.guarda-roupa-compacto .guarda-roupa-miniatura { min-height: 48px; }
+.guarda-roupa-equipados { display: flex; flex-wrap: wrap; gap: 6px; }
+.guarda-roupa-equipados button { display: flex; align-items: center; gap: 4px; font: inherit; font-size: 10px; padding: 4px 6px; border: 1px solid var(--borda); border-radius: 6px; color: var(--texto-2); background: var(--superficie); cursor: pointer; }
+.guarda-roupa-compacto .guarda-roupa-cor { gap: 10px; flex-wrap: wrap; font-size: 10px; }
+.guarda-roupa-compacto .guarda-roupa-cor input { width: 30px; height: 26px; }
+.guarda-roupa-compacto .guarda-roupa-amostras button { width: 18px; height: 18px; }
+.guarda-roupa-compacto .guarda-roupa-equipados { display: none; }
+@container (max-width: 520px) {
+  .time-editor-compacto .time-edicao { grid-template-columns: 132px minmax(0, 1fr); gap: 14px; }
+  .time-editor-compacto .time-previa-corpo .personagem { width: 128px !important; height: 128px !important; }
+  .time-editor-compacto .time-previa-corpo { min-height: 148px; }
+  .time-seletor { width: 124px; }
+  .time-editor-compacto .time-secoes { padding-left: 138px; }
+  .time-editor-compacto .time-secoes button { padding: 5px 8px; font-size: 11px; gap: 5px; }
+  .time-editor-compacto .time-acoes .time-salvo { flex-basis: 100%; }
+}
+@container (max-width: 340px) {
+  .time-editor-compacto .time-edicao { grid-template-columns: minmax(0, 1fr); }
+  .time-editor-compacto .time-previa { padding-top: 0; }
+  .time-editor-compacto .time-previa-corpo { min-height: 132px; }
+  .time-editor-compacto .time-previa-estado { width: 132px; }
+  .time-editor-compacto .time-controles { max-height: none; min-height: 0; }
+  .time-editor-compacto .time-secoes { padding: 42px 0 0; }
+}

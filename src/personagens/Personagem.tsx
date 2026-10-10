@@ -1,5 +1,5 @@
 import { useEffect, useId, useImperativeHandle, useRef, useState, forwardRef } from "react";
-import { motion, useAnimate } from "motion/react";
+import { motion, useAnimate, useReducedMotion } from "motion/react";
 import { Heart } from "lucide-react";
 import type { AgenteId, EstadoAgente } from "../tipos";
 import { COR_ESTADO, useEstadoAgente } from "../estado/agentes";
@@ -9,6 +9,8 @@ import { carregarRosto, ouvirMouse, type Rosto } from "./olhar";
 import { useConfig } from "../estado/configuracoes";
 import { aparenciaValida, modeloDoAgente, type AparenciaAgente } from "./personalizacao";
 import { usarArtePersonalizada } from "./artePersonalizada";
+import { acessoriosValidos, corAcessorioValida, temAcessorios, type AcessoriosAgente } from "./acessorios";
+import { definicoesDosAcessorios, usosDosAcessorios } from "./desenhosDosAcessorios";
 import "./personagens.css";
 
 export interface ControlePersonagem {
@@ -21,9 +23,13 @@ interface Props {
   tamanho?: number;
   interativo?: boolean;
   halo?: boolean;
+  textura?: boolean;
   rotulo?: string;
   olhar?: boolean;
   aparencia?: AparenciaAgente;
+  corAcessorio?: string | null;
+  acessorios?: AcessoriosAgente;
+  estatico?: boolean;
 }
 
 const preCarregados = new Set<AgenteId>();
@@ -75,11 +81,19 @@ function preCarregar(agente: AgenteId) {
 }
 
 export const Personagem = forwardRef<ControlePersonagem, Props>(function Personagem(
-  { agente, estado: estadoFixo, tamanho = 48, interativo = true, halo = true, rotulo, olhar: seguirMouse = true, aparencia: previa },
+  { agente, estado: estadoFixo, tamanho = 48, interativo = true, halo = true, textura = true, rotulo, olhar: seguirMouse = true, aparencia: previa, acessorios: acessoriosPrevios, estatico = false, corAcessorio: corPrevia },
   ref,
 ) {
   const estadoVivo = useEstadoAgente(agente);
   const salva = useConfig((s) => s.agentes.aparencias[agente]);
+  const acessoriosSalvos = useConfig((s) => s.agentes.acessorios[agente]);
+  const corSalva = useConfig((s) => s.agentes.coresAcessorios[agente]);
+  const corAcessorio = corAcessorioValida(corPrevia === undefined ? corSalva : corPrevia);
+  const preferenciaDeMovimento = useReducedMotion();
+  const animacoesDesligadas = useConfig((s) => s.reduzirAnimacoes);
+  const reduzirAnimacoes = Boolean(estatico || animacoesDesligadas || preferenciaDeMovimento);
+  const acessorios = acessoriosValidos(acessoriosPrevios ?? acessoriosSalvos);
+  const vestido = temAcessorios(acessorios);
   const nome = useConfig((s) => s.agentes.nomes[agente]);
   const aparencia = aparenciaValida(previa ?? salva, agente);
   const modelo = modeloDoAgente(agente, aparencia.formato);
@@ -152,12 +166,12 @@ export const Personagem = forwardRef<ControlePersonagem, Props>(function Persona
       cliques.current = [];
       setReacao("tonto");
       void tocarSequencia(["slap", "dizzy"], "personagens", 220);
-      void animar(escopo.current, { rotate: [0, 360, 720, 1080] }, { duration: 3.3, ease: "easeInOut" });
+      if (!reduzirAnimacoes) void animar(escopo.current, { rotate: [0, 360, 720, 1080] }, { duration: 3.3, ease: "easeInOut" });
       agendar(() => setReacao(null), 3300);
       return;
     }
     if (reacao === "tonto") return;
-    void animar(escopo.current, { scaleX: [1, 1.14, 0.94, 1], scaleY: [1, 0.84, 1.06, 1] }, { duration: 0.37, times: [0, 0.19, 0.54, 1], ease: "easeOut" });
+    if (!reduzirAnimacoes) void animar(escopo.current, { scaleX: [1, 1.14, 0.94, 1], scaleY: [1, 0.84, 1.06, 1] }, { duration: 0.37, times: [0, 0.19, 0.54, 1], ease: "easeOut" });
     mostrarFeliz();
     void tocarSequencia(["pop", "love"], "personagens", 240);
   };
@@ -201,8 +215,10 @@ export const Personagem = forwardRef<ControlePersonagem, Props>(function Persona
   const estadoExibido: EstadoAgente = reacao === "feliz" ? "sucesso" : reacao === "tonto" ? "erro" : sobre && interativo && estado === "ocioso" ? "ouvindo" : estado;
   const corHalo = reacao === "tonto" ? "#a855f7" : COR_ESTADO[estado];
   const mostrarHalo = halo && tamanho >= 32 && reacao === "tonto";
-  const artePersonalizada = usarArtePersonalizada(agente, estadoExibido, aparencia, personalizado && visivel);
-  const caminhoDaArte = personalizado ? artePersonalizada : caminhoPersonagem(modelo, estadoExibido);
+  const comporArte = personalizado || vestido || reduzirAnimacoes;
+  const artePersonalizada = usarArtePersonalizada(agente, estadoExibido, aparencia, comporArte && visivel, acessorios, reduzirAnimacoes, corAcessorio);
+  const caminhoDaArte = comporArte ? artePersonalizada : caminhoPersonagem(modelo, estadoExibido);
+  const idsDosAcessorios = (svg: string) => svg.replaceAll("niko-ac-", `niko-ac-${idClip}-`);
 
   return (
     <div
@@ -213,6 +229,8 @@ export const Personagem = forwardRef<ControlePersonagem, Props>(function Persona
       data-formato={aparencia.formato}
       data-modelo={modelo}
       data-cor={aparencia.cor}
+      data-acessorios={vestido ? JSON.stringify(acessorios) : undefined}
+      data-reduzir-movimento={reduzirAnimacoes || undefined}
       style={{ width: tamanho, height: tamanho }}
       role={interativo ? "button" : "img"}
       aria-label={rotulo ?? nome}
@@ -232,18 +250,20 @@ export const Personagem = forwardRef<ControlePersonagem, Props>(function Persona
       onPointerLeave={() => setSobre(false)}
     >
       {mostrarHalo && <span className="personagem-halo" style={{ background: corHalo }} />}
-      <motion.div className="personagem-corpo" animate={{ scale: sobre && interativo ? 1.08 : 1 }} transition={{ type: "spring", visualDuration: 0.3, bounce: 0.35 }}>
+      <motion.div className="personagem-corpo" animate={{ scale: !reduzirAnimacoes && sobre && interativo ? 1.08 : 1 }} transition={{ type: "spring", visualDuration: 0.3, bounce: 0.35 }}>
         <div ref={escopo} className="personagem-giro">
           {visivel && olhar && rosto ? (
             <svg viewBox="66 78 380 380" width={tamanho} height={tamanho} aria-hidden="true" className="personagem-imagem">
               <defs>
                 <path id={`c-${idClip}`} d={rosto.corpo.d} />
+                <g dangerouslySetInnerHTML={{ __html: idsDosAcessorios(definicoesDosAcessorios(acessorios, modelo, corAcessorio)) }} />
                 {rosto.olhos.map((o, i) => (
                   <clipPath key={i} id={`o-${idClip}-${i}`}>
                     <ellipse cx={o.branco.cx} cy={o.branco.cy} rx={o.branco.rx} ry={o.branco.ry} transform={o.branco.transform} />
                   </clipPath>
                 ))}
               </defs>
+              <g dangerouslySetInnerHTML={{ __html: idsDosAcessorios(usosDosAcessorios(acessorios, modelo, rosto.corpo.transform, "", true)) }} />
               <use href={`#c-${idClip}`} transform={rosto.corpo.transform} fill={personalizado ? aparencia.cor : rosto.corpo.fill} />
               {rosto.olhos.map((o, i) => (
                 <g key={i}>
@@ -261,6 +281,7 @@ export const Personagem = forwardRef<ControlePersonagem, Props>(function Persona
                   </g>
                 </g>
               ))}
+              <g dangerouslySetInnerHTML={{ __html: idsDosAcessorios(usosDosAcessorios(acessorios, modelo, rosto.corpo.transform)) }} />
             </svg>
           ) : visivel ? (
             semArte ? (
@@ -273,7 +294,7 @@ export const Personagem = forwardRef<ControlePersonagem, Props>(function Persona
           ) : (
             <span style={{ width: tamanho, height: tamanho, display: "block" }} />
           )}
-          {visivel && caminhoDaArte && !semArte && tamanho >= 24 && <span className="personagem-textura" style={{ maskImage: `url(${caminhoDaArte})`, WebkitMaskImage: `url(${caminhoDaArte})` }} aria-hidden="true" />}
+          {textura && visivel && caminhoDaArte && !semArte && tamanho >= 24 && <span className="personagem-textura" style={{ maskImage: `url(${caminhoDaArte})`, WebkitMaskImage: `url(${caminhoDaArte})` }} aria-hidden="true" />}
         </div>
       </motion.div>
       {coracoes > 0 && reacao === "feliz" && tamanho >= 28 && (

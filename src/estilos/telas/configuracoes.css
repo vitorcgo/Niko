@@ -927,6 +927,17 @@
   padding-left: 14px;
 }
 
+.estilo-sistema .boas-vindas-time-coluna { flex: 0 0 76px; align-self: center; }
+.estilo-sistema .boas-vindas-time-coluna .boas-vindas-personagens { flex-direction: column; gap: 10px; padding: 0; }
+.estilo-sistema .boas-vindas-time-coluna .boas-vindas-personagem { margin: 0; }
+@media (max-width: 480px) {
+  .estilo-sistema .boas-vindas-corpo { flex-wrap: nowrap; gap: 10px; padding: 22px 16px; }
+  .estilo-sistema .boas-vindas-conteudo { flex-basis: 0; }
+  .estilo-sistema .boas-vindas-time-coluna { flex-basis: 48px; }
+  .estilo-sistema .boas-vindas-time-coluna .personagem { width: 48px !important; height: 48px !important; }
+  .estilo-sistema .boas-vindas-corpo:has(.boas-vindas-time-apresentacao) { flex-wrap: wrap; }
+}
+
 .estilo-sistema .boas-vindas-personagem {
   display: grid;
   margin-left: -14px;

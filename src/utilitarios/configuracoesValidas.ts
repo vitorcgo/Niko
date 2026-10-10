@@ -3,6 +3,7 @@ import { exigir, objeto } from "./validacoes";
 import { validarAssistive } from "../janelas/assistive/regras";
 import type { AgenteId } from "../tipos";
 import { aparenciaValida, personaValida, textoDeIdentidade } from "../personagens/personalizacao";
+import { acessoriosValidos, corAcessorioValida } from "../personagens/acessorios";
 
 function conformePadrao(valor: unknown, padrao: unknown): unknown {
   if (padrao === null) return valor === null || typeof valor === "string" || objeto(valor) ? valor : null;
@@ -39,6 +40,10 @@ export function configuracoesValidas(valor: unknown, padrao: Configuracoes): Con
   c.ilha.fechamentoSeg = limitar(c.ilha.fechamentoSeg, 0, 300);
   c.ilha.esconderSeg = limitar(c.ilha.esconderSeg, 0, 300);
   c.ilha.ordemAbas = [...new Set(c.ilha.ordemAbas)];
+  if (!c.ilha.ordemAbas.includes("time")) {
+    const codigo = c.ilha.ordemAbas.indexOf("claude");
+    c.ilha.ordemAbas.splice(codigo < 0 ? 1 : codigo, 0, "time");
+  }
   c.dock.buscador = escolher(c.dock.buscador, ["google", "duckduckgo", "bing"], padrao.dock.buscador);
   const rotas = [...padrao.barraLateral.map((r) => r.rota), "configuracoes"];
   const barra = objeto(valor) && Array.isArray(valor.barraLateral) ? valor.barraLateral : padrao.barraLateral;
@@ -57,6 +62,8 @@ export function configuracoesValidas(valor: unknown, padrao: Configuracoes): Con
     c.agentes.nomes[agente] = textoDeIdentidade(c.agentes.nomes[agente], padrao.agentes.nomes[agente], 20);
     c.agentes.cargos[agente] = textoDeIdentidade(c.agentes.cargos[agente], padrao.agentes.cargos[agente], 32);
     c.agentes.aparencias[agente] = aparenciaValida(c.agentes.aparencias[agente], agente);
+    c.agentes.acessorios[agente] = acessoriosValidos(c.agentes.acessorios[agente]);
+    c.agentes.coresAcessorios[agente] = corAcessorioValida(c.agentes.coresAcessorios[agente]);
     c.agentes.personas[agente] = personaValida(c.agentes.personas[agente]);
   }
   for (const k of ["foco", "curta", "longa"] as const) c.pomodoro[k] = Math.round(limitar(c.pomodoro[k], 1, 1440));

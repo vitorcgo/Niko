@@ -37,6 +37,67 @@
 .time-comandos svg { flex: 0 0 auto; margin-top: 2px; }
 .time-acoes { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; padding-top: 14px; border-top: 1px solid var(--borda); }
 .time-salvo { display: flex; align-items: center; gap: 5px; flex: 1 1 100%; color: var(--texto-2); font-size: 11px; }
+.time-secoes, .guarda-roupa-filtros { display: flex; flex-wrap: wrap; gap: 6px; }
+.time-secoes button, .guarda-roupa-filtros button { display: flex; align-items: center; justify-content: center; gap: 7px; border: 1px solid var(--borda); border-radius: 9px; padding: 9px 12px; color: var(--texto-2); background: var(--superficie); cursor: pointer; font: inherit; font-size: 12px; }
+.time-secoes button[aria-pressed="true"], .guarda-roupa-filtros button[aria-pressed="true"] { border-color: var(--borda-forte); background: var(--superficie-2); color: var(--texto); }
+.time-previa-estado { display: grid; gap: 7px; width: 100%; color: var(--texto-2); text-align: left; font-size: 11px; }
+.time-previa-estado select { width: 100%; min-width: 0; }
+.guarda-roupa { display: grid; gap: 14px; min-width: 0; }
+.guarda-roupa-dica, .guarda-roupa-rodape p { margin: 0; color: var(--texto-2); font-size: 12px; line-height: 1.6; }
+.guarda-roupa-filtros button { padding: 6px 9px; font-size: 11px; }
+.guarda-roupa-vestidos { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+.guarda-roupa-vestidos button { display: flex; align-items: center; justify-content: space-between; min-width: 0; gap: 5px; padding: 8px; border: 1px solid var(--borda); border-radius: 8px; background: var(--superficie-2); color: var(--texto); cursor: pointer; text-align: left; }
+.guarda-roupa-vestidos span { display: grid; min-width: 0; gap: 4px; }
+.guarda-roupa-vestidos small { color: var(--texto-2); font-size: 10px; }
+.guarda-roupa-vestidos strong { font-size: 11px; font-weight: 500; overflow-wrap: anywhere; }
+.guarda-roupa-vestidos button:disabled { cursor: default; opacity: .65; }
+.guarda-roupa-grade { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.guarda-roupa-peca { display: flex; flex-direction: column; align-items: center; gap: 7px; padding: 12px 4px; min-width: 0; border: 1px solid var(--borda); border-radius: 13px; background: var(--superficie); color: var(--texto); cursor: pointer; transition: background .18s, border-color .18s; }
+.guarda-roupa-peca:hover { background: var(--superficie-2); border-color: var(--borda-forte); }
+.guarda-roupa-peca[aria-pressed="true"] { border-color: var(--destaque, var(--texto)); background: var(--superficie-2); }
+.guarda-roupa-peca strong { font-size: 11px; line-height: 1.4; text-align: center; overflow-wrap: anywhere; font-weight: 500; }
+.guarda-roupa-peca small { color: var(--texto-2); font-size: 10px; }
+.guarda-roupa-miniatura { display: grid; place-items: center; position: relative; min-height: 80px; }
+.guarda-roupa-miniatura > svg { position: absolute; right: 0; top: 0; color: var(--destaque, var(--texto)); }
+.guarda-roupa-rodape { display: grid; gap: 10px; }
+.guarda-roupa-rodape button { justify-self: start; padding: 7px 10px; border: 1px solid var(--borda); border-radius: 8px; background: transparent; color: var(--texto-2); font: inherit; font-size: 11px; cursor: pointer; }
+.guarda-roupa-rodape button:disabled { opacity: .5; cursor: default; }
+.guarda-roupa-cor { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; font-size: 11px; color: var(--texto-2); }
+.guarda-roupa-cor label { display: flex; align-items: center; gap: 7px; }
+.guarda-roupa-cor input { width: 32px; height: 26px; border: 1px solid var(--borda-forte); padding: 2px; border-radius: 6px; background: var(--superficie); cursor: pointer; }
+.guarda-roupa-amostras { display: flex; gap: 5px; }
+.guarda-roupa-amostras button { width: 20px; height: 20px; padding: 0; border: 2px solid transparent; border-radius: 50%; cursor: pointer; box-shadow: 0 0 0 1px var(--borda); }
+.guarda-roupa-amostras button[aria-pressed="true"] { border-color: var(--texto); }
+.guarda-roupa-cor-original { border: 0; background: transparent; color: var(--texto-2); cursor: pointer; padding: 3px; font: inherit; font-size: inherit; }
+.guarda-roupa-cor-original:disabled { opacity: .45; cursor: default; }
+.time-camarim { display: grid; place-items: center; position: relative; width: 100%; isolation: isolate; }
+.time-camarim-figura { position: relative; z-index: 1; transform-origin: 50% 80%; }
+.time-camarim .personagem-corpo, .time-camarim .personagem-giro { width: 100%; height: 100%; }
+.time-camarim .personagem-imagem { width: 100%; height: 100%; }
+.time-camarim[data-fase="saida"] .time-camarim-figura { animation: camarim-saida .34s cubic-bezier(.4, 0, .8, .3) both; }
+.time-camarim[data-fase="entrada"] .time-camarim-figura { animation: camarim-entrada .65s cubic-bezier(.16, 1, .3, 1) both; }
+.time-camarim-fumaca { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 2; pointer-events: none; overflow: visible; }
+.time-fumaca-particula { fill: var(--texto-2); opacity: 0; transform-box: view-box; transform-origin: 80px 85px; animation: camarim-fumaca 1.05s cubic-bezier(.15, .6, .3, 1) both; }
+@keyframes camarim-saida {
+  0% { opacity: 1; transform: translateX(0) scale(1) rotate(0); }
+  40% { opacity: 1; transform: translateX(-8px) scale(.94) rotate(-6deg); }
+  100% { opacity: 0; transform: translateX(-40px) translateY(8px) scale(.65) rotate(-16deg); }
+}
+@keyframes camarim-entrada {
+  0% { opacity: 0; transform: translateX(-28px) translateY(10px) scale(.68) rotate(-12deg); }
+  65% { opacity: 1; transform: translateX(2px) translateY(-5px) scale(1.06) rotate(3deg); }
+  100% { opacity: 1; transform: translateX(0) translateY(0) scale(1) rotate(0); }
+}
+@keyframes camarim-fumaca {
+  0% { opacity: 0; transform: translate(0, 8px) scale(.25); }
+  25% { opacity: .38; transform: translate(calc(var(--fumaca-x) * .35), calc(var(--fumaca-y) * .35)) scale(.9); }
+  60% { opacity: .18; transform: translate(calc(var(--fumaca-x) * .8), calc(var(--fumaca-y) * .8)) scale(1.1); }
+  100% { opacity: 0; transform: translate(var(--fumaca-x), calc(var(--fumaca-y) - 10px)) scale(1.25); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .time-camarim-figura, .time-fumaca-particula { animation: none !important; }
+  .time-camarim-fumaca { display: none; }
+}
 @container (max-width: 580px) {
   .time-edicao { grid-template-columns: minmax(0, 1fr); gap: 20px; }
   .time-integrantes { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -45,4 +106,5 @@
   .time-campos { grid-template-columns: minmax(0, 1fr); }
   .time-previa { padding: 20px 12px; }
   .time-integrante { padding: 12px 6px; }
+  .guarda-roupa-grade { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }

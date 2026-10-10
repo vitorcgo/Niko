@@ -21,6 +21,7 @@ scripts/*
 !scripts/validacoes.test.mjs
 !scripts/escritorio.test.mjs
 !scripts/personalizacao-agentes.test.mjs
+!scripts/guarda-roupa.test.mjs
 !scripts/concorrencia.test.mjs
 !scripts/configuracao-vite.test.mjs
 !scripts/github.test.mjs

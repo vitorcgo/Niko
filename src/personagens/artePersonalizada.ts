@@ -1,13 +1,16 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { AgenteId, EstadoAgente } from "../tipos";
 import { caminhoPersonagem } from "./cores";
 import { aparenciaValida, modeloDoAgente, type AparenciaAgente } from "./personalizacao";
+import { acessoriosValidos, SEM_ACESSORIOS, type AcessoriosAgente } from "./acessorios";
+import { adicionarAcessorios, primeiroQuadroSvg } from "./desenhosDosAcessorios";
 
 const fontes = new Map<string, Promise<string | null>>();
 
-export function personalizarSvg(svg: string, aparencia: AparenciaAgente, agente: AgenteId): string {
+export function personalizarSvg(svg: string, aparencia: AparenciaAgente, agente: AgenteId, acessorios: AcessoriosAgente = SEM_ACESSORIOS, corAcessorio: string | null = null): string {
   const valida = aparenciaValida(aparencia, agente);
-  return svg.replace(/<use\b[^>]*\bhref="#s0"[^>]*>/g, (uso) => uso.replace(/\bfill="[^"]*"/, `fill="${valida.cor}"`));
+  const colorido = svg.replace(/<use\b[^>]*\bhref="#s0"[^>]*>/g, (uso) => uso.replace(/\bfill="[^"]*"/, `fill="${valida.cor}"`));
+  return adicionarAcessorios(colorido, acessoriosValidos(acessorios), modeloDoAgente(agente, valida.formato), corAcessorio);
 }
 
 function carregarSvg(caminho: string): Promise<string | null> {
@@ -23,37 +26,20 @@ function carregarSvg(caminho: string): Promise<string | null> {
   return carregamento;
 }
 
-export function usarArtePersonalizada(agente: AgenteId, estado: EstadoAgente, aparencia: AparenciaAgente, ativo: boolean): string | null {
+export function usarArtePersonalizada(agente: AgenteId, estado: EstadoAgente, aparencia: AparenciaAgente, ativo: boolean, acessorios: AcessoriosAgente = SEM_ACESSORIOS, reduzirAnimacoes = false, corAcessorio: string | null = null): string | null {
   const caminho = caminhoPersonagem(modeloDoAgente(agente, aparencia.formato), estado);
   const [fonte, setFonte] = useState<{ caminho: string; svg: string } | null>(null);
-  const [arte, setArte] = useState<{ agente: AgenteId; url: string } | null>(null);
+  const selecao = JSON.stringify(acessoriosValidos(acessorios));
   useEffect(() => {
     if (!ativo) return;
     let presente = true;
     void carregarSvg(caminho).then((svg) => { if (presente && svg) setFonte({ caminho, svg }); });
     return () => { presente = false; };
   }, [ativo, caminho]);
-  useEffect(() => {
-    if (!ativo || fonte?.caminho !== caminho) return;
-    const svg = personalizarSvg(fonte.svg, { cor: aparencia.cor, formato: aparencia.formato }, agente);
-    const url = URL.createObjectURL(new Blob([svg], { type: "image/svg+xml" }));
-    const imagem = new Image();
-    let presente = true;
-    let entregue = false;
-    imagem.onload = () => {
-      if (!presente) return;
-      entregue = true;
-      setArte({ agente, url });
-    };
-    imagem.onerror = () => URL.revokeObjectURL(url);
-    imagem.src = url;
-    return () => {
-      presente = false;
-      imagem.onload = null;
-      imagem.onerror = null;
-      if (!entregue) URL.revokeObjectURL(url);
-    };
-  }, [ativo, fonte, caminho, aparencia.cor, aparencia.formato, agente]);
-  useEffect(() => () => { if (arte) URL.revokeObjectURL(arte.url); }, [arte]);
-  return ativo && arte?.agente === agente ? arte.url : null;
+  return useMemo(() => {
+    if (!ativo || !fonte || fonte.caminho.split("/").slice(0, -1).join("/") !== caminho.split("/").slice(0, -1).join("/")) return null;
+    const personalizada = personalizarSvg(fonte.svg, aparencia, agente, JSON.parse(selecao) as AcessoriosAgente, corAcessorio);
+    const svg = reduzirAnimacoes ? primeiroQuadroSvg(personalizada) : personalizada;
+    return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+  }, [ativo, fonte, caminho, aparencia.cor, aparencia.formato, agente, selecao, reduzirAnimacoes, corAcessorio]);
 }

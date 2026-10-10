@@ -139,7 +139,7 @@ export function PrimeiraExecucao() {
                 </div>
               )}
             </div>
-            <div className="boas-vindas-time">
+            <div className={`boas-vindas-time${passo === 0 ? " boas-vindas-time-apresentacao" : " boas-vindas-time-coluna"}`}>
               <div className="boas-vindas-personagens">
                 {AGENTES.map((a) => (
                   <span key={a} className="boas-vindas-personagem">

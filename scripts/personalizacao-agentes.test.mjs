@@ -172,7 +172,7 @@ test("opções de formato mostram só moldes sem nomes, e Original continua pint
 test("a página do time tem seleção acessível, formato, cor, nome e persona", () => {
   const html = renderToStaticMarkup(createElement(PersonalizacaoDoTime));
   assert.equal((html.match(/class="time-integrante" aria-pressed=/g) ?? []).length, 4);
-  assert.equal((html.match(/aria-pressed=/g) ?? []).length, 9);
+  assert.equal((html.match(/aria-pressed=/g) ?? []).length, 11);
   for (const rotulo of ["Nome", "Cargo", "Formato", "Cor", "Persona", "Salvar agente", "Restaurar padrão"]) assert.ok(html.includes(rotulo), rotulo);
   assert.match(html, /maxlength="2000"/i);
   assert.match(html, /Os comandos locais continuam funcionando sem IA/);
