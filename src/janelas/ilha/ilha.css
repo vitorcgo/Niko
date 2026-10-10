@@ -1715,6 +1715,19 @@
   gap: 1px;
 }
 
+.ilha-conexao-conteudo {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 0;
+  flex: 1;
+  padding-right: 4px;
+}
+
+.ilha-conexao-conteudo > * {
+  flex-shrink: 0;
+}
+
 .ilha-conexao-linha-item {
   display: flex;
   align-items: center;

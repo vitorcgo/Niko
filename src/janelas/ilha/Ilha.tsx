@@ -67,7 +67,7 @@ const ALTURA_ABA: Record<Exclude<VisaoIlha, "hoje">, number> = {
   midia: 184,
   foco: 176,
   chat: 300,
-  conexoes: 350,
+  conexoes: 500,
   avisos: 178,
   claude: 296,
 };

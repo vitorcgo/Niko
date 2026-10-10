@@ -63,6 +63,31 @@ a:hover {
   background: var(--destaque-suave);
 }
 
+html[data-transicao-tema="sim"]::view-transition-group(root),
+html[data-transicao-tema="sim"]::view-transition-old(root),
+html[data-transicao-tema="sim"]::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+html[data-transicao-tema="sim"]::view-transition-image-pair(root) {
+  isolation: isolate;
+}
+
+html[data-transicao-tema="sim"]::view-transition-old(root) {
+  z-index: 0;
+}
+
+html[data-transicao-tema="sim"]::view-transition-new(root) {
+  z-index: 1;
+}
+
+html[data-transicao-tema="sim"] *,
+html[data-transicao-tema="sim"] *::before,
+html[data-transicao-tema="sim"] *::after {
+  transition-duration: 0s !important;
+}
+
 svg.lucide {
   stroke-width: 1.5;
   flex: 0 0 auto;

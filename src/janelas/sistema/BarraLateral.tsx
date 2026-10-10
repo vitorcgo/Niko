@@ -13,6 +13,7 @@ import { Avatar } from "../../componentes/FotoPerfil";
 import { hojeISO } from "../../utilitarios/datas";
 import type { Rota } from "../../tipos";
 import { funcaoLigada, rotaLigada } from "../../utilitarios/funcoes";
+import { mudarTema } from "../area-de-trabalho/mudarTema";
 
 function useContadores(): Partial<Record<Rota, { n: number; alerta?: boolean }>> {
   const hoje = hojeISO();
@@ -274,7 +275,7 @@ export function BarraLateral({ recolhida }: { recolhida: boolean }) {
           </button>
           {!recolhida && (
             <>
-              <button type="button" className="barra-icone" role="switch" aria-checked={escuroAgora} aria-label={rotuloTema} title={rotuloTema} onClick={() => definir({ tema: escuroAgora ? "claro" : "escuro" })}>
+              <button type="button" className="barra-icone" role="switch" aria-checked={escuroAgora} aria-label={rotuloTema} title={rotuloTema} onClick={(evento) => mudarTema(escuroAgora ? "claro" : "escuro", evento.currentTarget)}>
                 {escuroAgora ? <Moon size={15} /> : <Sun size={15} />}
               </button>
               <button type="button" className="barra-icone" aria-current={emAjustes ? "page" : undefined} aria-label={T.rotas.configuracoes} title={T.rotas.configuracoes} onClick={() => irPara("configuracoes")}>
@@ -285,7 +286,7 @@ export function BarraLateral({ recolhida }: { recolhida: boolean }) {
         </div>
         {recolhida && (
           <>
-            <button type="button" className="barra-icone barra-icone-largo" role="switch" aria-checked={escuroAgora} aria-label={rotuloTema} title={rotuloTema} onClick={() => definir({ tema: escuroAgora ? "claro" : "escuro" })}>
+            <button type="button" className="barra-icone barra-icone-largo" role="switch" aria-checked={escuroAgora} aria-label={rotuloTema} title={rotuloTema} onClick={(evento) => mudarTema(escuroAgora ? "claro" : "escuro", evento.currentTarget)}>
               {escuroAgora ? <Moon size={16} /> : <Sun size={16} />}
             </button>
             <button type="button" className="barra-icone barra-icone-largo" aria-current={emAjustes ? "page" : undefined} aria-label={T.rotas.configuracoes} title={T.rotas.configuracoes} onClick={() => irPara("configuracoes")}>

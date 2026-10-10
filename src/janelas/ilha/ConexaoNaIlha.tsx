@@ -5,6 +5,7 @@ import { formatar, horarioRelativo } from "../../utilitarios/datas";
 import { T } from "../../textos/textos";
 import type { ServicoId } from "../../tipos";
 import { ContribuicoesGithub } from "../../modulos/conexoes/ContribuicoesGithub";
+import { CommitsGithub } from "../../modulos/conexoes/CommitsGithub";
 import { resumirContribuicoesGithub } from "../../utilitarios/contribuicoesGithub";
 
 const M = T.janelaConexao.metricas;
@@ -99,7 +100,7 @@ export function montarResumo(servico: ServicoId, dados: DadosServico[ServicoId])
           { rotulo: M.falhasActions, valor: falhas, tom: falhas ? "erro" : "" },
           { rotulo: I.contribuicoes7d, valor: contribuicoes === null ? "-" : mil(contribuicoes) },
         ],
-        tituloDaLista: d.prs.length ? I.prsEActions : I.actionsRecentes,
+        tituloDaLista: d.prs.length ? I.prsEActions : d.actions.length ? I.actionsRecentes : T.janelaConexao.abas.github.repositorios,
         linhas: linhas.length ? linhas : d.repositorios.slice(0, 6).map((r) => ({ chave: r.nome, principal: r.nome, secundario: r.linguagem, quando: r.atualizado })),
       };
     }
@@ -275,7 +276,7 @@ export function ConexaoNaIlha({ servico }: { servico: ServicoId }) {
 
   const resumo = montarResumo(servico, dados);
   return (
-    <>
+    <div className="ilha-rolagem ilha-conexao-conteudo">
       <div className="ilha-conexao-numeros">
         {resumo.numeros.map((n) => (
           <div key={n.rotulo} className="ilha-conexao-numero" data-tom={n.tom || undefined}>
@@ -285,13 +286,14 @@ export function ConexaoNaIlha({ servico }: { servico: ServicoId }) {
         ))}
       </div>
       {servico === "github" && <ContribuicoesGithub calendario={(dados as DadosServico["github"]).contribuicoes} compacto />}
+      {servico === "github" && <CommitsGithub commits={(dados as DadosServico["github"]).commits} compacto />}
       {resumo.aviso && (
         <div className="ilha-conexao-aviso cortar privado" data-tom={resumo.aviso.tom || undefined}>
           {resumo.aviso.texto}
         </div>
       )}
       <span className="ilha-mini">{resumo.tituloDaLista}</span>
-      <div className="ilha-rolagem ilha-conexao-lista">
+      <div className="ilha-conexao-lista">
         {resumo.linhas.length === 0 && <span className="ilha-sub">{I.semItens}</span>}
         {resumo.linhas.map((l) => (
           <div key={l.chave} className="ilha-conexao-linha-item">
@@ -306,6 +308,6 @@ export function ConexaoNaIlha({ servico }: { servico: ServicoId }) {
           </div>
         ))}
       </div>
-    </>
+    </div>
   );
 }

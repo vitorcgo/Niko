@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { lerSegredo, gravarSegredo, apagarSegredo } from "./segredos.ts";
 import { pastaDados, validarUrlBase } from "./ia.ts";
 import { autorizarWorkspace, lerGoogle } from "./google.ts";
-import { lerContribuicoesGithub } from "./github.ts";
+import { lerContribuicoesGithub, lerCommitsGithub } from "./github.ts";
 
 export const SERVICOS = ["stripe", "github", "vercel", "resend", "notion", "calcom", "n8n", "google", "supabase", "cloudflare"] as const;
 const SERVICOS_ANTIGOS_DO_GOOGLE = ["gmail", "agenda"];
@@ -110,12 +110,13 @@ const LEITORES: Record<Servico, Leitor> = {
     const eu = await pedir<{ login: string }>(`${base}/user`, h);
     type Item = { title: string; number: number; repository_url: string; html_url: string; user?: { login: string }; created_at: string; labels?: { name: string }[] };
     const busca = (q: string, n: number) => pedir<{ items: Item[] }>(`${base}/search/issues?q=${encodeURIComponent(q)}&per_page=${n}`, h);
-    const [repos, meus, paraRevisar, issues, contribuicoes] = await Promise.all([
+    const [repos, meus, paraRevisar, issues, contribuicoes, commits] = await Promise.all([
       pedir<{ name: string; full_name: string; language: string | null; stargazers_count: number; updated_at: string; private: boolean }[]>(`${base}/user/repos?sort=updated&per_page=10`, h),
       busca(`is:pr is:open author:${eu.login}`, 10),
       busca(`is:pr is:open review-requested:${eu.login}`, 10),
       busca(`is:issue is:open assignee:${eu.login}`, 15),
       lerContribuicoesGithub(h, pedir).catch(() => null),
+      lerCommitsGithub(eu.login, h, pedir).catch(() => null),
     ]);
     const nomeCompleto = (url: string) => url.split("/repos/")[1] ?? "";
     const detalharPr = async (p: Item) => {
@@ -148,6 +149,7 @@ const LEITORES: Record<Servico, Leitor> = {
       usuario: eu.login,
       commitsPorDia,
       contribuicoes,
+      commits,
       repositorios: repos.map((r) => ({ nome: r.name, linguagem: r.language ?? "", estrelas: r.stargazers_count, atualizado: r.updated_at, privado: r.private })),
       prs: [...paraRevisar.items.map((p) => paraLista(p, "revisar")), ...meus.items.map((p, i) => paraLista(p, "meu", detalhes[i]))],
       issues: issues.items.map((i) => ({ titulo: i.title, repo: repoDe(i.repository_url), numero: i.number, rotulos: (i.labels ?? []).map((l) => l.name), data: i.created_at })),

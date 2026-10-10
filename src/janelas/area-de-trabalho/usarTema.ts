@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useState } from "react";
 import { useConfig } from "../../estado/configuracoes";
 import { comAlfa, contraste, hexValido, textoSobre } from "../../utilitarios/cores";
 
@@ -26,7 +26,7 @@ export function usarTema() {
     return () => consulta.removeEventListener("change", aoMudar);
   }, []);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const efetivo = tema === "sistema" ? (sistemaEscuro ? "escuro" : "claro") : tema;
     const raiz = document.documentElement;
     raiz.dataset.tema = efetivo;

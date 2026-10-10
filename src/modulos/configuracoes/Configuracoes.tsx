@@ -23,6 +23,7 @@ import { validarBackup } from "../../utilitarios/backupValido";
 import { listarChaves, lerChave, gravarChave, salvarAgora, modoArmazenamento, zerarTudo, tamanhoGuardado, PREFIXO } from "../../ponte/armazenamento";
 import { TODOS_OS_SONS, tocarSom, type CategoriaSom } from "../../ponte/sons";
 import { DESTAQUE_SISTEMA } from "../../janelas/area-de-trabalho/usarTema";
+import { mudarTema } from "../../janelas/area-de-trabalho/mudarTema";
 import { EditorFoto } from "../../componentes/FotoPerfil";
 import { SeletorDeFundo } from "./SeletorDeFundo";
 import { SecaoClaudeCode } from "./SecaoClaudeCode";
@@ -349,7 +350,7 @@ export default function Configuracoes() {
     aparencia: (
       <>
         <LinhaAjuste rotulo={T.configuracoes.tema} dica={T.configuracoes.temaDica}>
-          <Segmentado<Tema> rotulo={T.configuracoes.tema} valor={cfg.tema} aoMudar={(tema) => cfg.definir({ tema })} opcoes={[{ valor: "claro", rotulo: T.barraLateral.temaClaro }, { valor: "escuro", rotulo: T.barraLateral.temaEscuro }, { valor: "sistema", rotulo: T.barraLateral.temaSistema }]} />
+          <Segmentado<Tema> rotulo={T.configuracoes.tema} valor={cfg.tema} aoMudar={mudarTema} opcoes={[{ valor: "claro", rotulo: T.barraLateral.temaClaro }, { valor: "escuro", rotulo: T.barraLateral.temaEscuro }, { valor: "sistema", rotulo: T.barraLateral.temaSistema }]} />
         </LinhaAjuste>
         <LinhaAjuste
           rotulo={T.configuracoes.destaque}

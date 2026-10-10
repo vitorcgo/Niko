@@ -127,11 +127,11 @@ export function Pilulas<V extends string>({ opcoes, valor, aoMudar, rotulo }: { 
   );
 }
 
-export function Segmentado<V extends string>({ opcoes, valor, aoMudar, rotulo }: { opcoes: { valor: V; rotulo: string; icone?: ReactNode }[]; valor: V; aoMudar: (v: V) => void; rotulo: string }) {
+export function Segmentado<V extends string>({ opcoes, valor, aoMudar, rotulo }: { opcoes: { valor: V; rotulo: string; icone?: ReactNode }[]; valor: V; aoMudar: (v: V, origem: HTMLButtonElement) => void; rotulo: string }) {
   return (
     <div className="segmentado" role="tablist" aria-label={rotulo}>
       {opcoes.map((o) => (
-        <button key={o.valor} type="button" role="tab" aria-selected={valor === o.valor} onClick={() => aoMudar(o.valor)}>
+        <button key={o.valor} type="button" role="tab" aria-selected={valor === o.valor} onClick={(evento) => aoMudar(o.valor, evento.currentTarget)}>
           {o.icone}
           {o.rotulo}
         </button>

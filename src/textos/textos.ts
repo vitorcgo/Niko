@@ -2027,7 +2027,7 @@ export const T = {
     abasRotulo: "Seções da conexão",
     abas: {
       stripe: { visao: "Visão geral", cobrancas: "Cobranças", disputas: "Disputas", repasses: "Repasses", clientes: "Clientes" },
-      github: { visao: "Visão geral", contribuicoes: "Contribuições", repositorios: "Repositórios", prs: "Pull requests", issues: "Issues", actions: "Actions" },
+      github: { visao: "Visão geral", contribuicoes: "Contribuições", commits: "Commits", repositorios: "Repositórios", prs: "Pull requests", issues: "Issues", actions: "Actions" },
       vercel: { visao: "Visão geral", projetos: "Projetos", deploys: "Deploys" },
       resend: { visao: "Visão geral", emails: "E-mails", dominios: "Domínios" },
       notion: { visao: "Visão geral", paginas: "Páginas", bancos: "Bancos de dados" },
@@ -2098,6 +2098,13 @@ export const T = {
       zona: "Domínio",
     },
     github: {
+      ultimosCommits: "Últimos commits",
+      commitsVazios: "Nenhum commit encontrado para esta conta.",
+      commitsIndisponiveis: "Não foi possível carregar os commits. Atualize e confira o acesso do token aos repositórios.",
+      commitsPrivacidade: "Commits ocultos pelo modo de privacidade.",
+      commitsEscopo: "Seus commits nas branches padrão acessíveis à conexão. O GitHub pode levar alguns minutos para indexar as alterações.",
+      abrirCommit: "Abrir commit no GitHub",
+      detalhesCommit: "Clique em um commit para ver os detalhes.",
       contribuicoes: "Contribuições no GitHub",
       total: (n: number) => `${n.toLocaleString("pt-BR")} contribuiç${n === 1 ? "ão" : "ões"} no último ano`,
       dia: (data: string, n: number) => `${data}: ${n.toLocaleString("pt-BR")} contribuiç${n === 1 ? "ão" : "ões"}`,

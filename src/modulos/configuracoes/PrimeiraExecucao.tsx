@@ -10,6 +10,7 @@ import { T } from "../../textos/textos";
 import { tocarSom } from "../../ponte/sons";
 import { EditorFoto } from "../../componentes/FotoPerfil";
 import { Teclas } from "./LinhaAjuste";
+import { mudarTema } from "../../janelas/area-de-trabalho/mudarTema";
 
 function PreviaDoModo({ modo }: { modo: ModoBorda }) {
   return (
@@ -88,7 +89,7 @@ export function PrimeiraExecucao() {
                     <Segmentado<Tema>
                       rotulo={T.configuracoes.tema}
                       valor={cfg.tema}
-                      aoMudar={(tema) => cfg.definir({ tema })}
+                      aoMudar={mudarTema}
                       opcoes={[
                         { valor: "claro", rotulo: T.barraLateral.temaClaro },
                         { valor: "escuro", rotulo: T.barraLateral.temaEscuro },

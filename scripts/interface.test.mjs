@@ -9,6 +9,171 @@ const opcoes = { configFile: false, server: { middlewareMode: true, hmr: false, 
 const vite = await criarServidorDeTeste(opcoes);
 after(() => vite.close());
 const { LimiteDeErro } = await vite.ssrLoadModule("/src/componentes/LimiteDeErro.tsx");
+const { circuloDoTema, animarTrocaDeTema } = await vite.ssrLoadModule("/src/utilitarios/transicaoTema.ts");
+
+const origemDoTema = { getBoundingClientRect: () => ({ left: 180, top: 670, width: 40, height: 40 }) };
+
+function prepararTransicao(t, opcoes = {}) {
+  const anteriores = ["window", "document"].map((nome) => Object.getOwnPropertyDescriptor(globalThis, nome));
+  const eventos = new Map();
+  const consulta = { matches: opcoes.reduzirSistema ?? false, addEventListener: (tipo, fn) => eventos.set(`consulta:${tipo}`, fn), removeEventListener: (tipo, fn) => { if (eventos.get(`consulta:${tipo}`) === fn) eventos.delete(`consulta:${tipo}`); } };
+  const animacoes = [];
+  const transicoes = [];
+  const raiz = {
+    dataset: { tema: "claro", reduzirAnimacoes: opcoes.reduzirApp ? "sim" : "nao" },
+    animate: (quadros, configuracao) => {
+      if (opcoes.falharAnimacao) throw new Error("animação indisponível");
+      const animacao = { quadros, configuracao, cancelada: false, cancel() { this.cancelada = true; } };
+      animacoes.push(animacao);
+      return animacao;
+    },
+  };
+  const doc = {
+    documentElement: raiz, visibilityState: opcoes.oculto ? "hidden" : "visible",
+    addEventListener: (tipo, fn) => eventos.set(`documento:${tipo}`, fn),
+    removeEventListener: (tipo, fn) => { if (eventos.get(`documento:${tipo}`) === fn) eventos.delete(`documento:${tipo}`); },
+  };
+  if (!opcoes.semApi) doc.startViewTransition = (aplicar) => {
+    if (opcoes.falharInicio) throw new Error("transição indisponível");
+    const pronta = Promise.withResolvers();
+    const final = Promise.withResolvers();
+    const transicao = {
+      ready: pronta.promise, finished: final.promise, aplicar,
+      preparar() { aplicar(); pronta.resolve(); },
+      falhar() { aplicar(); pronta.reject(new Error("transição ignorada")); final.resolve(); },
+      terminar: () => final.resolve(),
+      ignorada: false,
+      skipTransition() { this.ignorada = true; pronta.reject(new Error("transição interrompida")); final.resolve(); },
+    };
+    transicoes.push(transicao);
+    return transicao;
+  };
+  globalThis.document = doc;
+  globalThis.window = {
+    innerWidth: 1200, innerHeight: 800, matchMedia: () => consulta,
+    addEventListener: (tipo, fn) => eventos.set(`janela:${tipo}`, fn),
+    removeEventListener: (tipo, fn) => { if (eventos.get(`janela:${tipo}`) === fn) eventos.delete(`janela:${tipo}`); },
+  };
+  t.after(async () => {
+    animarTrocaDeTema(null, () => {}, false);
+    await Promise.resolve();
+    await Promise.resolve();
+    ["window", "document"].forEach((nome, i) => {
+      if (anteriores[i]) Object.defineProperty(globalThis, nome, anteriores[i]);
+      else delete globalThis[nome];
+    });
+  });
+  return { raiz, doc, consulta, animacoes, transicoes, eventos };
+}
+
+test("círculo do tema nasce no centro do botão e cobre os quatro cantos mesmo perto da borda", () => {
+  const { x, y, raio } = circuloDoTema(origemDoTema, 1200, 800);
+  assert.deepEqual([x, y], [200, 690]);
+  for (const [cx, cy] of [[0, 0], [1200, 0], [0, 800], [1200, 800]]) assert.ok(raio >= Math.hypot(cx - x, cy - y));
+  assert.deepEqual(circuloDoTema(null, 1200, 800), { x: 600, y: 400, raio: 722 });
+});
+
+test("claro e escuro são revelados para fora sobre a imagem anterior e liberam a tela no fim", async (t) => {
+  const c = prepararTransicao(t);
+  for (const tema of ["escuro", "claro"]) {
+    animarTrocaDeTema(origemDoTema, () => { c.raiz.dataset.tema = tema; });
+    assert.notEqual(c.raiz.dataset.tema, tema);
+    c.transicoes.at(-1).preparar();
+    await Promise.resolve();
+    assert.equal(c.raiz.dataset.tema, tema);
+    const { quadros, configuracao } = c.animacoes.at(-1);
+    assert.deepEqual(quadros.clipPath, ["circle(0px at 200px 690px)", "circle(1215px at 200px 690px)"]);
+    assert.equal(configuracao.pseudoElement, "::view-transition-new(root)");
+    assert.equal(configuracao.duration, 1000);
+    assert.equal(c.raiz.dataset.transicaoTema, "sim");
+    c.transicoes.at(-1).terminar();
+    await Promise.resolve();
+    assert.equal(c.raiz.dataset.transicaoTema, undefined);
+    assert.equal(c.eventos.size, 0);
+  }
+});
+
+for (const [nome, opcoes] of Object.entries({ "sem suporte": { semApi: true }, "redução do sistema": { reduzirSistema: true }, "redução do Niko": { reduzirApp: true }, "janela oculta": { oculto: true }, "falha ao iniciar": { falharInicio: true } })) {
+  test(`troca o tema imediatamente ${nome}, sem sobreposição presa`, (t) => {
+    const c = prepararTransicao(t, opcoes);
+    let aplicacoes = 0;
+    animarTrocaDeTema(origemDoTema, () => { c.raiz.dataset.tema = "escuro"; aplicacoes++; });
+    assert.equal(c.raiz.dataset.tema, "escuro");
+    assert.equal(aplicacoes, 1);
+    assert.equal(c.animacoes.length, 0);
+    assert.equal(c.raiz.dataset.transicaoTema, undefined);
+    assert.equal(c.eventos.size, 0);
+  });
+}
+
+test("cliques rápidos não aplicam tema antigo nem removem os estilos da transição mais nova", async (t) => {
+  const c = prepararTransicao(t);
+  let antigo = 0;
+  animarTrocaDeTema(origemDoTema, () => { antigo++; });
+  const primeira = c.transicoes[0];
+  animarTrocaDeTema(origemDoTema, () => { c.raiz.dataset.tema = "escuro"; });
+  primeira.aplicar();
+  await Promise.resolve();
+  assert.equal(antigo, 0);
+  assert.equal(c.raiz.dataset.transicaoTema, "sim");
+  assert.equal(primeira.ignorada, true);
+  c.transicoes[1].preparar();
+  await Promise.resolve();
+  assert.equal(c.animacoes.length, 1);
+  c.transicoes[1].terminar();
+  await Promise.resolve();
+  assert.equal(c.eventos.size, 0);
+});
+
+test("transição ignorada pelo navegador mantém a troca de tema e limpa sua marcação", async (t) => {
+  const c = prepararTransicao(t);
+  animarTrocaDeTema(origemDoTema, () => { c.raiz.dataset.tema = "escuro"; });
+  c.transicoes[0].falhar();
+  await Promise.resolve();
+  await Promise.resolve();
+  assert.equal(c.raiz.dataset.tema, "escuro");
+  assert.equal(c.raiz.dataset.transicaoTema, undefined);
+  assert.equal(c.eventos.size, 0);
+});
+
+test("falha no efeito circular não deixa a interface congelada", async (t) => {
+  const c = prepararTransicao(t, { falharAnimacao: true });
+  animarTrocaDeTema(origemDoTema, () => { c.raiz.dataset.tema = "escuro"; });
+  c.transicoes[0].preparar();
+  await Promise.resolve();
+  await Promise.resolve();
+  await Promise.resolve();
+  assert.equal(c.raiz.dataset.tema, "escuro");
+  assert.equal(c.raiz.dataset.transicaoTema, undefined);
+  assert.equal(c.eventos.size, 0);
+});
+
+test("redimensionar, ocultar ou reduzir movimento interrompe o efeito sem reverter o tema", async (t) => {
+  const c = prepararTransicao(t);
+  for (const evento of ["janela:resize", "documento:visibilitychange", "consulta:change"]) {
+    c.doc.visibilityState = "visible";
+    animarTrocaDeTema(origemDoTema, () => { c.raiz.dataset.tema = "escuro"; });
+    c.transicoes.at(-1).preparar();
+    await Promise.resolve();
+    c.doc.visibilityState = "hidden";
+    c.eventos.get(evento)({ matches: true });
+    await Promise.resolve();
+    assert.equal(c.animacoes.at(-1).cancelada, true);
+    assert.equal(c.raiz.dataset.tema, "escuro");
+    assert.equal(c.raiz.dataset.transicaoTema, undefined);
+    assert.equal(c.eventos.size, 0);
+  }
+});
+
+test("escolher aparência equivalente cancela uma troca pendente sem aplicar estado atrasado", async (t) => {
+  const c = prepararTransicao(t);
+  animarTrocaDeTema(origemDoTema, () => { c.raiz.dataset.tema = "escuro"; });
+  animarTrocaDeTema(origemDoTema, () => { c.raiz.dataset.tema = "claro"; }, false);
+  c.transicoes[0].aplicar();
+  await Promise.resolve();
+  assert.equal(c.raiz.dataset.tema, "claro");
+  assert.equal(c.raiz.dataset.transicaoTema, undefined);
+});
 
 test("servidores de teste usam caches distintos e nunca sobrescrevem o cache do localhost", async () => {
   const arquivos = [".vite", ".vite-niko"].map((nome) => new URL(`../node_modules/${nome}/deps/_metadata.json`, import.meta.url));

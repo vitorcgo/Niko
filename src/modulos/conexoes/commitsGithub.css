@@ -1,0 +1,34 @@
+.github-commits {
+  --commit-tinta: var(--texto);
+  --commit-dim: var(--texto-3);
+  --commit-borda: var(--borda);
+  --commit-hover: var(--superficie-2);
+  --commit-link: var(--destaque);
+  min-width: 0;
+  color: var(--commit-tinta);
+}
+
+.github-commits-cabecalho { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; margin-bottom: 8px; font-size: 12px; }
+.github-commits-cabecalho > span { color: var(--commit-dim); font-size: 10px; }
+.github-commits-lista { display: flex; flex-direction: column; gap: 4px; }
+.github-commit { min-width: 0; border: 1px solid var(--commit-borda); border-radius: 10px; overflow: hidden; }
+.github-commit > summary { display: flex; align-items: center; gap: 8px; padding: 9px 10px; cursor: pointer; list-style: none; font-size: 12px; }
+.github-commit > summary::-webkit-details-marker { display: none; }
+.github-commit > summary:hover { background: var(--commit-hover); }
+.github-commit > summary:focus-visible { outline-offset: -2px; }
+.github-commit-icone { color: var(--commit-dim); }
+.github-commit-resumo { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 0; }
+.github-commit-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 8px; font-size: 10px; color: var(--commit-dim); }
+.github-commit-meta > span { max-width: 100%; }
+.github-commit-meta > time { margin-left: auto; white-space: nowrap; }
+.github-commit-seta { color: var(--commit-dim); transition: transform 0.18s; }
+.github-commit[open] .github-commit-seta { transform: rotate(180deg); }
+.github-commit-detalhes { padding: 10px; border-top: 1px solid var(--commit-borda); font-size: 11px; }
+.github-commit-mensagem { white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.5; margin-bottom: 10px; }
+.github-commit-detalhes dl { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 5px 12px; }
+.github-commit-detalhes dt { color: var(--commit-dim); }
+.github-commit-detalhes dd { margin: 0; overflow-wrap: anywhere; }
+.github-commit-detalhes a { display: inline-flex; align-items: center; gap: 5px; margin-top: 12px; color: var(--commit-link); }
+.github-commits-aviso, .github-commits-escopo { font-size: 11px; line-height: 1.5; color: var(--commit-dim); padding: 8px 0; }
+.github-commits-compactos { --commit-tinta: var(--i-tinta); --commit-dim: var(--i-dim); --commit-borda: rgba(var(--i-rgb), 0.1); --commit-hover: var(--i-cartao-plano); --commit-link: var(--i-tinta); }
+.ilha-raiz .github-commits-aviso { color: var(--i-dim); }

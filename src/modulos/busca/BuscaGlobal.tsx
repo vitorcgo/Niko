@@ -18,6 +18,7 @@ import { ICONE_ROTA } from "../../janelas/sistema/rotas";
 import type { Rota } from "../../tipos";
 import { funcaoLigada, rotaLigada } from "../../utilitarios/funcoes";
 import { formatarTeclas, type AcaoGlobal } from "../../utilitarios/atalhos";
+import { mudarTema } from "../../janelas/area-de-trabalho/mudarTema";
 
 const ATALHO_DA_ACAO: Record<string, AcaoGlobal> = { "a-pomodoro": "pomodoro", "a-priv": "privacidade", "a-captura": "captura" };
 
@@ -27,7 +28,7 @@ interface Resultado {
   titulo: string;
   sub?: string;
   icone: React.ReactNode;
-  executar: () => void;
+  executar: (origem?: Element | null) => void;
 }
 
 const CHAVE_RECENTES = "niko:busca-recentes";
@@ -81,9 +82,8 @@ export function BuscaGlobal() {
         grupo: "acoes",
         titulo: T.busca.acoes.alternarTema,
         icone: <SunMoon size={15} />,
-        executar: () => {
-          const c = useConfig.getState();
-          c.definir({ tema: document.documentElement.dataset.tema === "escuro" ? "claro" : "escuro" });
+        executar: (origem) => {
+          mudarTema(document.documentElement.dataset.tema === "escuro" ? "claro" : "escuro", origem ?? campo.current);
           fechar();
         },
       },
@@ -127,7 +127,7 @@ export function BuscaGlobal() {
     }
     const comRecentes = r.map((x) => {
       const executar = x.executar;
-      return { ...x, executar: () => { guardarRecente(x.id); executar(); } };
+      return { ...x, executar: (origem?: Element | null) => { guardarRecente(x.id); executar(origem); } };
     });
     if (!t) {
       const vistos = recentes.map((id) => comRecentes.find((x) => x.id === id)).filter((x): x is Resultado => !!x).slice(0, 6).map((x) => ({ ...x, grupo: "recentes" as const }));
@@ -201,7 +201,7 @@ export function BuscaGlobal() {
                     e.preventDefault();
                     setAtivo((a) => Math.max(0, a - 1));
                   }
-                  if (e.key === "Enter") resultados[ativo]?.executar();
+                  if (e.key === "Enter") resultados[ativo]?.executar(lista.current?.querySelector(`[data-indice="${ativo}"]`));
                 }}
               />
               <kbd className="busca-tecla">Esc</kbd>
@@ -225,7 +225,7 @@ export function BuscaGlobal() {
                           data-indice={i}
                           className="busca-item"
                           onPointerMove={() => setAtivo(i)}
-                          onClick={r.executar}
+                          onClick={(evento) => r.executar(evento.currentTarget)}
                         >
                           <span className="busca-icone">{r.icone}</span>
                           <span className="busca-item-texto">

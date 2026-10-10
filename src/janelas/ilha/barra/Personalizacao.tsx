@@ -6,6 +6,7 @@ import { useIlha } from "../../../estado/ilha";
 import { controle } from "../../../ponte/ponteLocal";
 import { tocarSom } from "../../../ponte/sons";
 import { DESTAQUE_PADRAO } from "../../area-de-trabalho/usarTema";
+import { mudarTema } from "../../area-de-trabalho/mudarTema";
 import { FUNDOS_PRONTOS } from "../../../modulos/configuracoes/SeletorDeFundo";
 import { FUNDO_DESTAQUE, hexValido, misturar, textoSobre } from "../../../utilitarios/cores";
 import { T } from "../../../textos/textos";
@@ -18,11 +19,11 @@ const MONITOR_PRINCIPAL = "principal";
 const P = T.ilha.barra.personalizacao;
 const DESTAQUES_PRONTOS = ["#a78bfa", "#3b82f6", "#10b981", "#f59e0b", "#f4505e", "#ec4899"];
 
-function Escolha<V extends string>({ rotulo, valor, opcoes, aoMudar, grade = false, desativada = false }: { rotulo: string; valor: V; opcoes: { valor: V; rotulo: string }[]; aoMudar: (v: V) => void; grade?: boolean; desativada?: boolean }) {
+function Escolha<V extends string>({ rotulo, valor, opcoes, aoMudar, grade = false, desativada = false }: { rotulo: string; valor: V; opcoes: { valor: V; rotulo: string }[]; aoMudar: (v: V, origem: HTMLButtonElement) => void; grade?: boolean; desativada?: boolean }) {
   return (
     <div className="ilha-escolha" data-grade={grade || undefined} data-desativada={desativada || undefined} role="radiogroup" aria-label={rotulo} aria-disabled={desativada || undefined}>
       {opcoes.map((o) => (
-        <button key={o.valor} type="button" role="radio" aria-checked={valor === o.valor} className="ilha-escolha-opcao" disabled={desativada} onClick={() => aoMudar(o.valor)}>
+        <button key={o.valor} type="button" role="radio" aria-checked={valor === o.valor} className="ilha-escolha-opcao" disabled={desativada} onClick={(evento) => aoMudar(o.valor, evento.currentTarget)}>
           {o.rotulo}
         </button>
       ))}
@@ -119,7 +120,7 @@ export function Personalizacao({ topo, aoFechar }: { topo: number; aoFechar: () 
     >
       <Grupo icone={SunMoon} titulo={P.grupos.aparencia}>
         <Linha rotulo={P.temaDoNiko}>
-          <Escolha<Tema> rotulo={P.temaDoNiko} valor={cfg.tema} aoMudar={(tema) => cfg.definir({ tema })} opcoes={(["claro", "escuro", "sistema"] as Tema[]).map((t) => ({ valor: t, rotulo: P.temas[t] }))} />
+          <Escolha<Tema> rotulo={P.temaDoNiko} valor={cfg.tema} aoMudar={mudarTema} opcoes={(["claro", "escuro", "sistema"] as Tema[]).map((t) => ({ valor: t, rotulo: P.temas[t] }))} />
         </Linha>
         <Linha rotulo={P.destaque}>
           <div className="ilha-amostras">
