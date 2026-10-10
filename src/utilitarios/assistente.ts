@@ -4,7 +4,7 @@ import { useConfig } from "../estado/configuracoes";
 import { useComunicacao } from "../estado/comunicacao";
 import { AGENTES } from "../estado/agentes";
 import { definicoesFerramentas, executarFerramenta } from "./ferramentasIa";
-import { promptDoAgente } from "./contextoIa";
+import { preferenciasDoAgente, promptDoAgente } from "./contextoIa";
 import { agentePeloAssunto } from "./intencoes";
 import { gerarId, normalizarTexto } from "./basicos";
 import { hojeISO } from "./datas";
@@ -25,6 +25,7 @@ export interface RespostaAssistente {
   trocas: string[];
   falha: string | null;
   parado: boolean;
+  exigirConfirmacao?: boolean;
   cortada?: "cortado" | "so_raciocinio";
 }
 
@@ -118,13 +119,16 @@ export async function perguntarAssistente(opcoes: {
     return resposta;
   }
   const sistema = promptDoAgente(opcoes.agente, opcoes.apenasAnalise);
-  const definicoes = opcoes.apenasAnalise ? [] : definicoesFerramentas();
+  const preferencias = opcoes.apenasAnalise ? null : preferenciasDoAgente(opcoes.agente);
+  const personaPersonalizada = preferencias !== null;
+  resposta.exigirConfirmacao = personaPersonalizada;
+  const definicoes = opcoes.apenasAnalise ? [] : definicoesFerramentas(personaPersonalizada);
   const permitidas = new Set(definicoes.map((f) => f.nome));
   const errosFerramenta: string[] = [];
   const textosVerificados: string[] = [];
   let analiseBloqueada = false;
   let modeloSemFerramentas = false;
-  const mensagens = [...opcoes.historico];
+  const mensagens = [...(preferencias ? [preferencias] : []), ...opcoes.historico];
   let indice = 0;
   let ultimoErro = "";
   const tentativas = new Map<number, number>();
@@ -247,7 +251,7 @@ export async function perguntarAssistente(opcoes: {
         continuar = true;
         continue;
       }
-      const r = await executarFerramenta(c.nome, c.argumentos);
+      const r = await executarFerramenta(c.nome, c.argumentos, personaPersonalizada);
       if (r.tipo === "dados") {
         if (r.resumo) resposta.acoes.push(r.resumo);
         if (r.textoVerificado) textosVerificados.push(r.textoVerificado);

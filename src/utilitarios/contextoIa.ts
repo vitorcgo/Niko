@@ -11,6 +11,8 @@ import { somar } from "./basicos";
 import { T } from "../textos/textos";
 import type { AgenteId } from "../tipos";
 import { funcaoDoComando, funcaoLigada, regraDasFuncoesParaIa } from "./funcoes";
+import { personaValida } from "../personagens/personalizacao";
+import type { MensagemPonteIa } from "../ponte/ponteLocal";
 
 function comandosSugeridos(): string {
   return ["tarefa", "gasto", "lembrete", "compra"]
@@ -71,14 +73,19 @@ export function contextoParaIa(): string {
   return linhas.join("\n\n");
 }
 
+export function preferenciasDoAgente(agente: AgenteId): MensagemPonteIa | null {
+  const persona = personaValida(useConfig.getState().agentes.personas[agente]);
+  return persona ? { papel: "usuario", texto: JSON.stringify({ preferenciasDeConversa: persona }) } : null;
+}
+
 export function promptDoAgente(agente: AgenteId, apenasAnalise = false): string {
-  const { nomes, cargos, personas } = useConfig.getState().agentes;
+  const { nomes, cargos } = useConfig.getState().agentes;
   if (apenasAnalise) return [T.chat.anexos.analiseSistema, ...T.chat.confianca.regras].join("\n");
   const colegas = AGENTES.filter((a) => a !== agente).map((a) => `- ${nomes[a]}, ${cargos[a]}: ${T.agentes.areas[a]}`).join("\n");
   return [
     `Você é ${nomes[agente]}, ${cargos[agente]} no Niko, um app pessoal do usuário para rotina, estudos, finanças e projetos. Sua área: ${T.agentes.areas[agente]}.`,
     `Responda somente como ${nomes[agente]}. Não escreva nomes seguidos de dois pontos no início da resposta, não encene outros agentes e não atribua suas respostas a um colega. O Niko identifica o autor na interface.`,
-    ...(personas[agente] ? [T.agentes.personalizacao.regraPersona, JSON.stringify({ preferenciasDeConversa: personas[agente] })] : []),
+    T.agentes.personalizacao.regraPersona,
     ...T.chat.confianca.regras,
     `Colegas do time:\n${colegas}`,
     "Regras:",

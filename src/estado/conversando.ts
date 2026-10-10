@@ -5,7 +5,7 @@ import { useAgentes } from "./agentes";
 import { useConfig } from "./configuracoes";
 import { executarComando, confirmarComando, faltaCategoria } from "../utilitarios/comandos";
 import { detectarIntencao } from "../utilitarios/intencoes";
-import { resumoPorAgente } from "../utilitarios/contextoIa";
+import { preferenciasDoAgente, resumoPorAgente } from "../utilitarios/contextoIa";
 import { acharMencao, escolherAgente, historicoParaIa, perguntarAssistente, provedoresEmOrdem, mensagemDeErroIa } from "../utilitarios/assistente";
 import { hojeISO } from "../utilitarios/datas";
 import { guardarImagens, imagemParaBlob, type AnexoPronto } from "../utilitarios/anexos";
@@ -84,7 +84,7 @@ async function perguntar(conversaId: string, pedido: string, agente: AgenteId, r
   const r = await perguntarAssistente({ agente, historico: apenasAnalise ? [{ papel: "usuario", texto: pedido }] : historicoParaIa(anteriores, agente, mensagemPedido ? { ...mensagemPedido, texto: pedido } : pedido), sinal: controle.signal, aoTexto: mostrarParcial, apenasAnalise });
   const adicionar = useComunicacao.getState().adicionarMensagem;
   const origem = r.origem ? (r.trocas.length ? T.chat.trocouProvedor(r.trocas.join(", "), r.origem) : r.origem) : undefined;
-  const automaticas = useConfig.getState().ia.autoAprovar ?? [];
+  const automaticas = r.exigirConfirmacao || preferenciasDoAgente(agente) !== null ? [] : useConfig.getState().ia.autoAprovar ?? [];
   const avisoConfirmacao = r.confirmacoes.length ? T.chat.ferramentas.confira(r.confirmacoes.length) : "";
   for (let i = 0; i < r.confirmacoes.length; i++) {
     const c = r.confirmacoes[i];

@@ -651,10 +651,13 @@ function definicaoAtual(f: FerramentaIa): FerramentaIa {
   };
 }
 
-export function definicoesFerramentas(): FerramentaIa[] {
+const ACOES_IMEDIATAS = new Set(["abrir_tela", "iniciar_pomodoro", "controlar_pomodoro"]);
+
+export function definicoesFerramentas(personaPersonalizada = false): FerramentaIa[] {
   const financeiroBloqueado = useConfig.getState().nuncaFinanceiro;
   const gmailConectado = useComunicacao.getState().conexoes.some((c) => c.id === "google" && c.chaveSalva);
   return FERRAMENTAS.map((f) => definicaoAtual(f.definicao)).filter((f) => {
+    if (personaPersonalizada && ACOES_IMEDIATAS.has(f.nome)) return false;
     if (financeiroBloqueado && f.nome === "ler_financas") return false;
     if (!gmailConectado && ["buscar_emails", "criar_rascunho_email", "enviar_email"].includes(f.nome)) return false;
     if (!ferramentaLigada(f.nome)) return false;
@@ -689,11 +692,12 @@ export function textoCapacidadesResumido(): string {
   ].join("\n\n");
 }
 
-export async function executarFerramenta(nome: string, argumentos: Argumentos): Promise<ResultadoFerramenta> {
+export async function executarFerramenta(nome: string, argumentos: Argumentos, personaPersonalizada = false): Promise<ResultadoFerramenta> {
   const ferramenta = FERRAMENTAS.find((f) => f.definicao.nome === normalizarTexto(nome));
   if (!ferramenta) return { tipo: "erro", mensagem: ERROS.ferramentaDesconhecida(nome) };
   const desligada = FUNCOES.find((f) => PARTES[f].ferramentasIa.includes(ferramenta.definicao.nome) && !funcaoLigada(f));
   if (desligada) return { tipo: "erro", mensagem: avisoDeFuncaoDesligada(desligada) };
+  if (!definicoesFerramentas(personaPersonalizada).some((f) => f.nome === ferramenta.definicao.nome)) return { tipo: "erro", mensagem: T.chat.confianca.ferramentaIndisponivel(nome) };
   try {
     if (ferramenta.assincrona) return await ferramenta.assincrona(argumentos ?? {});
     return ferramenta.executar(argumentos ?? {});
