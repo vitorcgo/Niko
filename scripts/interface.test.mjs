@@ -68,3 +68,47 @@ test("todos os testes com Vite passam pelo isolamento de cache", () => {
     assert.doesNotMatch(codigo, /import\s*\{[^}]*createServer[^}]*\}\s*from "vite"/);
   }
 });
+
+function coresDoBloco(arquivo, seletor) {
+  const css = readFileSync(new URL(arquivo, import.meta.url), "utf8");
+  const inicio = css.indexOf(`${seletor} {`);
+  assert.ok(inicio >= 0, seletor);
+  const bloco = css.slice(inicio, css.indexOf("}", inicio));
+  return Object.fromEntries([...bloco.matchAll(/(--[\w-]+):\s*([^;]+);/g)].map((m) => [m[1], m[2].trim()]));
+}
+
+function luminancia(cor) {
+  const canais = cor.slice(1).match(/../g).map((canal) => parseInt(canal, 16) / 255);
+  const [r, g, b] = canais.map((canal) => canal <= 0.04045 ? canal / 12.92 : ((canal + 0.055) / 1.055) ** 2.4);
+  return r * 0.2126 + g * 0.7152 + b * 0.0722;
+}
+
+test("tema claro mantém textos secundários legíveis sobre fundos suaves em todas as paletas", () => {
+  const arquivo = "../src/estilos/estilo-sistema.css";
+  const claro = coresDoBloco(arquivo, '[data-tema="claro"] .estilo-sistema');
+  const fundos = [claro["--p-f"], claro["--p-s"]];
+  for (const paleta of ["areia", "grafite", "floresta", "oceano"]) {
+    const cores = coresDoBloco(arquivo, `[data-tema="claro"][data-paleta="${paleta}"] .estilo-sistema`);
+    fundos.push(cores["--p-f"], cores["--p-s"]);
+  }
+  for (const token of ["--texto", "--texto-corpo", "--texto-2", "--texto-3", "--texto-4"]) {
+    for (const fundo of fundos) {
+      const contraste = (luminancia(fundo) + 0.05) / (luminancia(claro[token]) + 0.05);
+      assert.ok(contraste >= 4.5, `${token} sobre ${fundo}: ${contraste}`);
+    }
+  }
+  assert.notEqual(claro["--p-s"], "#ffffff");
+  assert.equal(claro["--borda"], "color-mix(in srgb, var(--p-f), #000 18%)");
+  assert.equal(claro["--borda-controle"], "color-mix(in srgb, var(--p-f), #000 22%)");
+});
+
+test("ajustes do calendário claro preservam as cores base do tema escuro", () => {
+  const escuro = coresDoBloco("../src/estilos/estilo-sistema.css", '[data-tema="escuro"] .estilo-sistema');
+  assert.equal(escuro["--p-f"], "#0e0e10");
+  assert.equal(escuro["--p-s"], "#161618");
+  assert.equal(escuro["--texto"], "#f2efe9");
+  assert.equal(escuro["--texto-3"], "#6f6d69");
+  const css = readFileSync(new URL("../src/estilos/telas/calendario.css", import.meta.url), "utf8");
+  assert.match(css, /\[data-tema="claro"\] \.estilo-sistema \.cl-mes\s*\{\s*background: var\(--borda\)/);
+  assert.match(css, /\[data-tema="claro"\] \.estilo-sistema \.cl-dia\[data-fora="sim"\] \.cl-dia-numero\s*\{\s*color: var\(--texto-4\)/);
+});

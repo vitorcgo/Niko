@@ -94,8 +94,8 @@
 
 [data-tema="claro"] .estilo-sistema {
   color-scheme: light;
-  --p-f: #f6f5f2;
-  --p-s: #ffffff;
+  --p-f: #ededeb;
+  --p-s: #f8f8f5;
   --fundo: var(--p-f);
   --fundo-barra: color-mix(in srgb, var(--p-f), #000 2.5%);
   --superficie: var(--p-s);
@@ -103,19 +103,19 @@
   --superficie-3: var(--p-s);
   --superficie-alta: var(--p-s);
   --superficie-ativa: color-mix(in srgb, var(--p-f), #000 2.5%);
-  --borda-suave: color-mix(in srgb, var(--p-f), #000 5.5%);
-  --borda: color-mix(in srgb, var(--p-f), #000 7.5%);
-  --borda-controle: color-mix(in srgb, var(--p-f), #000 10%);
-  --borda-forte: color-mix(in srgb, var(--p-f), #000 15%);
-  --borda-hover: color-mix(in srgb, var(--p-f), #000 21%);
-  --linha: color-mix(in srgb, var(--p-f), #000 4.5%);
+  --borda-suave: color-mix(in srgb, var(--p-f), #000 14%);
+  --borda: color-mix(in srgb, var(--p-f), #000 18%);
+  --borda-controle: color-mix(in srgb, var(--p-f), #000 22%);
+  --borda-forte: color-mix(in srgb, var(--p-f), #000 28%);
+  --borda-hover: color-mix(in srgb, var(--p-f), #000 34%);
+  --linha: color-mix(in srgb, var(--p-f), #000 12%);
 
-  --texto: #18181b;
-  --texto-corpo: #2e2d2a;
-  --texto-2: #5c5a55;
-  --texto-3: #85827b;
-  --texto-4: #a29f98;
-  --texto-5: #c3c0b9;
+  --texto: #20201e;
+  --texto-corpo: #30302d;
+  --texto-2: #4d4d49;
+  --texto-3: #62625f;
+  --texto-4: #666662;
+  --texto-5: #8b8b84;
   --destaque-claro: color-mix(in srgb, var(--destaque) 86%, #000);
 
   --sucesso: #1f9d63;

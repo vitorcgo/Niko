@@ -274,6 +274,18 @@
   color: var(--texto-5);
 }
 
+[data-tema="claro"] .estilo-sistema .cl-mes {
+  background: var(--borda);
+}
+
+[data-tema="claro"] .estilo-sistema .cl-mes-cabecalho span {
+  font-weight: 600;
+}
+
+[data-tema="claro"] .estilo-sistema .cl-dia[data-fora="sim"] .cl-dia-numero {
+  color: var(--texto-4);
+}
+
 .estilo-sistema .cl-dia[data-hoje="sim"] .cl-dia-numero {
   background: var(--destaque);
   color: var(--destaque-sobre);

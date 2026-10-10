@@ -42,15 +42,15 @@
 [data-fundo-claro] {
   color-scheme: light;
   --cor-organizador: #1c1c1e;
-  --fundo: #f6f6f5;
-  --superficie: #ffffff;
-  --superficie-2: #f1f1f0;
-  --borda: #e7e7e5;
-  --borda-forte: #d6d6d3;
-  --texto: #111111;
-  --texto-2: #6b6b6b;
-  --texto-3: #9a9a98;
-  --primario: #111111;
+  --fundo: #ededeb;
+  --superficie: #f8f8f5;
+  --superficie-2: #e5e5e1;
+  --borda: #c9cac5;
+  --borda-forte: #abada7;
+  --texto: #20201e;
+  --texto-2: #4d4d49;
+  --texto-3: #62625f;
+  --primario: #20201e;
   --primario-texto: #ffffff;
   --botao-primario: var(--primario);
   --botao-primario-hover: #2a2a2a;
