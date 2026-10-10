@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 
 export const arquivosDeTeste = [
   "validacoes", "escritorio", "chat", "midia", "claude", "personalizacao-agentes",
-  "ilha", "versao-release", "animacoes-ilha", "concorrencia", "configuracao-vite",
+  "ilha", "versao-release", "animacoes-ilha", "concorrencia", "configuracao-vite", "github",
 ].map((nome) => `scripts/${nome}.test.mjs`);
 
 export function validarArquivosDeTeste(raiz) {

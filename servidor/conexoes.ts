@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { lerSegredo, gravarSegredo, apagarSegredo } from "./segredos.ts";
 import { pastaDados, validarUrlBase } from "./ia.ts";
 import { autorizarWorkspace, lerGoogle } from "./google.ts";
+import { lerContribuicoesGithub } from "./github.ts";
 
 export const SERVICOS = ["stripe", "github", "vercel", "resend", "notion", "calcom", "n8n", "google", "supabase", "cloudflare"] as const;
 const SERVICOS_ANTIGOS_DO_GOOGLE = ["gmail", "agenda"];
@@ -72,20 +73,6 @@ export function revisaoDasAvaliacoes(avaliacoes: { state: string }[]): RevisaoDo
   return ultima === "APPROVED" ? "aprovado" : ultima === "CHANGES_REQUESTED" ? "mudancas" : "pendente";
 }
 
-async function contribuicoesDoGithub(cabecalhos: Record<string, string>): Promise<Record<string, number>> {
-  const consulta = "query { viewer { contributionsCollection { contributionCalendar { weeks { contributionDays { date contributionCount } } } } } }";
-  const r = await pedir<{ data?: { viewer?: { contributionsCollection?: { contributionCalendar?: { weeks?: { contributionDays?: { date: string; contributionCount: number }[] }[] } } } }; errors?: unknown[] }>(
-    "https://api.github.com/graphql",
-    cabecalhos,
-    { query: consulta },
-  );
-  const semanas = r.data?.viewer?.contributionsCollection?.contributionCalendar?.weeks;
-  if (r.errors?.length || !semanas) throw new Error("sem_contribuicoes");
-  const porDia: Record<string, number> = {};
-  for (const s of semanas) for (const d of s.contributionDays ?? []) if (d.contributionCount > 0) porDia[d.date] = d.contributionCount;
-  return porDia;
-}
-
 type Leitor = (chave: string, url?: string) => Promise<unknown>;
 
 const LEITORES: Record<Servico, Leitor> = {
@@ -123,11 +110,12 @@ const LEITORES: Record<Servico, Leitor> = {
     const eu = await pedir<{ login: string }>(`${base}/user`, h);
     type Item = { title: string; number: number; repository_url: string; html_url: string; user?: { login: string }; created_at: string; labels?: { name: string }[] };
     const busca = (q: string, n: number) => pedir<{ items: Item[] }>(`${base}/search/issues?q=${encodeURIComponent(q)}&per_page=${n}`, h);
-    const [repos, meus, paraRevisar, issues] = await Promise.all([
+    const [repos, meus, paraRevisar, issues, contribuicoes] = await Promise.all([
       pedir<{ name: string; full_name: string; language: string | null; stargazers_count: number; updated_at: string; private: boolean }[]>(`${base}/user/repos?sort=updated&per_page=10`, h),
       busca(`is:pr is:open author:${eu.login}`, 10),
       busca(`is:pr is:open review-requested:${eu.login}`, 10),
       busca(`is:issue is:open assignee:${eu.login}`, 15),
+      lerContribuicoesGithub(h, pedir).catch(() => null),
     ]);
     const nomeCompleto = (url: string) => url.split("/repos/")[1] ?? "";
     const detalharPr = async (p: Item) => {
@@ -151,16 +139,7 @@ const LEITORES: Record<Servico, Leitor> = {
           .catch(() => []),
       ),
     );
-    const commitsPorDia = await contribuicoesDoGithub(h).catch(async () => {
-      const eventos = await pedir<{ type: string; created_at: string; payload?: { size?: number; commits?: unknown[] } }[]>(`${base}/users/${eu.login}/events?per_page=100`, h).catch(() => []);
-      const porDia: Record<string, number> = {};
-      for (const ev of eventos) {
-        if (ev.type !== "PushEvent") continue;
-        const dia = new Date(ev.created_at).toLocaleDateString("sv-SE");
-        porDia[dia] = (porDia[dia] ?? 0) + (ev.payload?.size ?? ev.payload?.commits?.length ?? 1);
-      }
-      return porDia;
-    });
+    const commitsPorDia = Object.fromEntries(contribuicoes?.dias.map((d) => [d.data, d.quantidade]) ?? []);
     const repoDe = (url: string) => url.split("/").pop() ?? "";
     const paraLista = (p: Item, tipo: "meu" | "revisar", extra: { ci: CiDoPr; revisao: RevisaoDoPr } = { ci: "nenhum", revisao: "pendente" }) => ({
       titulo: p.title, repo: repoDe(p.repository_url), numero: p.number, autor: p.user?.login ?? "", data: p.created_at, url: p.html_url, tipo, ...extra,
@@ -168,6 +147,7 @@ const LEITORES: Record<Servico, Leitor> = {
     return {
       usuario: eu.login,
       commitsPorDia,
+      contribuicoes,
       repositorios: repos.map((r) => ({ nome: r.name, linguagem: r.language ?? "", estrelas: r.stargazers_count, atualizado: r.updated_at, privado: r.private })),
       prs: [...paraRevisar.items.map((p) => paraLista(p, "revisar")), ...meus.items.map((p, i) => paraLista(p, "meu", detalhes[i]))],
       issues: issues.items.map((i) => ({ titulo: i.title, repo: repoDe(i.repository_url), numero: i.number, rotulos: (i.labels ?? []).map((l) => l.name), data: i.created_at })),

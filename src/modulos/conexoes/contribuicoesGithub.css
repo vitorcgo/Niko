@@ -1,0 +1,58 @@
+.github-contribuicoes {
+  --github-tamanho: 10px;
+  --github-espaco: 3px;
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid var(--borda);
+  border-radius: 12px;
+  color: var(--texto);
+  background: var(--superficie);
+}
+
+.github-contribuicoes-cabecalho,
+.github-contribuicoes-rodape {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+}
+
+.github-contribuicoes-cabecalho { font-size: 12px; }
+.github-contribuicoes-cabecalho > span { font-size: 10px; color: var(--texto-3); }
+.github-contribuicoes-metricas { display: flex; flex-wrap: wrap; gap: 12px 24px; margin: 14px 0; }
+.github-contribuicoes-metricas > span { display: flex; flex-direction: column; gap: 3px; color: var(--texto-3); font-size: 11px; }
+.github-contribuicoes-metricas strong { color: var(--texto); font-size: 19px; font-weight: 600; }
+.github-contribuicoes-rolagem { min-width: 0; max-width: 100%; overflow-x: auto; margin-top: 12px; padding: 2px 2px 6px; }
+.github-contribuicoes-meses { display: grid; grid-template-columns: repeat(var(--github-semanas), minmax(var(--github-tamanho), 1fr)); gap: var(--github-espaco); margin: 0 0 5px 27px; font-size: 10px; color: var(--texto-3); }
+.github-contribuicoes-corpo { display: flex; gap: 5px; min-width: calc(var(--github-semanas) * (var(--github-tamanho) + var(--github-espaco)) + 24px); }
+.github-contribuicoes-semana { width: 22px; flex: 0 0 22px; display: grid; grid-template-rows: repeat(7, var(--github-tamanho)); gap: var(--github-espaco); color: var(--texto-3); font-size: 9px; line-height: var(--github-tamanho); }
+.github-contribuicoes-grade { flex: 1; display: grid; grid-auto-flow: column; grid-template-rows: repeat(7, var(--github-tamanho)); grid-template-columns: repeat(var(--github-semanas), minmax(var(--github-tamanho), 1fr)); gap: var(--github-espaco); }
+.github-contribuicoes-dia { display: block; min-width: 0; height: var(--github-tamanho); padding: 0; border: 1px solid rgba(128, 128, 128, 0.1); border-radius: 2px; background: var(--superficie-2); }
+button.github-contribuicoes-dia { cursor: pointer; }
+button.github-contribuicoes-dia:focus-visible { outline: 2px solid var(--texto); outline-offset: 1px; }
+.github-contribuicoes-dia[data-nivel="1"] { background: #0e4429; }
+.github-contribuicoes-dia[data-nivel="2"] { background: #006d32; }
+.github-contribuicoes-dia[data-nivel="3"] { background: #26a641; }
+.github-contribuicoes-dia[data-nivel="4"] { background: #39d353; }
+.github-contribuicoes-vazia { visibility: hidden; }
+.github-contribuicoes-rodape { margin-top: 5px; color: var(--texto-3); font-size: 10px; }
+.github-contribuicoes-legenda { display: inline-flex; align-items: center; gap: 3px; margin-left: auto; }
+.github-contribuicoes-legenda .github-contribuicoes-dia { width: 9px; height: 9px; }
+.github-contribuicoes-escopo { margin: 10px 0 0; font-size: 10px; line-height: 1.5; color: var(--texto-3); }
+.github-contribuicoes-aviso { padding: 10px; font-size: 11px; line-height: 1.5; color: var(--texto-3); }
+
+.github-contribuicoes-compacta { --github-tamanho: 5px; --github-espaco: 2px; padding: 10px; background: var(--i-cartao); border-color: rgba(var(--i-rgb), 0.1); color: var(--i-tinta); }
+.github-contribuicoes-compacta .github-contribuicoes-cabecalho { font-size: 11px; }
+.github-contribuicoes-compacta .github-contribuicoes-meses { font-size: 9px; }
+.github-contribuicoes-compacta .github-contribuicoes-rodape,
+.github-contribuicoes-compacta .github-contribuicoes-semana,
+.github-contribuicoes-compacta .github-contribuicoes-meses { color: var(--i-dim); }
+.github-contribuicoes-compacta .github-contribuicoes-semana { font-size: 8px; }
+.github-contribuicoes-compacta .github-contribuicoes-dia[data-nivel="0"] { background: var(--i-cartao-plano); }
+.ilha-raiz .github-contribuicoes-aviso { color: var(--i-dim); }
+
+[data-tema="claro"] .github-contribuicoes-dia[data-nivel="1"] { background: #9be9a8; }
+[data-tema="claro"] .github-contribuicoes-dia[data-nivel="2"] { background: #40c463; }
+[data-tema="claro"] .github-contribuicoes-dia[data-nivel="3"] { background: #30a14e; }
+[data-tema="claro"] .github-contribuicoes-dia[data-nivel="4"] { background: #216e39; }

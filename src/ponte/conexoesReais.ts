@@ -1,5 +1,6 @@
 import { T } from "../textos/textos";
 import type { ServicoId } from "../tipos";
+import type { CalendarioContribuicoesGithub } from "../utilitarios/contribuicoesGithub";
 
 export interface DadosStripe {
   disponivel: number;
@@ -13,6 +14,7 @@ export interface DadosStripe {
 export interface DadosGithub {
   usuario: string;
   commitsPorDia?: Record<string, number>;
+  contribuicoes?: CalendarioContribuicoesGithub | null;
   repositorios: { nome: string; linguagem: string; estrelas: number; atualizado: string; privado: boolean }[];
   prs: { titulo: string; repo: string; numero: number; autor: string; revisao: "pendente" | "aprovado" | "mudancas"; data: string; url?: string; tipo?: "meu" | "revisar"; ci?: "sucesso" | "falhou" | "rodando" | "nenhum" }[];
   issues: { titulo: string; repo: string; numero: number; rotulos: string[]; data: string }[];

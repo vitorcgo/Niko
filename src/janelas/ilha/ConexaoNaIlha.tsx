@@ -4,6 +4,8 @@ import { formatarDinheiro } from "../../utilitarios/dinheiro";
 import { formatar, horarioRelativo } from "../../utilitarios/datas";
 import { T } from "../../textos/textos";
 import type { ServicoId } from "../../tipos";
+import { ContribuicoesGithub } from "../../modulos/conexoes/ContribuicoesGithub";
+import { resumirContribuicoesGithub } from "../../utilitarios/contribuicoesGithub";
 
 const M = T.janelaConexao.metricas;
 const E = T.janelaConexao.estados;
@@ -84,8 +86,7 @@ export function montarResumo(servico: ServicoId, dados: DadosServico[ServicoId])
     }
     case "github": {
       const d = dados as DadosServico["github"];
-      const desde = Date.now() - 7 * 86400000;
-      const commits = Object.entries(d.commitsPorDia ?? {}).filter(([dia]) => new Date(`${dia}T12:00:00`).getTime() >= desde).reduce((a, [, n]) => a + n, 0);
+      const contribuicoes = d.contribuicoes ? resumirContribuicoesGithub(d.contribuicoes).ultimos7dias : null;
       const falhas = d.actions.filter((a) => a.status === "falhou").length;
       const linhas: Linha[] = [
         ...d.prs.slice(0, 3).map((p) => ({ chave: `pr-${p.repo}-${p.numero}`, principal: `#${p.numero} ${p.titulo}`, secundario: p.repo, estado: p.tipo === "revisar" ? "revisar" : p.ci === "falhou" || p.ci === "rodando" ? p.ci : p.revisao, quando: p.data })),
@@ -96,7 +97,7 @@ export function montarResumo(servico: ServicoId, dados: DadosServico[ServicoId])
           { rotulo: M.prsAbertos, valor: d.prs.length },
           { rotulo: M.issuesAbertas, valor: d.issues.length },
           { rotulo: M.falhasActions, valor: falhas, tom: falhas ? "erro" : "" },
-          { rotulo: I.commits7d, valor: commits },
+          { rotulo: I.contribuicoes7d, valor: contribuicoes === null ? "-" : mil(contribuicoes) },
         ],
         tituloDaLista: d.prs.length ? I.prsEActions : I.actionsRecentes,
         linhas: linhas.length ? linhas : d.repositorios.slice(0, 6).map((r) => ({ chave: r.nome, principal: r.nome, secundario: r.linguagem, quando: r.atualizado })),
@@ -283,6 +284,7 @@ export function ConexaoNaIlha({ servico }: { servico: ServicoId }) {
           </div>
         ))}
       </div>
+      {servico === "github" && <ContribuicoesGithub calendario={(dados as DadosServico["github"]).contribuicoes} compacto />}
       {resumo.aviso && (
         <div className="ilha-conexao-aviso cortar privado" data-tom={resumo.aviso.tom || undefined}>
           {resumo.aviso.texto}

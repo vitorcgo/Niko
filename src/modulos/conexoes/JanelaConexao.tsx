@@ -15,6 +15,7 @@ import { tocarSom } from "../../ponte/sons";
 import type { ServicoId } from "../../tipos";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { ContribuicoesGithub } from "./ContribuicoesGithub";
 
 const MINIMO = { w: 560, h: 420 };
 const INTERVALOS = [30, 60, 120, 300, 600];
@@ -141,6 +142,7 @@ function ConteudoServico({ servico, aba, filtro, dados }: { servico: ServicoId; 
 
   if (servico === "github") {
     const d = dados as DadosServico["github"];
+    if (aba === "contribuicoes") return <ContribuicoesGithub calendario={d.contribuicoes} />;
     const acoes = (
       <Tabela filtro={filtro} linhas={d.actions} colunas={[
         { titulo: C.workflow, render: (l) => l.workflow, texto: (l) => l.workflow },
@@ -184,6 +186,7 @@ function ConteudoServico({ servico, aba, filtro, dados }: { servico: ServicoId; 
           <Metrica rotulo={M.falhasActions} valor={d.actions.filter((a) => a.status === "falhou").length} />
           <Metrica rotulo={M.repositorios} valor={d.repositorios.length} />
         </div>
+        <ContribuicoesGithub calendario={d.contribuicoes} />
         <h3 className="conexao-bloco-titulo">{T.janelaConexao.ultimas}</h3>
         {acoes}
       </div>
