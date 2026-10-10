@@ -1,5 +1,5 @@
-import { apiGoogle, autorizarGoogle, lerCredencialGmail, lerGmail, type CredencialGmail } from "./gmail";
-import { resumoDaAgenda } from "./agendaGoogle";
+import { apiGoogle, autorizarGoogle, lerCredencialGmail, lerGmail, type CredencialGmail } from "./gmail.ts";
+import { resumoDaAgenda } from "./agendaGoogle.ts";
 
 export const ESCOPOS_WORKSPACE = [
   "https://www.googleapis.com/auth/gmail.readonly",

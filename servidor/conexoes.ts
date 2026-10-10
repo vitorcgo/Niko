@@ -1,8 +1,8 @@
 import { readFileSync, writeFileSync, mkdirSync, existsSync, renameSync } from "node:fs";
 import { join } from "node:path";
-import { lerSegredo, gravarSegredo, apagarSegredo } from "./segredos";
-import { pastaDados, validarUrlBase } from "./ia";
-import { autorizarWorkspace, lerGoogle } from "./google";
+import { lerSegredo, gravarSegredo, apagarSegredo } from "./segredos.ts";
+import { pastaDados, validarUrlBase } from "./ia.ts";
+import { autorizarWorkspace, lerGoogle } from "./google.ts";
 
 export const SERVICOS = ["stripe", "github", "vercel", "resend", "notion", "calcom", "n8n", "google", "supabase", "cloudflare"] as const;
 const SERVICOS_ANTIGOS_DO_GOOGLE = ["gmail", "agenda"];

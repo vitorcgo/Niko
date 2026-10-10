@@ -1,10 +1,10 @@
 import { createServer } from "node:http";
-import { rotas } from "./ponte";
-import { fecharBanco } from "./banco";
-import { encerrarMidia } from "./midia";
-import { encerrarJanelas } from "./janelasWindows";
-import { encerrarControle } from "./controleRapido";
-import { encerrarSistema } from "./sistema";
+import { rotas } from "./ponte.ts";
+import { fecharBanco } from "./banco.ts";
+import { encerrarMidia } from "./midia.ts";
+import { encerrarJanelas } from "./janelasWindows.ts";
+import { encerrarControle } from "./controleRapido.ts";
+import { encerrarSistema } from "./sistema.ts";
 
 const porta = Number(process.env.NIKO_PORTA) || 47831;
 const ORIGENS = new Set(["http://tauri.localhost", "https://tauri.localhost", "tauri://localhost"]);

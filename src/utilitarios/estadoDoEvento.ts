@@ -1,4 +1,4 @@
-import type { EstadoSessao } from "../estado/claudeCode";
+import type { EstadoSessao } from "../estado/claudeCode.ts";
 
 /** Somente transições observadas, sem inferir atividade de resultados ou subagentes. */
 export function estadoDoEvento(evento: string, dados: Record<string, unknown>, pedidoId?: string): EstadoSessao | undefined {

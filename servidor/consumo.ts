@@ -2,7 +2,7 @@ import { readFileSync, readdirSync, existsSync, type Dirent } from "node:fs";
 import { open, readdir, stat } from "node:fs/promises";
 import { join, basename } from "node:path";
 import { homedir } from "node:os";
-import { usoPelaStatus } from "./statusClaude";
+import { usoPelaStatus } from "./statusClaude.ts";
 
 export interface JanelaUso {
   id: string;

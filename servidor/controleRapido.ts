@@ -1,4 +1,4 @@
-import { criarProcessoPowerShell } from "./processoPowerShell";
+import { criarProcessoPowerShell } from "./processoPowerShell.ts";
 
 const CODIGO = String.raw`
 using System;

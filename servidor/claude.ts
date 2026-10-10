@@ -4,12 +4,12 @@ import { spawn } from "node:child_process";
 import { homedir } from "node:os";
 import { isAbsolute, join, relative, resolve } from "node:path";
 import { randomBytes, randomUUID, timingSafeEqual } from "node:crypto";
-import { pastaDados } from "./ia";
-import { donoDaConexao, focarJanelaDoProcesso } from "./controleRapido";
-import { CAMINHO_DA_STATUS, anteriorDaStatus, caminhoDoScript, ehStatusDoNiko, garantirScript, receberStatus, statusDoNiko } from "./statusClaude";
-import { metricasDaStatus, type MetricasDaSessao } from "../src/modulos/escritorio/metricasDaSessao";
-import { estadoDoEvento } from "../src/utilitarios/estadoDoEvento";
-import type { EstadoSessao } from "../src/estado/claudeCode";
+import { pastaDados } from "./ia.ts";
+import { donoDaConexao, focarJanelaDoProcesso } from "./controleRapido.ts";
+import { CAMINHO_DA_STATUS, anteriorDaStatus, caminhoDoScript, ehStatusDoNiko, garantirScript, receberStatus, statusDoNiko } from "./statusClaude.ts";
+import { metricasDaStatus, type MetricasDaSessao } from "../src/modulos/escritorio/metricasDaSessao.ts";
+import { estadoDoEvento } from "../src/utilitarios/estadoDoEvento.ts";
+import type { EstadoSessao } from "../src/estado/claudeCode.ts";
 
 export const CABECALHO_SEGREDO = "x-niko-gancho";
 const CAMINHO_EVENTO = "/ponte/claude/evento";

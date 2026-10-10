@@ -1,6 +1,6 @@
 import { spawn } from "node:child_process";
-import { garantirScript } from "./scriptsTemporarios";
-import { criarProcessoPowerShell } from "./processoPowerShell";
+import { garantirScript } from "./scriptsTemporarios.ts";
+import { criarProcessoPowerShell } from "./processoPowerShell.ts";
 
 const SCRIPT = String.raw`
 param([switch]$Continuo)

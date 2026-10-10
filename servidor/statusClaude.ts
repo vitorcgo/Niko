@@ -1,6 +1,6 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { pastaDados } from "./ia";
+import { pastaDados } from "./ia.ts";
 
 export const CAMINHO_DA_STATUS = "/ponte/claude/status";
 const NOME_DO_SCRIPT = "status-claude-niko.mjs";

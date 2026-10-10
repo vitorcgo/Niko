@@ -4,7 +4,7 @@ import { rmSync, createWriteStream } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { randomUUID } from "node:crypto";
-import { garantirScript } from "./scriptsTemporarios";
+import { garantirScript } from "./scriptsTemporarios.ts";
 
 const LIMITE_IMAGEM = 25 * 1024 * 1024;
 const TEMPO_LIMITE = 60_000;

@@ -2,8 +2,8 @@ import { readFileSync, writeFileSync, mkdirSync, renameSync, existsSync } from "
 import { join } from "node:path";
 import { homedir } from "node:os";
 import { randomUUID } from "node:crypto";
-import { lerSegredo, gravarSegredo, apagarSegredo } from "./segredos";
-import { criarFiltroDePensamento } from "./pensamento";
+import { lerSegredo, gravarSegredo, apagarSegredo } from "./segredos.ts";
+import { criarFiltroDePensamento } from "./pensamento.ts";
 
 export type TipoProvedor = "anthropic" | "openai_compativel";
 

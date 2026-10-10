@@ -5,7 +5,7 @@ import { execFile, spawn } from "node:child_process";
 import { homedir } from "node:os";
 import { extname, join, parse } from "node:path";
 import { randomUUID } from "node:crypto";
-import { pastaDados } from "./ia";
+import { pastaDados } from "./ia.ts";
 
 export const LIMITE_ARQUIVO = 300 * 1024 * 1024;
 

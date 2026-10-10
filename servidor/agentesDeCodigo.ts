@@ -4,7 +4,7 @@ import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import {
   CABECALHO_SEGREDO, estadoDaInstalacao, instalarGanchos, lembrarProcesso, lerCorpoJson, porta, processarEvento, removerGanchos, segredo, segredoConfere, type FerramentaDeCodigo,
-} from "./claude";
+} from "./claude.ts";
 
 const PREFIXO_DA_ROTA = "/ponte/agentes/evento/";
 const TEMPO_DO_PEDIDO_S = 115;

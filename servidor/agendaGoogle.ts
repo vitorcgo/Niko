@@ -1,4 +1,4 @@
-import { apiGoogle, lerCredencialGmail, type CredencialGmail } from "./gmail";
+import { apiGoogle, lerCredencialGmail, type CredencialGmail } from "./gmail.ts";
 
 const BASE_AGENDA = "https://www.googleapis.com/calendar/v3";
 const DIAS_MAXIMOS_DA_AGENDA = 62;

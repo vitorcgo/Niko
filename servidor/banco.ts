@@ -1,7 +1,7 @@
 import { DatabaseSync } from "node:sqlite";
 import { mkdirSync, existsSync, copyFileSync, readdirSync, unlinkSync } from "node:fs";
 import { join } from "node:path";
-import { pastaDados } from "./ia";
+import { pastaDados } from "./ia.ts";
 
 const VERSAO = 1;
 const bancos = new Map<string, DatabaseSync>();

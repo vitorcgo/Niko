@@ -1,6 +1,6 @@
 import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
 import { createInterface } from "node:readline";
-import { garantirScript } from "./scriptsTemporarios";
+import { garantirScript } from "./scriptsTemporarios.ts";
 
 interface Espera {
   processo: ChildProcessWithoutNullStreams;

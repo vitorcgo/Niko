@@ -1,6 +1,6 @@
 import { defineConfig, type Plugin } from "vite";
 import react from "@vitejs/plugin-react";
-import { ponteLocal } from "./servidor/ponte";
+import { ponteLocal } from "./servidor/ponte.ts";
 
 const POLITICA_SEGURANCA = [
   "default-src 'self'",
