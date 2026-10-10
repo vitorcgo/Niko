@@ -70,8 +70,26 @@ const LIMITE_DA_ABERTURA: Duration = Duration::from_secs(9);
 
 fn liberar_abertura(app: &AppHandle) {
     if ABERTURA_PENDENTE.swap(false, Ordering::Relaxed) {
-        mostrar(app);
+        mostrar_inicial(app);
     }
+}
+
+#[cfg(target_os = "macos")]
+fn mostrar_inicial(app: &AppHandle) {
+    if let Some(janela) = app.get_webview_window("sistema") {
+        let _ = janela.unminimize();
+        // No macOS, centralizar/maximizar durante a criação não é confiável
+        // enquanto a janela ainda está oculta. Aplique ao revelá-la.
+        let _ = janela.center();
+        let _ = janela.show();
+        let _ = janela.maximize();
+        let _ = janela.set_focus();
+    }
+}
+
+#[cfg(not(target_os = "macos"))]
+fn mostrar_inicial(app: &AppHandle) {
+    mostrar(app);
 }
 
 #[tauri::command]
@@ -162,8 +180,8 @@ fn sair_salvando(app: &AppHandle) {
     }
     let _ = app.emit("niko://saindo", ());
     let app = app.clone();
-    std::thread::spawn(move || {
-        std::thread::sleep(ESPERA_PARA_SALVAR);
+    tauri::async_runtime::spawn(async move {
+        tokio::time::sleep(ESPERA_PARA_SALVAR).await;
         app.exit(0);
     });
 }
@@ -213,10 +231,10 @@ fn criar_sobreposta(app: &AppHandle, rotulo: &str, y: f64, x: f64, largura: f64,
 }
 
 fn vigiar_cursor(app: AppHandle) {
-    std::thread::spawn(move || {
+    tauri::async_runtime::spawn(async move {
         let mut fora: HashMap<String, bool> = HashMap::new();
         loop {
-            std::thread::sleep(Duration::from_millis(45));
+            tokio::time::sleep(Duration::from_millis(45)).await;
             registrar_frente(&app);
             let areas = match app.state::<Estado>().areas.lock() {
                 Ok(a) => a.clone(),
@@ -321,7 +339,7 @@ fn parar_ponte(app: &AppHandle) {
 #[tauri::command]
 async fn preparar_atualizacao(app: AppHandle) {
     let _ = app.emit("niko://saindo", ());
-    std::thread::sleep(ESPERA_PARA_SALVAR);
+    tokio::time::sleep(ESPERA_PARA_SALVAR).await;
     for (rotulo, janela) in app.webview_windows() {
         if docks::eh_dock(&rotulo) {
             barra_windows::reservar_espaco_do_dock(&janela, false);
@@ -338,11 +356,11 @@ fn vigiar_ponte(app: AppHandle, token: String) {
     if cfg!(debug_assertions) {
         return;
     }
-    std::thread::spawn(move || {
+    tauri::async_runtime::spawn(async move {
         let mut reinicios = 0u32;
         let mut estavel_desde = std::time::Instant::now();
         loop {
-            std::thread::sleep(Duration::from_secs(3));
+            tokio::time::sleep(Duration::from_secs(3)).await;
             if ENCERRANDO.load(Ordering::Relaxed) {
                 return;
             }
@@ -363,7 +381,7 @@ fn vigiar_ponte(app: AppHandle, token: String) {
                 return;
             }
             reinicios += 1;
-            std::thread::sleep(Duration::from_secs(u64::from(reinicios) * 2));
+            tokio::time::sleep(Duration::from_secs(u64::from(reinicios) * 2)).await;
             if ENCERRANDO.load(Ordering::Relaxed) {
                 return;
             }
@@ -464,8 +482,8 @@ pub fn run() {
             if !escondido {
                 ABERTURA_PENDENTE.store(true, Ordering::Relaxed);
                 let reserva = handle.clone();
-                std::thread::spawn(move || {
-                    std::thread::sleep(LIMITE_DA_ABERTURA);
+                tauri::async_runtime::spawn(async move {
+                    tokio::time::sleep(LIMITE_DA_ABERTURA).await;
                     liberar_abertura(&reserva);
                 });
             }

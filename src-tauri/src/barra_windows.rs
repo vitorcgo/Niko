@@ -64,17 +64,17 @@ fn esconder_barras() {
 
 fn reposicionar_dock(app: &AppHandle) {
     let app = app.clone();
-    std::thread::spawn(move || {
-        std::thread::sleep(Duration::from_millis(400));
+    tauri::async_runtime::spawn(async move {
+        tokio::time::sleep(Duration::from_millis(400)).await;
         crate::docks::reposicionar_todos(&app);
     });
 }
 
 fn vigiar_barra() {
-    std::thread::spawn(|| {
+    tauri::async_runtime::spawn(async {
         while OCULTA.load(Ordering::SeqCst) {
             esconder_barras();
-            std::thread::sleep(Duration::from_millis(1000));
+            tokio::time::sleep(Duration::from_millis(1000)).await;
         }
     });
 }

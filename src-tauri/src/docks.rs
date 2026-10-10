@@ -211,12 +211,14 @@ pub fn definir_monitor_da_ilha(app: AppHandle, escolha: String) {
 }
 
 pub fn vigiar_monitores(app: AppHandle) {
-    std::thread::spawn(move || loop {
-        std::thread::sleep(INTERVALO_DOS_MONITORES);
-        let atual = assinatura(&monitores_ordenados(&app));
-        let mudou = ASSINATURA.lock().map(|a| *a != atual).unwrap_or(false);
-        if mudou {
-            sincronizar(&app);
+    tauri::async_runtime::spawn(async move {
+        loop {
+            tokio::time::sleep(INTERVALO_DOS_MONITORES).await;
+            let atual = assinatura(&monitores_ordenados(&app));
+            let mudou = ASSINATURA.lock().map(|a| *a != atual).unwrap_or(false);
+            if mudou {
+                sincronizar(&app);
+            }
         }
     });
 }
