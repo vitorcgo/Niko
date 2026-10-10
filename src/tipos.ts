@@ -348,7 +348,7 @@ export interface Evento {
 export interface CartaoConfirmacao {
   tipo: "gasto" | "receita" | "dividir" | "tarefa" | "lembrete" | "evento" | "concluir" | "eventoFeito" | "habito" | "novoHabito" | "compra" | "memoria" | "rascunho" | "email";
   dados: Record<string, string | number | string[]>;
-  situacao: "pendente" | "confirmado" | "cancelado";
+  situacao: "pendente" | "confirmado" | "cancelado" | "verificar";
 }
 
 export interface Mensagem {

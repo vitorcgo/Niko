@@ -34,7 +34,7 @@ O Niko é um aplicativo desktop que fica junto do Windows, e não dentro de uma 
 | ------ | --------- | -------------- |
 | **Ilha** | Topo da tela | Mídia tocando, pomodoro, tarefas do dia, captura rápida e avisos do time |
 | **Dock** | Base da tela | Iniciar do Windows, busca de aplicativos, janelas abertas, prévias e menus de contexto |
-| **Sistema** | Janela própria | Todas as áreas do app: início, chat, finanças, estudos, metas, calendário e configurações |
+| **Sistema** | Janela própria | Início, chat, agentes, finanças, estudos, metas, calendário e configurações |
 
 Três princípios guiam o projeto:
 
@@ -48,18 +48,18 @@ Três princípios guiam o projeto:
 
 Uma barra discreta no topo da tela, com três estados: escondida, compacta e expandida. As abas são configuráveis:
 
-- **Calendário:** a hora, o que tem marcado hoje e o mês, com uma marca nos dias com compromisso. Um clique no dia abre o calendário completo.
-- **Hoje:** tarefas do dia, com entrada em linguagem natural ("ligar pro banco 15h").
-- **Capturar:** tarefa, gasto, link, nota ou lembrete em poucos segundos.
+- **Hoje:** calendário, tarefas, hábitos e próximos compromissos, conforme as seções habilitadas. A entrada de tarefas aceita linguagem natural ("ligar pro banco 15h").
 - **Mídia:** reprodução informada pelo Windows, com capa, controles, progresso e volume do sistema, incluindo porcentagem e botão de silenciar.
 - **Foco:** pomodoro com etapas de foco e pausa.
-- **Hábitos e Agenda:** marcação rápida e próximos compromissos.
 - **Chat:** conversa rápida com o time, com anexos.
-- **Conexões:** números e últimas atividades de cada serviço, como cobranças do Stripe, Actions do GitHub, e-mails do Resend e tráfego do Cloudflare.
+- **Conexões:** números e últimas atividades de cada serviço, como cobranças do Stripe, contribuições e commits do GitHub, e-mails do Resend e tráfego do Cloudflare.
 - **Avisos:** os alertas do time.
+- **Time:** seleção de agente, identidade e guarda-roupa, com prévias dos acessórios e escolha de cor.
 - **Código:** acompanhamento das sessões de ferramentas de programação, com atividade, alterações e pedidos de aprovação nas ferramentas compatíveis.
 
-Na área de trabalho, a ilha ganha uma **aba de cada lado**, ligadas por uma faixa fina no topo. Com um app na frente, fica só a ilha.
+A captura rápida permite registrar tarefa, gasto, link, nota ou lembrete sem abrir uma área completa.
+
+Na área de trabalho, a ilha pode mostrar uma **aba de cada lado**, ligadas por uma faixa fina no topo. Com um app na frente, as laterais ficam escondidas em repouso; ao expandir a ilha, elas podem reaparecer. Essa barra completa é opcional.
 
 - **Esquerda:** personalização (tema, cor de destaque, cor e opacidade da ilha e do dock, tamanho e repouso da ilha), o Iniciar do Windows e as tarefas do dia.
 - **Direita:** os apps em segundo plano (os ícones da bandeja do Windows), Wi-Fi, volume, bateria e um painel de controles rápidos, com Wi-Fi e Bluetooth, não perturbe, mudo, microfone, captura de tela, teclado virtual, modo escuro, volume de cada app, brilho, mídia e energia.
@@ -67,6 +67,8 @@ Na área de trabalho, a ilha ganha uma **aba de cada lado**, ligadas por uma fai
 Modos **fixo**, **esconder** e **inteligente**. Durante jogos, vídeos em tela cheia e apresentações, a ilha e o dock somem por completo. O **modo privacidade** esconde valores e textos sensíveis quando você compartilha a tela.
 
 Os avisos habilitados podem revelar temporariamente a ilha e mostrar a mensagem antes de restaurar o estado anterior. O comportamento respeita as categorias de aviso e o Não perturbe. A compacta destaca mídia somente durante reprodução ativa; uma faixa pausada continua acessível na aba Mídia.
+
+O fechamento automático oferece 0,5, 1, 2 e 3 segundos, além dos intervalos maiores, **Nunca** e **Ao sair com o cursor**. A ilha fixada, os controles das laterais em uso e os campos em edição impedem o fechamento automático. Time e Código não fecham por temporizador, mas respeitam a opção explícita de fechar ao sair com o cursor.
 
 ### Dock
 
@@ -93,12 +95,13 @@ Um botão flutuante opcional, desativado por padrão, para abrir os aplicativos 
 | **Início** | Painel do dia com blocos configuráveis: time, tarefas, foco, finanças, revisões e conquistas |
 | **Chat** | Conversa com os agentes, com comandos que funcionam mesmo sem IA |
 | **Escritório** | Time em uma sala 3D ou modo leve 2D, com estados, tarefa atual, últimas atividades e acesso ao chat |
+| **Agentes** | Página própria para editar nome, cor, formato, persona e acessórios de cada integrante |
 | **Journal** | Tarefas, hábitos, humor, notas e calendário do dia, com desfazer e refazer |
 | **Estudos** | Áreas e matérias, páginas e subpáginas, quadro, provas, links, arquivos locais e revisão espaçada |
 | **Finanças** | Contas, cartões, transações, orçamento, recorrentes, metas de economia, divisão de contas, lista de compras e relatórios |
 | **Metas** | Pilares de vida, metas medidas por hábitos, horas de estudo, economia ou tarefas, e quadro de visão |
 | **Calendário** | Vistas de mês, semana e agenda, recorrências, edição por ocorrência, movimentação de eventos, marcação de feito e importação/exportação ICS |
-| **Conexões** | Stripe, GitHub, Vercel, Resend, Notion, Cal.com, n8n, Google Workspace, Supabase e Cloudflare, com painéis próprios |
+| **Conexões** | Stripe, GitHub, Vercel, Resend, Notion, Cal.com, n8n, Supabase e Cloudflare, com painéis próprios. Google Workspace desativado, em testes |
 | **Provedores de IA** | Escolha do provedor e do modelo, com chave guardada no cofre do Windows |
 | **Consumo de IA** | Uso e limites das ferramentas de IA que você usa |
 | **Conquistas** | Marcos e mapa de calor da sua rotina |
@@ -117,15 +120,11 @@ Arquivos de Estudos ficam no computador e podem ser abertos no programa associad
 
 ### Google Workspace e outras conexões
 
-Gmail e Google Agenda passam a fazer parte de uma única conexão **Google Workspace**, com abas de e-mails, agenda, arquivos recentes do Drive e tarefas do Google Tasks.
+**Google Workspace está desativado (em testes).** O código contém a implementação de Gmail, Agenda, Drive e Google Tasks, mas login, consultas, criação de rascunhos e envio de e-mails estão bloqueados nesta versão do código, inclusive nas ferramentas do chat. Configurações antigas não reativam a integração. Credenciais já armazenadas não são apagadas automaticamente. Não há uma data anunciada para disponibilização.
 
-- Gmail permite consultas, criação de rascunhos e envio solicitado pelo usuário, com confirmação.
-- Agenda consulta compromissos; Drive lista metadados, como nomes, tipos, datas e links, sem baixar o conteúdo dos arquivos; Tasks consulta tarefas pendentes.
-- Falhas são apresentadas por serviço: uma API indisponível não precisa impedir a leitura das demais.
-- O botão **Entrar com o Google** depende de o build incluir o cliente OAuth do Niko. Sem essa configuração, existe o fluxo com cliente OAuth próprio.
-- Acesso público depende das configurações e da verificação exigida pelo Google. A presença da função no código não significa que o login já está aprovado ou disponível a qualquer conta.
+No GitHub, os painéis distinguem pull requests próprios e pedidos de revisão, com status de CI por PR quando disponível. A ilha e a janela completa também mostram o calendário de contribuições do último ano e commits recentes, com detalhes e links quando fornecidos pela API. As contribuições representam a atividade informada pelo GitHub, não apenas commits.
 
-No GitHub, os painéis distinguem pull requests próprios e pedidos de revisão, com status de CI por PR quando disponível. As demais conexões dependem das permissões, credenciais e limites do respectivo serviço.
+As demais conexões dependem das permissões, credenciais e limites do respectivo serviço.
 
 ### Ferramentas de código na ilha
 
@@ -149,6 +148,10 @@ As capacidades variam entre ferramentas e versões. Uma integração que acompan
 | **Java** | Código, repositórios e pull requests |
 
 Cada agente tem oito estados visíveis (ocioso, ouvindo, pensando, escrevendo, sucesso, alerta, erro e dormindo) e reage ao que está acontecendo de verdade no app.
+
+O visual inicial usa quatro estrelas nas cores vermelha, verde, amarela e azul. Na página **Agentes** ou na aba **Time** da ilha, é possível personalizar nome, cor e formato usando os moldes existentes, sem trocar a função do integrante. As escolhas ficam salvas localmente. A persona é opcional, não concede permissões extras e não substitui os comandos que funcionam sem IA.
+
+O **guarda-roupa** tem 27 acessórios e permite vestir **um por vez**, com sua cor original ou uma cor escolhida. Há lacinho, fone, boina, boné, coroa, óculos, colar e opções de Halloween e Natal. Também inclui chapéus de chef, cowboy e pirata, cartola, tiaras de flores e gatinho, monóculo, bandana, asas e mochila. A capa tem pregas e acabamento dourado. As prévias mantêm a cor e o formato do personagem; os acessórios acompanham os quadros das animações do corpo. A troca tem uma transição com fumaça e respeita a preferência de movimento reduzido.
 
 ## Atalhos
 
@@ -203,6 +206,16 @@ Perguntas sobre Cloudflare e Supabase são encaminhadas ao Java. Menções expl�
 | Animações | Motion e Three.js |
 | Estado | Zustand |
 | Ponte local | Node, empacotado junto com o app |
+
+## Download e avisos do Windows
+
+Baixe o instalador somente pelas [releases oficiais deste repositório](https://github.com/vitorcgo/niko/releases). Este README descreve o código atual; confira as notas da release para saber quais recursos estão no instalador.
+
+### Windows Defender e SmartScreen
+
+Um aviso do SmartScreen de **aplicativo não reconhecido** pode acontecer quando um arquivo ainda não tem reputação suficiente. Esse aviso, sozinho, não significa que o Niko tem um vírus ou um erro de funcionamento, conforme a [documentação da Microsoft](https://learn.microsoft.com/en-us/windows/apps/package-and-deploy/smartscreen-reputation).
+
+Isso é diferente de uma **detecção de ameaça pelo Defender**. Não tratamos toda detecção como falso positivo. Se uma ameaça for identificada, interrompa a instalação, mantenha a proteção ativa e relate a versão, o nome da detecção e a origem do download, sem incluir dados pessoais. Não é necessário nem recomendado desativar o antivírus ou criar exclusões para usar o Niko. Um aviso suspeito pode ser [enviado à Microsoft para análise](https://learn.microsoft.com/en-us/windows/security/operating-system-security/virus-and-threat-protection/microsoft-defender-smartscreen).
 
 ## Como rodar
 

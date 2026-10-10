@@ -15,6 +15,7 @@ mod barra_windows;
 mod docks;
 mod janela_frente;
 mod miniaturas;
+mod salvamento;
 
 const PORTA: u16 = 47831;
 const ALTURA_ILHA: f64 = 720.0;
@@ -172,17 +173,19 @@ fn sair(app: AppHandle) {
     sair_salvando(&app);
 }
 
-const ESPERA_PARA_SALVAR: Duration = Duration::from_millis(700);
-
 fn sair_salvando(app: &AppHandle) {
-    if ENCERRANDO.swap(true, Ordering::Relaxed) {
+    if ENCERRAMENTO_PEDIDO.swap(true, Ordering::Relaxed) {
         return;
     }
-    let _ = app.emit("niko://saindo", ());
     let app = app.clone();
     tauri::async_runtime::spawn(async move {
-        tokio::time::sleep(ESPERA_PARA_SALVAR).await;
-        app.exit(0);
+        if salvamento::salvar(&app).await.is_ok() {
+            ENCERRANDO.store(true, Ordering::Relaxed);
+            app.exit(0);
+        } else {
+            ENCERRAMENTO_PEDIDO.store(false, Ordering::Relaxed);
+            mostrar(&app);
+        }
     });
 }
 
@@ -353,10 +356,13 @@ fn parar_ponte(app: &AppHandle) {
 }
 
 #[tauri::command]
-async fn preparar_atualizacao(app: AppHandle) {
+async fn preparar_atualizacao(app: AppHandle) -> Result<(), String> {
+    if ENCERRAMENTO_PEDIDO.swap(true, Ordering::Relaxed) { return Err("encerramento_em_andamento".into()); }
+    if let Err(erro) = salvamento::salvar(&app).await {
+        ENCERRAMENTO_PEDIDO.store(false, Ordering::Relaxed);
+        return Err(erro);
+    }
     ENCERRANDO.store(true, Ordering::Relaxed);
-    let _ = app.emit("niko://saindo", ());
-    tokio::time::sleep(ESPERA_PARA_SALVAR).await;
     for (rotulo, janela) in app.webview_windows() {
         if docks::eh_dock(&rotulo) {
             barra_windows::reservar_espaco_do_dock(&janela, false);
@@ -366,9 +372,11 @@ async fn preparar_atualizacao(app: AppHandle) {
         barra_windows::restaurar(&app);
         parar_ponte(&app);
     }).await;
+    Ok(())
 }
 
 static ENCERRANDO: AtomicBool = AtomicBool::new(false);
+static ENCERRAMENTO_PEDIDO: AtomicBool = AtomicBool::new(false);
 const MAXIMO_REINICIOS_DA_PONTE: u32 = 5;
 
 fn vigiar_ponte(app: AppHandle, token: String) {
@@ -386,7 +394,7 @@ fn vigiar_ponte(app: AppHandle, token: String) {
             let caiu = match app.state::<Estado>().ponte.lock() {
                 Ok(mut ponte) => match ponte.as_mut() {
                     Some(filho) => matches!(filho.try_wait(), Ok(Some(_))),
-                    None => false,
+                    None => true,
                 },
                 Err(_) => false,
             };
@@ -445,6 +453,7 @@ pub fn run() {
         )
         .manage(Estado { areas: Mutex::new(HashMap::new()), token: token.clone(), ponte: Mutex::new(None) })
         .manage(miniaturas::Miniaturas::default())
+        .manage(salvamento::ControleSalvamento::default())
         .manage(atalhos::Atalhos::default())
         .invoke_handler(tauri::generate_handler![
             area_interativa,
@@ -457,6 +466,8 @@ pub fn run() {
             docks::definir_monitor_da_ilha,
             liberar_sistema_inicial,
             preparar_atualizacao,
+            salvamento::registrar_armazenamento,
+            salvamento::confirmar_salvamento,
             tempo_ocioso_ms,
             abrir_link,
             sair,

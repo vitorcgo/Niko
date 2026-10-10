@@ -12,6 +12,7 @@ import { conexoesPonte, resumoDe, LINKS_DO_GUIA, SERVICOS_DO_GOOGLE } from "../.
 import { atualizarConexaoAgora } from "../../servicos/servicos";
 import { tocarSom } from "../../ponte/sons";
 import type { ServicoId } from "../../tipos";
+import { conexaoEmTestes } from "../../utilitarios/disponibilidadeConexoes";
 
 type Filtro = keyof typeof T.conexoes.filtros;
 
@@ -64,7 +65,7 @@ function Configurar({ servico, aoFechar }: { servico: ServicoId | null; aoFechar
     setLoginDisponivel(false);
     setClienteProprio(false);
     setVerificandoLogin(servico === "google");
-    if (servico === "google") {
+    if (servico === "google" && !conexaoEmTestes(servico)) {
       void conexoesPonte.loginDireto().then((r) => {
         if (ativo) setLoginDisponivel(r.disponivel === true);
       }).catch(() => undefined).finally(() => {
@@ -75,6 +76,7 @@ function Configurar({ servico, aoFechar }: { servico: ServicoId | null; aoFechar
   }, [servico]);
   if (!servico || !conexao) return <Modal aberto={false} titulo="" aoFechar={aoFechar}>{null}</Modal>;
   const nome = T.conexoes.servicos[servico].nome;
+  if (conexaoEmTestes(servico)) return <Modal aberto titulo={nome} aoFechar={aoFechar}><AvisoFaixa>{T.conexoes.emTestesDica}</AvisoFaixa></Modal>;
   const doGoogle = SERVICOS_DO_GOOGLE.includes(servico);
   const loginSimples = servico === "google" && loginDisponivel && !clienteProprio;
   const fixadas = conexoes.filter((c) => c.fixadaNaIlha).length;
@@ -256,25 +258,25 @@ export default function Conexoes() {
                   <Alternador
                     ligado={c.ligada}
                     rotulo={c.ligada ? T.conexoes.desligar : T.conexoes.ligar}
-                    desativado={!c.chaveSalva}
+                    desativado={!c.chaveSalva || conexaoEmTestes(id)}
                     aoMudar={(v) => atualizar(id, { ligada: v, status: v ? "conectado" : "pausado" })}
                   />
                 </span>
               </div>
               <div className="conexao-cartao-resumo">
-                <span className="privado">{c.resumo || T.conexoes.semDados}</span>
-                <span className={`etiqueta ${status === "conectado" ? "etiqueta-sucesso" : status === "erro" ? "etiqueta-erro" : ""}`}>{T.conexoes.status[status]}</span>
+                <span className="privado">{conexaoEmTestes(id) ? T.conexoes.emTestesDica : c.resumo || T.conexoes.semDados}</span>
+                <span className={`etiqueta ${status === "conectado" ? "etiqueta-sucesso" : status === "erro" ? "etiqueta-erro" : ""}`}>{conexaoEmTestes(id) ? T.conexoes.emTestes : T.conexoes.status[status]}</span>
               </div>
-              {ultimo && (
+              {ultimo && !conexaoEmTestes(id) && (
                 <span className="conexao-cartao-evento" data-falha={ultimo.tipo === "falha" || undefined}>
                   {ultimo.tipo === "falha" && <TriangleAlert size={12} />}
                   <span className="cortar">{ultimo.texto} · {horarioRelativo(ultimo.data)}</span>
                 </span>
               )}
               <div className="conexao-cartao-rodape">
-                <span className="conexao-cartao-hora">{c.ultimaAtualizacao ? T.conexoes.atualizado(horarioRelativo(c.ultimaAtualizacao)) : T.conexoes.nunca}</span>
+                <span className="conexao-cartao-hora">{conexaoEmTestes(id) ? T.conexoes.emTestes : c.ultimaAtualizacao ? T.conexoes.atualizado(horarioRelativo(c.ultimaAtualizacao)) : T.conexoes.nunca}</span>
                 <span className="conexao-cartao-interativo conexao-cartao-acoes">
-                  {c.chaveSalva && (
+                  {c.chaveSalva && !conexaoEmTestes(id) && (
                     <>
                       <Botao
                         pequeno

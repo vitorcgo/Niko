@@ -22,6 +22,7 @@ import { marcarSeNovo } from "../ponte/armazenamento";
 import { lerConsumo } from "../ponte/ponteLocal";
 import { rotuloJanela } from "../utilitarios/consumo";
 import { T } from "../textos/textos";
+import { conexaoEmTestes } from "../utilitarios/disponibilidadeConexoes";
 import type { Evento, Habito, ServicoId } from "../tipos";
 import { addDays, addMonths, addWeeks } from "date-fns";
 import { conquistaLigada, funcaoLigada } from "../utilitarios/funcoes";
@@ -240,6 +241,7 @@ const emLeitura = new Set<ServicoId>();
 const vistas = new Map<ServicoId, Set<string>>();
 
 export async function atualizarConexaoAgora(id: ServicoId, forcar = true) {
+  if (conexaoEmTestes(id)) return;
   if (emLeitura.has(id)) return;
   emLeitura.add(id);
   const com = useComunicacao.getState();
@@ -291,6 +293,11 @@ function lerConexoes() {
   }
 }
 export function useServicos() {
+  useEffect(() => {
+    const falhou = () => useInterface.getState().avisar(T.configuracoes.salvarFalhou);
+    window.addEventListener("niko:armazenamento-falhou", falhou);
+    return () => window.removeEventListener("niko:armazenamento-falhou", falhou);
+  }, []);
   const inatividade = useConfig((s) => s.agentes.inatividadeMin);
 
   usarPreferenciasDaJanela();

@@ -38,8 +38,8 @@ export function usarArtePersonalizada(agente: AgenteId, estado: EstadoAgente, ap
   }, [ativo, caminho]);
   return useMemo(() => {
     if (!ativo || !fonte || fonte.caminho.split("/").slice(0, -1).join("/") !== caminho.split("/").slice(0, -1).join("/")) return null;
-    const personalizada = personalizarSvg(fonte.svg, aparencia, agente, JSON.parse(selecao) as AcessoriosAgente, corAcessorio);
-    const svg = reduzirAnimacoes ? primeiroQuadroSvg(personalizada) : personalizada;
+    const quadro = reduzirAnimacoes ? primeiroQuadroSvg(fonte.svg) : fonte.svg;
+    const svg = personalizarSvg(quadro, aparencia, agente, JSON.parse(selecao) as AcessoriosAgente, corAcessorio);
     return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
   }, [ativo, fonte, caminho, aparencia.cor, aparencia.formato, agente, selecao, reduzirAnimacoes, corAcessorio]);
 }

@@ -2,23 +2,23 @@ import { useState } from "react";
 import { Check, X, CircleSlash } from "lucide-react";
 import type { AgenteId } from "../../tipos";
 import type { AparenciaAgente } from "../../personagens/personalizacao";
-import { ACESSORIOS, POSICOES_ACESSORIOS, SEM_ACESSORIOS, vestirAcessorio, type AcessoriosAgente, type CategoriaAcessorio } from "../../personagens/acessorios";
+import { ACESSORIOS, POSICOES_ACESSORIOS, SEM_ACESSORIOS, catalogoDeAcessorios, vestirAcessorio, type AcessoriosAgente, type CategoriaAcessorio } from "../../personagens/acessorios";
 import { Personagem } from "../../personagens/Personagem";
 import { corOriginalDoAcessorio } from "../../personagens/desenhosDosAcessorios";
 import { T } from "../../textos/textos";
 
 export function GuardaRoupa({ agente, aparencia, acessorios, aoMudar, corAcessorio = null, aoMudarCor, compacto = false }: { agente: AgenteId; aparencia: AparenciaAgente; acessorios: AcessoriosAgente; aoMudar: (acessorios: AcessoriosAgente) => void; corAcessorio?: string | null; aoMudarCor?: (cor: string | null) => void; compacto?: boolean }) {
-  const [categoria, setCategoria] = useState<CategoriaAcessorio | "todas">("todas");
+  const [categoria, setCategoria] = useState<CategoriaAcessorio | "todas" | "novos">("todas");
   const [emFoco, setEmFoco] = useState<string | null>(null);
   const textos = T.agentes.guardaRoupa;
   const vestido = ACESSORIOS.find((a) => acessorios[a.posicao] === a.id);
   const corMostrada = corAcessorio ?? (vestido ? corOriginalDoAcessorio(vestido.id) : "#8b6bb5");
-  const visiveis = ACESSORIOS.filter((a) => categoria === "todas" || a.categoria === categoria);
+  const visiveis = catalogoDeAcessorios(categoria);
   return (
     <section className={`guarda-roupa${compacto ? " guarda-roupa-compacto" : ""}`} aria-label={textos.titulo}>
       {compacto ? <div className="guarda-roupa-legenda"><strong>{textos.titulo}</strong><span>{emFoco ?? textos.escolher}</span></div> : <p className="guarda-roupa-dica">{textos.dica}</p>}
       <div className="guarda-roupa-filtros" aria-label={textos.titulo}>
-        {(["todas", "dia", "halloween", "natal"] as const).map((id) => <button key={id} type="button" aria-pressed={categoria === id} onClick={() => setCategoria(id)}>{textos.categorias[id]}</button>)}
+        {(["todas", "novos", "dia", "halloween", "natal"] as const).map((id) => <button key={id} type="button" aria-pressed={categoria === id} onClick={() => setCategoria(id)}>{textos.categorias[id]}</button>)}
       </div>
       {!compacto && <div className="guarda-roupa-vestidos">
         {POSICOES_ACESSORIOS.filter((p) => acessorios[p]).map((posicao) => {

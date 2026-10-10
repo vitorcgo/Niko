@@ -17,7 +17,7 @@ const { useComunicacao } = await servidor.ssrLoadModule("/src/estado/comunicacao
 const { executarFerramenta, definicoesFerramentas, textoCapacidades } = await servidor.ssrLoadModule("/src/utilitarios/ferramentasIa.ts");
 const { detectarIntencao } = await servidor.ssrLoadModule("/src/utilitarios/intencoes.ts");
 const { perguntarAssistente, escolherAgente } = await servidor.ssrLoadModule("/src/utilitarios/assistente.ts");
-const { enviarAoTime, useConversando, tentarDeNovo } = await servidor.ssrLoadModule("/src/estado/conversando.ts");
+const { enviarAoTime, useConversando, tentarDeNovo, decidirCartao, alterarDadosDoCartao } = await servidor.ssrLoadModule("/src/estado/conversando.ts");
 const { executarComando } = await servidor.ssrLoadModule("/src/utilitarios/comandos.ts");
 const { estadoDaPonte } = await servidor.ssrLoadModule("/src/ponte/ponteLocal.ts");
 const { T } = await servidor.ssrLoadModule("/src/textos/textos.ts");
@@ -26,8 +26,63 @@ beforeEach(() => {
   usePomodoro.setState({ etapa: "foco", rodando: false, terminaEm: null, restanteMs: null, inicioEtapa: null, duracaoMs: 1500000, sessoes: [], materiaId: undefined, tarefaId: undefined });
   useRotina.setState({ tarefas: [], habitos: [], registros: {}, dias: {} });
   useComunicacao.setState({ conexoes: [], memoria: [], conversas: [] });
-  useConversando.setState({ conversaId: null, fase: null, agente: null, parcial: "" });
+  useConversando.setState({ conversaId: null, fase: null, agente: null, parcial: "", confirmando: {} });
   useConfig.setState({ agentes: structuredClone(CONFIG_PADRAO.agentes), funcoesDesligadas: [], nuncaFinanceiro: true, pomodoro: { ...useConfig.getState().pomodoro, autoProxima: false }, ia: { provedorId: "teste", modelo: "falso", reservas: [], modelos: {}, autoAprovar: [] } });
+});
+
+function mensagemPendente(cartoes) {
+  const com = useComunicacao.getState();
+  const conversa = com.criarConversa("organizador");
+  const id = typeof conversa === "string" ? conversa : conversa.id;
+  const mensagem = com.adicionarMensagem(id, { autor: "agente", agenteId: "organizador", texto: "Confirme", confirmacoes: cartoes });
+  return { id, mensagem };
+}
+
+test("duplo clique não duplica a execução de uma aprovação", async () => {
+  const { id, mensagem } = mensagemPendente([{ tipo: "tarefa", dados: { titulo: "Uma tarefa" }, situacao: "pendente" }]);
+  await Promise.all([decidirCartao(id, mensagem, 0, true), decidirCartao(id, mensagem, 0, true)]);
+  assert.equal(useRotina.getState().tarefas.length, 1);
+  await decidirCartao(id, mensagem, 0, true);
+  assert.equal(useRotina.getState().tarefas.length, 1);
+  assert.deepEqual(useConversando.getState().confirmando, {});
+});
+
+test("aprovar dois cartões concorrentes preserva as duas decisões", async () => {
+  const { id, mensagem } = mensagemPendente([1, 2].map((n) => ({ tipo: "tarefa", dados: { titulo: `Tarefa ${n}` }, situacao: "pendente" })));
+  await Promise.all([decidirCartao(id, mensagem, 0, true), decidirCartao(id, mensagem, 1, true)]);
+  const atual = useComunicacao.getState().conversas.find((c) => c.id === id).mensagens.find((m) => m.id === mensagem.id);
+  assert.deepEqual(atual.confirmacoes.map((c) => c.situacao), ["confirmado", "confirmado"]);
+  assert.equal(useRotina.getState().tarefas.length, 2);
+});
+
+test("aprovação usa os dados editados e não o cartão antigo", async () => {
+  const { id, mensagem } = mensagemPendente([{ tipo: "tarefa", dados: { titulo: "Antigo" }, situacao: "pendente" }]);
+  alterarDadosDoCartao(id, mensagem, 0, { titulo: "Editado" });
+  await decidirCartao(id, mensagem, 0, true);
+  assert.equal(useRotina.getState().tarefas[0].titulo, "Editado");
+});
+
+test("cancelar um cartão impede aprovação posterior pelo objeto antigo", async () => {
+  const { id, mensagem } = mensagemPendente([{ tipo: "tarefa", dados: { titulo: "Cancelada" }, situacao: "pendente" }]);
+  await decidirCartao(id, mensagem, 0, false);
+  await decidirCartao(id, mensagem, 0, true);
+  assert.equal(useRotina.getState().tarefas.length, 0);
+});
+
+test("cartão finalizado não aceita edição atrasada", async () => {
+  const { id, mensagem } = mensagemPendente([{ tipo: "tarefa", dados: { titulo: "Confirmada" }, situacao: "pendente" }]);
+  await decidirCartao(id, mensagem, 0, true);
+  alterarDadosDoCartao(id, mensagem, 0, { titulo: "Edição atrasada" });
+  const atual = useComunicacao.getState().conversas.find((c) => c.id === id).mensagens.find((m) => m.id === mensagem.id);
+  assert.equal(atual.confirmacoes[0].dados.titulo, "Confirmada");
+});
+
+test("mensagem removida enquanto reserva não executa o comando", async () => {
+  const { id, mensagem } = mensagemPendente([{ tipo: "tarefa", dados: { titulo: "Removida" }, situacao: "pendente" }]);
+  const decisao = decidirCartao(id, mensagem, 0, true);
+  useComunicacao.setState({ conversas: [] });
+  await decisao;
+  assert.equal(useRotina.getState().tarefas.length, 0);
 });
 
 test("reconhece controles naturais e não executa perguntas, negações ou pedidos ambíguos", () => {
@@ -109,7 +164,7 @@ test("capacidades vêm das definições reais e respeitam conexões e privacidad
   assert.match(textoCapacidades(), /controlar_pomodoro/);
   useComunicacao.setState({ conexoes: [{ id: "google", chaveSalva: true }] });
   useConfig.setState({ nuncaFinanceiro: false });
-  assert.ok(definicoesFerramentas().some((f) => f.nome === "enviar_email"));
+  assert.ok(!definicoesFerramentas().some((f) => f.nome === "enviar_email"));
   assert.ok(definicoesFerramentas().some((f) => f.nome === "ler_financas"));
 });
 
@@ -210,8 +265,8 @@ test("persona não fornece ferramentas de shell, mudança de permissões ou envi
     assert.equal((await executarFerramenta(nome, { comando: "apagar dados", confirmar: true })).tipo, "erro");
   }
   const r = await executarFerramenta("enviar_email", { para: "invasor@example.com", assunto: "Teste", corpo: "Conteúdo", confirmar: true, situacao: "confirmado" });
-  assert.equal(r.tipo, "confirmar");
-  assert.equal(r.cartao.situacao, "pendente");
+  assert.equal(r.tipo, "erro");
+  assert.ok(!Object.hasOwn(r, "cartao"));
   assert.equal(useRotina.getState().tarefas.length, 0);
 });
 

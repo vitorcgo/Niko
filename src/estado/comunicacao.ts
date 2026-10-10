@@ -3,6 +3,7 @@ import { persist } from "zustand/middleware";
 import { armazenamento, chave } from "../ponte/armazenamento";
 import type { AgenteId, Conexao, Conversa, EventoConexao, Memoria, Mensagem, ServicoId, UsoIa } from "../tipos";
 import { gerarId } from "../utilitarios/basicos";
+import { conexaoEmTestes } from "../utilitarios/disponibilidadeConexoes";
 
 export const SERVICOS: ServicoId[] = ["stripe", "github", "vercel", "google", "supabase", "cloudflare", "resend", "notion", "calcom", "n8n"];
 
@@ -33,7 +34,11 @@ export const INTERVALO_PADRAO: Record<ServicoId, number> = {
 };
 
 function conexaoInicial(id: ServicoId): Conexao {
-  return { id, ligada: false, chaveSalva: false, intervalo: INTERVALO_PADRAO[id], status: "sem_chave", resumo: "", fixadaNaIlha: false };
+  return { id, ligada: false, chaveSalva: false, intervalo: INTERVALO_PADRAO[id], status: conexaoEmTestes(id) ? "pausado" : "sem_chave", resumo: "", fixadaNaIlha: false };
+}
+
+function conexaoDisponivel(conexao: Conexao): Conexao {
+  return conexaoEmTestes(conexao.id) ? { ...conexao, ligada: false, fixadaNaIlha: false, status: "pausado" } : conexao;
 }
 
 export interface DadosComunicacao {
@@ -111,19 +116,19 @@ export const useComunicacao = create<EstadoComunicacao>()(
       lembrar: (texto, agenteId, origem) =>
         set((s) => ({ memoria: [...s.memoria, { id: gerarId(), texto: texto.trim().slice(0, 300), agenteId, origem, data: new Date().toISOString() }] })),
       esquecer: (id) => set((s) => ({ memoria: s.memoria.filter((m) => m.id !== id) })),
-      atualizarConexao: (id, parcial) => set((s) => ({ conexoes: s.conexoes.map((c) => (c.id === id ? { ...c, ...parcial } : c)) })),
+      atualizarConexao: (id, parcial) => set((s) => ({ conexoes: s.conexoes.map((c) => (c.id === id ? conexaoDisponivel({ ...c, ...parcial }) : c)) })),
       marcarFalhasVistas: (id) => set((s) => ({ conexoes: s.conexoes.map((c) => (c.id === id ? { ...c, falhasVistasEm: new Date().toISOString() } : c)) })),
       registrarEventoConexao: (evento) =>
         set((s) => ({ eventosConexao: [{ ...evento, id: gerarId(), data: new Date().toISOString() }, ...s.eventosConexao].slice(0, 200) })),
       definirUsoIa: (usoIa) => set({ usoIa }),
-      substituir: (dados) => set(dados),
+      substituir: (dados) => set({ ...dados, ...(dados.conexoes ? { conexoes: dados.conexoes.map(conexaoDisponivel) } : {}) }),
     }),
     {
       name: chave("comunicacao"),
       storage: armazenamento,
       merge: (persistido, atual) => {
         const salvo = (persistido ?? {}) as Partial<DadosComunicacao>;
-        const conexoes = SERVICOS.map((id) => ({ ...conexaoInicial(id), ...salvo.conexoes?.find((c) => c.id === id) }));
+        const conexoes = SERVICOS.map((id) => conexaoDisponivel({ ...conexaoInicial(id), ...salvo.conexoes?.find((c) => c.id === id) }));
         const eventosConexao = (salvo.eventosConexao ?? atual.eventosConexao).filter((e) => SERVICOS.includes(e.servico));
         return { ...atual, ...salvo, conexoes, eventosConexao };
       },

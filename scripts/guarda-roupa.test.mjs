@@ -23,6 +23,42 @@ const { primeiroQuadroSvg, encaixeDoAcessorio } = await vite.ssrLoadModule("/src
 const { PersonalizacaoDoTime } = await vite.ssrLoadModule("/src/modulos/agentes/PersonalizacaoDoTime.tsx");
 const agentes = ["organizador", "tutor", "java", "operador"];
 
+test("dez novas peças têm nomes, cores próprias e ocupam somente uma posição", async () => {
+  const { T } = await vite.ssrLoadModule("/src/textos/textos.ts");
+  const { desenhoDoAcessorio, corOriginalDoAcessorio } = await vite.ssrLoadModule("/src/personagens/desenhosDosAcessorios.ts");
+  assert.equal(roupas.ACESSORIOS.length, 27);
+  for (const id of ['chef', 'cowboy', 'pirata', 'cartola', 'flores', 'gatinho', 'monoculo', 'bandana', 'asas', 'mochila']) {
+    assert.ok(T.agentes.guardaRoupa.nomes[id]);
+    assert.match(corOriginalDoAcessorio(id), /^#[\da-f]{6}$/);
+    assert.match(desenhoDoAcessorio(id, '#123abc'), /#123abc/);
+    const selecao = roupas.vestirAcessorio({ ...roupas.SEM_ACESSORIOS, cabeca: 'coroa' }, id);
+    assert.equal(Object.values(selecao).filter(Boolean).length, 1);
+    assert.ok(Object.values(selecao).includes(id));
+  }
+});
+
+test("nenhum personagem gera a máscara radial do ponto branco", () => {
+  const componente = readFileSync(new URL('../src/personagens/Personagem.tsx', import.meta.url), 'utf8');
+  const css = readFileSync(new URL('../src/personagens/personagens.css', import.meta.url), 'utf8');
+  assert.doesNotMatch(componente, /className="personagem-textura"/);
+  assert.doesNotMatch(css, /personagem-textura|repeating-radial-gradient|drop-shadow\([^)]*255, 255, 255/);
+});
+
+test("composição estática preserva todos os acessórios e encaixes dos quatro formatos", () => {
+  for (const modelo of agentes) for (const estado of ESTADOS_SVG) {
+    const original = readFileSync(new URL(`../public/personagens/${modelo}/${estado}.svg`, import.meta.url), "utf8");
+    for (const acessorio of roupas.ACESSORIOS) {
+      const selecao = { ...roupas.SEM_ACESSORIOS, [acessorio.posicao]: acessorio.id };
+      const aparencia = { formato: modelo, cor: "#123456" };
+      const anterior = primeiroQuadroSvg(personalizarSvg(original, aparencia, modelo, selecao, "#abcdef"));
+      const otimizado = personalizarSvg(primeiroQuadroSvg(original), aparencia, modelo, selecao, "#abcdef");
+      assert.equal(otimizado, anterior, `${modelo}/${estado}/${acessorio.id}`);
+      assert.doesNotMatch(otimizado, /<animate\b/);
+      assert.match(otimizado, new RegExp(`href="#niko-ac-${acessorio.id}"`));
+    }
+  }
+});
+
 test("guarda-roupa rejeita conteúdo arbitrário e acessórios na posição errada", () => {
   assert.deepEqual(roupas.acessoriosValidos({ cabeca: '<script>', rosto: 'coroa', detalhe: {}, costas: 'url(x)' }), roupas.SEM_ACESSORIOS);
   assert.deepEqual(roupas.acessoriosValidos({ cabeca: 'bruxa', rosto: 'oculos', detalhe: 'colar', costas: 'capa', cor: 'javascript:x' }), { ...roupas.SEM_ACESSORIOS, rosto: 'oculos' });
@@ -63,6 +99,44 @@ test("todos os acessórios seguem a matriz de cada quadro nos quatro formatos e 
       assert.doesNotMatch(vestido, /NaN|undefined/);
     }
   }
+});
+
+test("catálogo destaca as dez novidades sem remover as peças anteriores ou misturar filtros", () => {
+  const todos = roupas.catalogoDeAcessorios('todas');
+  assert.equal(todos.length, 27);
+  assert.deepEqual(todos.slice(0,10).map(a => a.id), roupas.NOVOS_ACESSORIOS);
+  assert.equal(roupas.ACESSORIOS[0].id, 'lacinho');
+  assert.deepEqual(roupas.catalogoDeAcessorios('novos').map(a => a.id), roupas.NOVOS_ACESSORIOS);
+  for (const categoria of ['dia', 'halloween', 'natal']) assert.ok(roupas.catalogoDeAcessorios(categoria).every(a => a.categoria === categoria));
+  const html = renderToStaticMarkup(createElement(PersonalizacaoDoTime, { compacto: true }));
+  assert.match(html, />Novos<\/button>/);
+  assert.ok(html.indexOf('Experimentar Chapéu de chef') < html.indexOf('Experimentar Lacinho'));
+});
+
+test("capa tem comprimento menor e encaixe próprio, sem alterar a capa de vampiro", () => {
+  for (const modelo of agentes) {
+    const encaixe = encaixeDoAcessorio('capa', modelo);
+    const escala = encaixe.match(/scale\(([\d.]+) ([\d.]+)\)/);
+    const larguraAnterior = modelo === 'operador' ? 1.12 : modelo === 'tutor' ? 1.36 : 1.28;
+    assert.ok(Number(escala[1]) < larguraAnterior);
+    assert.ok(Number(escala[2]) >= .85 && Number(escala[2]) < 1);
+    assert.notEqual(encaixe, encaixeDoAcessorio('vampiro', modelo));
+    assert.match(encaixeDoAcessorio('vampiro', modelo), /1.03\)/);
+  }
+});
+
+test("chapéus novos assentam no topo com encaixe lateral próprio para o fogo", () => {
+  for (const modelo of agentes) for (const id of ['chef', 'cowboy', 'pirata', 'cartola', 'flores', 'gatinho']) {
+    const encaixe = encaixeDoAcessorio(id, modelo);
+    const numeros = encaixe.match(/translate\(([-\d.]+) ([-\d.]+)\) scale\(([\d.]+)\)/);
+    assert.ok(numeros, `${modelo}/${id}`);
+    const [, lateral, altura, escala] = numeros.map(Number);
+    assert.ok(altura <= -.7 && altura >= -.85);
+    assert.equal(lateral, modelo === 'organizador' ? -.13 : 0);
+    assert.ok(escala > .6 && escala < 1.4);
+    if (id === 'chef') assert.ok(altura - .91 * escala >= -1.45, 'chapéu cabe na área do SVG');
+  }
+  assert.match(encaixeDoAcessorio('bandana', 'java'), /translate\(0 0.05\) scale\(1 1\)/);
 });
 
 test("capa fica atrás e óculos depois dos olhos, com definições reutilizadas", () => {
@@ -139,8 +213,7 @@ test("guarda-roupa não aplica a textura que produz brilho fora do corpo", () =>
   assert.match(catalogo, /textura=\{false\}/);
   assert.doesNotMatch(previa, /time-camarim-pedestal/);
   const personagem = readFileSync(new URL('../src/personagens/Personagem.tsx', import.meta.url), 'utf8');
-  assert.match(personagem, /textura = true/);
-  assert.match(personagem, /textura && visivel && caminhoDaArte/);
+  assert.doesNotMatch(personagem, /textura = true|className="personagem-textura"/);
 });
 
 test("fumaça se dispersa em partículas só durante a troca e respeita movimento reduzido", () => {

@@ -102,8 +102,10 @@ export function mostrarSistema() {
   return invocar("mostrar_sistema");
 }
 
-export function prepararAtualizacao() {
-  return invocar<void>("preparar_atualizacao");
+export async function prepararAtualizacao() {
+  if (!NATIVO) return;
+  const { invoke } = await import("@tauri-apps/api/core");
+  await invoke<void>("preparar_atualizacao");
 }
 
 export function liberarSistemaInicial() {
@@ -169,8 +171,17 @@ function enviarPelaPonte(base: string, token: string | null) {
 
 export async function prepararPonte() {
   if (NATIVO && window.location.hostname === "tauri.localhost") {
-    const [token, porta] = await Promise.all([invocar<string>("token_ponte"), invocar<number>("porta_ponte")]);
-    enviarPelaPonte(`http://127.0.0.1:${porta ?? 47831}`, token);
+    let limite = 0;
+    try {
+      const [token, porta] = await Promise.race([
+        Promise.all([invocar<string>("token_ponte"), invocar<number>("porta_ponte")]),
+        new Promise<never>((_, rejeitar) => { limite = window.setTimeout(() => rejeitar(new Error("ponte_indisponivel")), 5000); }),
+      ]);
+      if (!token || typeof porta !== "number" || !Number.isInteger(porta) || porta < 1 || porta > 65535) throw new Error("ponte_indisponivel");
+      enviarPelaPonte(`http://127.0.0.1:${porta}`, token);
+    } finally {
+      window.clearTimeout(limite);
+    }
     return;
   }
   const tokenDeDesenvolvimento = document.querySelector<HTMLMetaElement>('meta[name="niko-token"]')?.content;

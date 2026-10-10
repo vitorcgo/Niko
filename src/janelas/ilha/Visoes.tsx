@@ -22,6 +22,7 @@ import { itemFeito, itensDoCalendario, podeMarcarFeito, repeteTodoDia, type Item
 import { marcarItemFeito } from "../../utilitarios/marcarFeito";
 import { usarAgendaGoogle } from "../../modulos/calendario/usarAgendaGoogle";
 import { ConexaoNaIlha } from "./ConexaoNaIlha";
+import { conexaoEmTestes } from "../../utilitarios/disponibilidadeConexoes";
 import { VolumeDoPlayer } from "./VolumeDoPlayer";
 import { EspacoDoPersonagem } from "./animacoes/PersonagemContinuo";
 import { funcaoLigada, secoesDoHojeLigadas } from "../../utilitarios/funcoes";
@@ -550,6 +551,8 @@ export function VisaoConexoes({ aberta, aoSelecionar }: { aberta: ServicoId | nu
                       animate={{ opacity: 1, y: 0, scale: 1, transition: { delay: i * 0.03, type: "spring", visualDuration: 0.3, bounce: 0.3 } }}
                       whileHover={{ y: -2 }}
                       whileTap={{ scale: 0.96 }}
+                      title={conexaoEmTestes(c.id) ? T.conexoes.emTestesDica : undefined}
+                      disabled={conexaoEmTestes(c.id)}
                       onClick={() => {
                         void tocarSom("blip");
                         if (falhas > 0) marcarFalhasVistas(c.id);
@@ -562,7 +565,7 @@ export function VisaoConexoes({ aberta, aoSelecionar }: { aberta: ServicoId | nu
                           <span className="ilha-conexao-nome-texto">{T.conexoes.servicos[c.id].nome}</span>
                           <span className="ilha-conexao-estado" data-status={c.ligada ? c.status : "desligada"} />
                         </span>
-                        <span className="ilha-conexao-resumo cortar privado">{c.ligada ? c.resumo || T.conexoes.status[c.status] : T.ilha.conexaoDesligada}</span>
+                        <span className="ilha-conexao-resumo cortar privado">{conexaoEmTestes(c.id) ? T.conexoes.emTestes : c.ligada ? c.resumo || T.conexoes.status[c.status] : T.ilha.conexaoDesligada}</span>
                       </span>
                       {c.ligada && falhas > 0 && <span className="ilha-conexao-selo">{falhas}</span>}
                     </motion.button>
@@ -582,7 +585,7 @@ export function VisaoConexoes({ aberta, aoSelecionar }: { aberta: ServicoId | nu
                 <span className="ilha-titulo">{T.conexoes.servicos[atual.id].nome}</span>
                 <span className="ilha-mini cortar">{atual.ligada ? `${T.conexoes.status[atual.status]} . ${atual.ultimaAtualizacao ? T.conexoes.atualizado(horarioRelativo(atual.ultimaAtualizacao)) : T.conexoes.nunca}` : T.ilha.conexaoDesligada}</span>
               </span>
-              {atual.ligada ? (
+              {conexaoEmTestes(atual.id) ? <span className="ilha-mini">{T.conexoes.emTestes}</span> : atual.ligada ? (
                 <button type="button" className="ilha-botao" onClick={() => abrirJanela(atual.id)}>
                   <ArrowUpRight size={13} />
                   {T.ilha.abrirConexao}
@@ -593,7 +596,7 @@ export function VisaoConexoes({ aberta, aoSelecionar }: { aberta: ServicoId | nu
                 </button>
               )}
             </div>
-            {atual.ligada && <ConexaoNaIlha servico={atual.id} />}
+            {conexaoEmTestes(atual.id) ? <span className="ilha-sub">{T.conexoes.emTestesDica}</span> : atual.ligada && <ConexaoNaIlha servico={atual.id} />}
           </motion.div>
         )}
       </AnimatePresence>

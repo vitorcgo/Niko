@@ -1,4 +1,5 @@
-import { unzipSync, strFromU8 } from "fflate";
+import { strFromU8 } from "fflate";
+import { LIMITE_OFFICE_COMPRIMIDO } from "./officeLimitado";
 import { cabecalhoDoBanco } from "../ponte/armazenamento";
 import { T } from "../textos/textos";
 
@@ -95,6 +96,7 @@ async function lerPdf(dados: ArrayBuffer, aoProgresso?: (p: number) => void): Pr
   try {
     documento = await tarefa.promise;
   } catch (e) {
+    await tarefa.destroy().catch(() => undefined);
     throw new Error((e as Error)?.name === "PasswordException" ? "pdf_protegido" : "pdf_invalido");
   }
   try {
@@ -151,13 +153,25 @@ function numeroNoNome(nome: string): number {
   return Number(/(\d+)\.xml$/.exec(nome)?.[1] ?? 0);
 }
 
-function lerOffice(dados: ArrayBuffer, extensao: string): TextoExtraido {
-  let arquivos: Record<string, Uint8Array>;
-  try {
-    arquivos = unzipSync(new Uint8Array(dados), { filter: (f) => f.name.endsWith(".xml") });
-  } catch {
-    throw new Error("leitura" satisfies FalhaDeLeitura);
-  }
+function descompactarForaDaInterface(dados: ArrayBuffer, extensao: string): Promise<Record<string, Uint8Array>> {
+  return new Promise((resolver, rejeitar) => {
+    const trabalhador = new Worker(new URL("./office.worker.ts", import.meta.url), { type: "module" });
+    const limite = window.setTimeout(() => { trabalhador.terminate(); rejeitar(new Error("tempo_leitura")); }, 15000);
+    const finalizar = () => { window.clearTimeout(limite); trabalhador.terminate(); };
+    trabalhador.onmessage = (e: MessageEvent<{ arquivos?: Record<string, Uint8Array>; erro?: string }>) => {
+      finalizar();
+      if (e.data.erro || !e.data.arquivos) rejeitar(new Error(e.data.erro ?? "leitura"));
+      else resolver(e.data.arquivos);
+    };
+    trabalhador.onerror = (e) => { e.preventDefault(); finalizar(); rejeitar(new Error("leitura")); };
+    trabalhador.onmessageerror = () => { finalizar(); rejeitar(new Error("leitura")); };
+    try { trabalhador.postMessage({ dados, extensao }, [dados]); }
+    catch (erro) { finalizar(); rejeitar(erro); }
+  });
+}
+
+async function lerOffice(dados: ArrayBuffer, extensao: string): Promise<TextoExtraido> {
+  const arquivos = await descompactarForaDaInterface(dados, extensao);
   const ler = (nome: string) => (arquivos[nome] ? strFromU8(arquivos[nome]) : "");
   let texto = "";
   if (extensao === "docx") {
@@ -197,6 +211,7 @@ function lerOffice(dados: ArrayBuffer, extensao: string): TextoExtraido {
 
 export async function extrairTexto(arquivo: Blob, nome: string, aoProgresso?: (p: number) => void): Promise<TextoExtraido> {
   const extensao = extensaoDoNome(nome);
+  if (arquivo.size > (extensao === "pdf" ? 64 * 1024 * 1024 : LIMITE_OFFICE_COMPRIMIDO)) throw new Error("arquivo_grande" satisfies FalhaDeLeitura);
   if (EXTENSOES_ANTIGAS.has(extensao)) throw new Error("formato_antigo" satisfies FalhaDeLeitura);
   if (EXTENSOES_IMAGEM.has(extensao)) return lerTextoDeImagem(arquivo);
   if (EXTENSOES_TEXTO.has(extensao)) {

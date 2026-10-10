@@ -1,5 +1,6 @@
 import type { AgenteId, CartaoConfirmacao, Rota, ServicoId } from "../tipos";
 import { conexoesPonte } from "../ponte/conexoesReais";
+import { conexaoEmTestes } from "./disponibilidadeConexoes";
 import type { FerramentaIa } from "../ponte/ponteLocal";
 import { useRotina, tarefasDoDia, habitoCumprido } from "../estado/rotina";
 import { useOrganizacao } from "../estado/organizacao";
@@ -167,9 +168,10 @@ async function lerArquivoDaMateria(a: Argumentos): Promise<ResultadoFerramenta> 
   return { tipo: "erro", mensagem: T.chat.recursos.arquivoNaoEncontrado };
 }
 
-const SERVICOS_IA: ServicoId[] = ["stripe", "github", "vercel", "google", "supabase", "cloudflare", "resend", "notion", "calcom", "n8n"];
+const SERVICOS_IA: ServicoId[] = (["stripe", "github", "vercel", "google", "supabase", "cloudflare", "resend", "notion", "calcom", "n8n"] as ServicoId[]).filter((id) => !conexaoEmTestes(id));
 
 function cartaoEmail(tipo: "rascunho" | "email", a: Argumentos): ResultadoFerramenta {
+  if (conexaoEmTestes("google")) return { tipo: "erro", mensagem: T.conexoes.emTestesDica };
   if (!useComunicacao.getState().conexoes.find((x) => x.id === "google")?.chaveSalva) return { tipo: "erro", mensagem: ERROS.gmailDesconectado };
   const para = texto(a.para, 200);
   if (!/^[^\s@<>,;]+@[^\s@<>,;]+\.[^\s@<>,;]+$/.test(para)) return { tipo: "erro", mensagem: ERROS.emailInvalido };
@@ -655,7 +657,7 @@ const ACOES_IMEDIATAS = new Set(["abrir_tela", "iniciar_pomodoro", "controlar_po
 
 export function definicoesFerramentas(personaPersonalizada = false): FerramentaIa[] {
   const financeiroBloqueado = useConfig.getState().nuncaFinanceiro;
-  const gmailConectado = useComunicacao.getState().conexoes.some((c) => c.id === "google" && c.chaveSalva);
+  const gmailConectado = !conexaoEmTestes("google") && useComunicacao.getState().conexoes.some((c) => c.id === "google" && c.chaveSalva);
   return FERRAMENTAS.map((f) => definicaoAtual(f.definicao)).filter((f) => {
     if (personaPersonalizada && ACOES_IMEDIATAS.has(f.nome)) return false;
     if (financeiroBloqueado && f.nome === "ler_financas") return false;

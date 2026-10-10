@@ -3,8 +3,9 @@ import { mkdirSync, existsSync, copyFileSync, readdirSync, unlinkSync } from "no
 import { join } from "node:path";
 import { pastaDados } from "./ia.ts";
 
-const VERSAO = 1;
+const VERSAO = 2;
 const bancos = new Map<string, DatabaseSync>();
+const diasCopiados = new Map<string, string>();
 
 export function caminhoBanco(nome = "") {
   return join(pastaDados(), nome ? `niko-${nome}.db` : "niko.db");
@@ -33,8 +34,12 @@ function abrir(nome = ""): DatabaseSync {
   db.exec("CREATE TABLE IF NOT EXISTS meta (chave TEXT PRIMARY KEY, valor TEXT NOT NULL)");
   const versao = Number((db.prepare("SELECT valor FROM meta WHERE chave = 'versao'").get() as { valor?: string } | undefined)?.valor ?? 0);
   if (versao < VERSAO) {
-    if (versao > 0) fazerBackup(arquivo, nome);
+    if (versao > 0) {
+      db.exec("PRAGMA wal_checkpoint(TRUNCATE)");
+      fazerBackup(arquivo, nome);
+    }
     db.exec("CREATE TABLE IF NOT EXISTS dados (chave TEXT PRIMARY KEY, valor TEXT NOT NULL, atualizado INTEGER NOT NULL)");
+    db.exec("CREATE TABLE IF NOT EXISTS confirmacoes (id TEXT PRIMARY KEY, situacao TEXT NOT NULL CHECK(situacao IN ('confirmado', 'cancelado')), criado INTEGER NOT NULL)");
     db.prepare("INSERT INTO meta (chave, valor) VALUES ('versao', ?) ON CONFLICT(chave) DO UPDATE SET valor = excluded.valor").run(String(VERSAO));
   }
   bancos.set(nome, db);
@@ -66,6 +71,30 @@ export function gravar(itens: Record<string, string | null>, nome = "") {
     db.exec("ROLLBACK");
     throw e;
   }
+  const dia = new Date().toISOString().slice(0, 10);
+  if (diasCopiados.get(nome) !== dia) {
+    try {
+      const pasta = join(pastaDados(), "backups");
+      const prefixo = nome ? `niko-${nome}--` : "niko-";
+      const existe = existsSync(pasta) && readdirSync(pasta).some((n) => n.startsWith(`${prefixo}${dia}`) && n.endsWith(".db"));
+      if (!existe) {
+        db.exec("PRAGMA wal_checkpoint(TRUNCATE)");
+        fazerBackup(caminhoBanco(nome), nome);
+      }
+      diasCopiados.set(nome, dia);
+    } catch {
+      process.stderr.write("backup_diario_falhou\n");
+    }
+  }
+}
+
+export function reservarConfirmacao(id: string, aceitar: boolean, nome = ""): { reservada: boolean; situacao: "confirmado" | "cancelado" } {
+  if (!/^[A-Za-z0-9:_-]{1,200}$/.test(id)) throw new Error("confirmacao_invalida");
+  const db = abrir(nome);
+  const situacao = aceitar ? "confirmado" : "cancelado";
+  const insercao = db.prepare("INSERT INTO confirmacoes (id, situacao, criado) VALUES (?, ?, ?) ON CONFLICT(id) DO NOTHING").run(id, situacao, Date.now());
+  const salvo = db.prepare("SELECT situacao FROM confirmacoes WHERE id = ?").get(id) as { situacao: "confirmado" | "cancelado" };
+  return { reservada: insercao.changes === 1, situacao: salvo.situacao };
 }
 
 export function zerarBanco(nome = ""): string {
@@ -73,18 +102,20 @@ export function zerarBanco(nome = ""): string {
   db.exec("PRAGMA wal_checkpoint(TRUNCATE)");
   fazerBackup(caminhoBanco(nome), nome);
   db.exec("DELETE FROM dados");
+  db.exec("DELETE FROM confirmacoes");
   db.exec("VACUUM");
   return join(pastaDados(), "backups");
 }
 
-export function backupManual(): string {
-  const arquivo = caminhoBanco();
-  abrir().exec("PRAGMA wal_checkpoint(TRUNCATE)");
-  fazerBackup(arquivo);
+export function backupManual(nome = ""): string {
+  const arquivo = caminhoBanco(nome);
+  abrir(nome).exec("PRAGMA wal_checkpoint(TRUNCATE)");
+  fazerBackup(arquivo, nome);
   return join(pastaDados(), "backups");
 }
 
 export function fecharBanco() {
   for (const db of bancos.values()) db.close();
   bancos.clear();
+  diasCopiados.clear();
 }

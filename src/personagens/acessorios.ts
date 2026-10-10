@@ -18,13 +18,29 @@ export const ACESSORIOS = [
   { id: "natal", posicao: "cabeca", categoria: "natal" },
   { id: "rena", posicao: "cabeca", categoria: "natal" },
   { id: "cachecol", posicao: "detalhe", categoria: "natal" },
+  { id: "chef", posicao: "cabeca", categoria: "dia" },
+  { id: "cowboy", posicao: "cabeca", categoria: "dia" },
+  { id: "pirata", posicao: "cabeca", categoria: "halloween" },
+  { id: "cartola", posicao: "cabeca", categoria: "dia" },
+  { id: "flores", posicao: "cabeca", categoria: "dia" },
+  { id: "gatinho", posicao: "cabeca", categoria: "dia" },
+  { id: "monoculo", posicao: "rosto", categoria: "dia" },
+  { id: "bandana", posicao: "detalhe", categoria: "dia" },
+  { id: "asas", posicao: "costas", categoria: "dia" },
+  { id: "mochila", posicao: "costas", categoria: "dia" },
 ] as const;
 export type AcessorioId = typeof ACESSORIOS[number]["id"];
+export const NOVOS_ACESSORIOS: readonly AcessorioId[] = ["chef", "cowboy", "pirata", "cartola", "flores", "gatinho", "monoculo", "bandana", "asas", "mochila"];
 export type PosicaoAcessorio = typeof ACESSORIOS[number]["posicao"];
 export type CategoriaAcessorio = typeof ACESSORIOS[number]["categoria"];
 export type AcessoriosAgente = Record<PosicaoAcessorio, AcessorioId | null>;
 export const SEM_ACESSORIOS: AcessoriosAgente = { cabeca: null, rosto: null, detalhe: null, costas: null };
 export const POSICOES_ACESSORIOS: PosicaoAcessorio[] = ["cabeca", "rosto", "detalhe", "costas"];
+
+export function catalogoDeAcessorios(categoria: CategoriaAcessorio | "todas" | "novos") {
+  return ACESSORIOS.filter((a) => categoria === "novos" ? NOVOS_ACESSORIOS.includes(a.id) : categoria === "todas" || a.categoria === categoria)
+    .sort((a, b) => Number(NOVOS_ACESSORIOS.includes(b.id)) - Number(NOVOS_ACESSORIOS.includes(a.id)));
+}
 
 export function acessoriosValidos(valor: unknown): AcessoriosAgente {
   const fonte = valor && typeof valor === "object" ? valor as Record<string, unknown> : {};

@@ -9,6 +9,7 @@ import { carregarRosto, ouvirMouse, type Rosto } from "./olhar";
 import { useConfig } from "../estado/configuracoes";
 import { aparenciaValida, modeloDoAgente, type AparenciaAgente } from "./personalizacao";
 import { usarArtePersonalizada } from "./artePersonalizada";
+import { usarVisibilidadeDocumento } from "./visibilidade";
 import { acessoriosValidos, corAcessorioValida, temAcessorios, type AcessoriosAgente } from "./acessorios";
 import { definicoesDosAcessorios, usosDosAcessorios } from "./desenhosDosAcessorios";
 import "./personagens.css";
@@ -55,9 +56,7 @@ async function verificarArte(agente: AgenteId) {
       ouvintesSemArte.get(agente)?.forEach((f) => f(false));
       return;
     }
-  } catch {
-    return;
-  }
+  } catch {}
   window.setTimeout(() => void verificarArte(agente), 8000);
 }
 
@@ -72,16 +71,19 @@ function ouvirSemArte(agente: AgenteId, f: (sem: boolean) => void) {
 function preCarregar(agente: AgenteId) {
   if (preCarregados.has(agente)) return;
   preCarregados.add(agente);
-  const carregar = () => ESTADOS_SVG.forEach((e) => {
-    const img = new Image();
-    img.decoding = "async";
-    img.src = caminhoPersonagem(agente, e);
-  });
+  const carregar = () => {
+    if (document.hidden) { preCarregados.delete(agente); return; }
+    ESTADOS_SVG.forEach((e) => {
+      const img = new Image();
+      img.decoding = "async";
+      img.src = caminhoPersonagem(agente, e);
+    });
+  };
   window.setTimeout(carregar, 800);
 }
 
 export const Personagem = forwardRef<ControlePersonagem, Props>(function Personagem(
-  { agente, estado: estadoFixo, tamanho = 48, interativo = true, halo = true, textura = true, rotulo, olhar: seguirMouse = true, aparencia: previa, acessorios: acessoriosPrevios, estatico = false, corAcessorio: corPrevia },
+  { agente, estado: estadoFixo, tamanho = 48, interativo = true, halo = true, rotulo, olhar: seguirMouse = true, aparencia: previa, acessorios: acessoriosPrevios, estatico = false, corAcessorio: corPrevia },
   ref,
 ) {
   const estadoVivo = useEstadoAgente(agente);
@@ -103,7 +105,9 @@ export const Personagem = forwardRef<ControlePersonagem, Props>(function Persona
   const [reacao, setReacao] = useState<"feliz" | "tonto" | null>(null);
   const [coracoes, setCoracoes] = useState(0);
   const [sobre, setSobre] = useState(false);
-  const [visivel, setVisivel] = useState(true);
+  const [naTela, setVisivel] = useState(true);
+  const documentoVisivel = usarVisibilidadeDocumento();
+  const visivel = naTela && documentoVisivel;
   const cliques = useRef<number[]>([]);
   const temporizadores = useRef<number[]>([]);
   const caixa = useRef<HTMLDivElement>(null);
@@ -116,12 +120,16 @@ export const Personagem = forwardRef<ControlePersonagem, Props>(function Persona
 
 
   const agendar = (fn: () => void, ms: number) => {
-    temporizadores.current.push(window.setTimeout(fn, ms));
+    const id = window.setTimeout(() => {
+      temporizadores.current.splice(temporizadores.current.indexOf(id), 1);
+      fn();
+    }, ms);
+    temporizadores.current.push(id);
   };
 
   useEffect(() => {
-    if (!personalizado) preCarregar(modelo);
-  }, [modelo, personalizado]);
+    if (!personalizado && documentoVisivel) preCarregar(modelo);
+  }, [modelo, personalizado, documentoVisivel]);
 
   useEffect(() => {
     const atual = temporizadores.current;
@@ -294,10 +302,9 @@ export const Personagem = forwardRef<ControlePersonagem, Props>(function Persona
           ) : (
             <span style={{ width: tamanho, height: tamanho, display: "block" }} />
           )}
-          {textura && visivel && caminhoDaArte && !semArte && tamanho >= 24 && <span className="personagem-textura" style={{ maskImage: `url(${caminhoDaArte})`, WebkitMaskImage: `url(${caminhoDaArte})` }} aria-hidden="true" />}
         </div>
       </motion.div>
-      {coracoes > 0 && reacao === "feliz" && tamanho >= 28 && (
+      {visivel && coracoes > 0 && reacao === "feliz" && tamanho >= 28 && (
         <span key={coracoes} className="coracoes" aria-hidden="true">
           {[0, 1, 2].map((i) => (
             <Heart key={i} size={Math.max(10, tamanho * 0.2)} fill="#ff6fa8" color="#ff6fa8" style={{ animationDelay: `${i * 0.12}s` }} />

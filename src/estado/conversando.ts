@@ -11,6 +11,9 @@ import { hojeISO } from "../utilitarios/datas";
 import { guardarImagens, imagemParaBlob, type AnexoPronto } from "../utilitarios/anexos";
 import { lerTextoDeImagem, mensagemDeLeitura } from "../utilitarios/leitorDeArquivos";
 import { tocarSom } from "../ponte/sons";
+import { chaveConfirmacao, reservarConfirmacao } from "../ponte/confirmacoes";
+import { useInterface } from "./interface";
+import { aoPrepararSaida } from "../ponte/armazenamento";
 import { T } from "../textos/textos";
 import { controlarPomodoro, detectarPedidoLocal, montarPedidoAnexo, textoPomodoro, textoRelatorioSemanal, type AcaoAnexo } from "../utilitarios/recursosChat";
 import { textoCapacidadesResumido } from "../utilitarios/ferramentasIa";
@@ -22,9 +25,10 @@ interface EstadoConversando {
   fase: FaseConversa;
   agente: AgenteId | null;
   parcial: string;
+  confirmando: Record<string, boolean>;
 }
 
-export const useConversando = create<EstadoConversando>()(() => ({ conversaId: null, fase: null, agente: null, parcial: "" }));
+export const useConversando = create<EstadoConversando>()(() => ({ conversaId: null, fase: null, agente: null, parcial: "", confirmando: {} }));
 
 let controle: AbortController | null = null;
 let quadroPendente = 0;
@@ -54,6 +58,18 @@ export function ocupado(): boolean {
 export function pararResposta() {
   controle?.abort();
 }
+
+aoPrepararSaida(() => {
+  pararResposta();
+  const pendente = () => ocupado() || Object.keys(useConversando.getState().confirmando).length > 0;
+  if (!pendente()) return Promise.resolve();
+  return new Promise<void>((resolver, rejeitar) => {
+    const limite = window.setTimeout(() => { parar(); rejeitar(new Error("acoes_pendentes")); }, 8500);
+    const parar = useConversando.subscribe(() => {
+      if (!pendente()) { window.clearTimeout(limite); parar(); resolver(); }
+    });
+  });
+});
 
 const esperar = (ms: number) => new Promise((r) => window.setTimeout(r, ms));
 
@@ -248,8 +264,11 @@ export async function usarSugestao(conversaId: string, comando: string) {
 }
 
 export function alterarDadosDoCartao(conversaId: string, mensagem: Mensagem, indice: number | null, dados: CartaoConfirmacao["dados"]) {
+  if (useConversando.getState().confirmando[chaveConfirmacao(conversaId, mensagem.id, indice)]) return;
   const com = useComunicacao.getState();
-  const atual = com.conversas.find((c) => c.id === conversaId)?.mensagens.find((m) => m.id === mensagem.id) ?? mensagem;
+  const atual = com.conversas.find((c) => c.id === conversaId)?.mensagens.find((m) => m.id === mensagem.id);
+  const cartao = indice === null ? atual?.confirmacao : atual?.confirmacoes?.[indice];
+  if (!atual || cartao?.situacao !== "pendente") return;
   if (indice === null) {
     if (atual.confirmacao) com.atualizarMensagem(conversaId, mensagem.id, { confirmacao: { ...atual.confirmacao, dados: { ...atual.confirmacao.dados, ...dados } } });
   } else if (atual.confirmacoes) {
@@ -258,15 +277,43 @@ export function alterarDadosDoCartao(conversaId: string, mensagem: Mensagem, ind
 }
 
 export async function decidirCartao(conversaId: string, mensagem: Mensagem, indice: number | null, aceitar: boolean) {
-  const com = useComunicacao.getState();
-  const cartao: CartaoConfirmacao | undefined = indice === null ? mensagem.confirmacao : mensagem.confirmacoes?.[indice];
+  const id = chaveConfirmacao(conversaId, mensagem.id, indice);
+  if (useConversando.getState().confirmando[id]) return;
+  const atual = () => useComunicacao.getState().conversas.find((c) => c.id === conversaId)?.mensagens.find((m) => m.id === mensagem.id);
+  const original = atual();
+  if (!original) return;
+  const cartao = indice === null ? original?.confirmacao : original?.confirmacoes?.[indice];
   if (!cartao || cartao.situacao !== "pendente") return;
   if (aceitar && faltaCategoria(cartao)) return;
-  const novo: CartaoConfirmacao = { ...cartao, situacao: aceitar ? "confirmado" : "cancelado" };
-  const resposta = aceitar ? await confirmarComando(cartao) : T.chat.cancelado;
-  if (indice === null) com.atualizarMensagem(conversaId, mensagem.id, { confirmacao: novo });
-  else com.atualizarMensagem(conversaId, mensagem.id, { confirmacoes: mensagem.confirmacoes!.map((c, i) => (i === indice ? novo : c)) });
-  const varios = (mensagem.confirmacoes?.length ?? 0) > 1;
-  if (!varios) com.adicionarMensagem(conversaId, { autor: "agente", agenteId: mensagem.agenteId, texto: resposta });
-  if (aceitar) void tocarSom("approve");
+  useConversando.setState((s) => ({ confirmando: { ...s.confirmando, [id]: true } }));
+  const atualizar = (situacao: CartaoConfirmacao["situacao"]) => {
+    const corrente = atual();
+    if (!corrente) return;
+    const novo = { ...cartao, situacao };
+    const com = useComunicacao.getState();
+    if (indice === null) com.atualizarMensagem(conversaId, mensagem.id, { confirmacao: novo });
+    else if (corrente.confirmacoes) com.atualizarMensagem(conversaId, mensagem.id, { confirmacoes: corrente.confirmacoes.map((c, i) => i === indice ? novo : c) });
+  };
+  let reservada = false;
+  try {
+    const reserva = await reservarConfirmacao(id, aceitar);
+    if (!reserva.reservada) {
+      atualizar(reserva.situacao === "cancelado" ? "cancelado" : "verificar");
+      useInterface.getState().avisar(T.chat.confirmacaoJaRespondida);
+      return;
+    }
+    reservada = true;
+    const corrente = atual();
+    const decisaoAtual = indice === null ? corrente?.confirmacao : corrente?.confirmacoes?.[indice];
+    if (!decisaoAtual || decisaoAtual.situacao !== "pendente") return;
+    const resposta = aceitar ? await confirmarComando(cartao) : T.chat.cancelado;
+    atualizar(reserva.situacao);
+    if ((original.confirmacoes?.length ?? 0) <= 1) useComunicacao.getState().adicionarMensagem(conversaId, { autor: "agente", agenteId: original.agenteId, texto: resposta });
+    if (aceitar) void tocarSom("approve");
+  } catch {
+    if (reservada) atualizar("verificar");
+    useInterface.getState().avisar(T.chat.confirmacaoFalhou);
+  } finally {
+    useConversando.setState((s) => ({ confirmando: Object.fromEntries(Object.entries(s.confirmando).filter(([chave]) => chave !== id)) }));
+  }
 }

@@ -96,7 +96,7 @@ export const useAtualizacao = create<EstadoAtualizacao>()((set, get) => ({
       });
       set({ fase: "instalando", progresso: 1 });
       void tocarSom("approve", "avisos");
-      await salvarAgora().catch(() => undefined);
+      await salvarAgora();
       await prepararAtualizacao();
       ponteParada = true;
       await pendente.install();

@@ -58,35 +58,8 @@
   100% { opacity: 0; transform: translateY(-18px) scale(0.9); }
 }
 
-.ilha-raiz .personagem[data-agente="tutor"]:not([data-personalizado]) .personagem-imagem,
-[data-tema="escuro"] .personagem[data-agente="tutor"]:not([data-personalizado]) .personagem-imagem,
-.sala-2d .personagem[data-agente="tutor"]:not([data-personalizado]) .personagem-imagem,
-.agente-cena .personagem[data-agente="tutor"]:not([data-personalizado]) .personagem-imagem {
-  filter: drop-shadow(0 0 1px rgba(255, 255, 255, 0.95)) drop-shadow(0 0 1px rgba(255, 255, 255, 0.7)) drop-shadow(0 0 8px rgba(255, 255, 255, 0.28));
-}
-
 .personagem-giro {
   position: relative;
-}
-
-.personagem-textura {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  -webkit-mask-size: 100% 100%;
-  mask-size: 100% 100%;
-  -webkit-mask-repeat: no-repeat;
-  mask-repeat: no-repeat;
-  background:
-    radial-gradient(42% 34% at 34% 22%, rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0) 70%),
-    radial-gradient(70% 55% at 50% 105%, rgba(0, 0, 0, 0.32), rgba(0, 0, 0, 0) 70%),
-    repeating-radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.035) 0 1px, rgba(0, 0, 0, 0.035) 1px 2px);
-  mix-blend-mode: soft-light;
-}
-
-.personagem[data-agente="tutor"] .personagem-textura {
-  mix-blend-mode: screen;
-  opacity: 0.45;
 }
 
 .personagem-sem-arte {

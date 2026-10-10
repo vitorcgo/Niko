@@ -4,13 +4,12 @@ import { randomBytes } from "node:crypto";
 import { listarProvedores, salvarProvedor, removerProvedor, testarProvedor, conversar, validarMensagens, validarFerramentas } from "./ia.ts";
 import { lerConsumo, usoOficial } from "./consumo.ts";
 import { lerUltimaVersao } from "./atualizacoes.ts";
-import { lerTudo, gravar, backupManual, zerarBanco } from "./banco.ts";
+import { lerTudo, gravar, backupManual, zerarBanco, reservarConfirmacao } from "./banco.ts";
 import { pedirMidia } from "./midia.ts";
 import { pedirJanelas } from "./janelasWindows.ts";
 import { estadoConexoes, lerConexao, salvarChaveConexao, removerChaveConexao, servicoValido, chaveDe, SERVICOS as SERVICOS_CONEXAO } from "./conexoes.ts";
 import { buscarGmail, criarRascunhoGmail, enviarGmail } from "./gmail.ts";
 import { lerAgendaGoogle } from "./agendaGoogle.ts";
-import { temClienteDoNiko } from "./google.ts";
 import { lerCotacoes } from "./cotacoes.ts";
 import { lerAudio, definirVolume, definirMudo, ajustarSessao, lerTema, lerIniciar, definirTema, abrirFerramenta, agirNaEnergia, lerBandeja, abrirDaBandeja, pastaDaBandeja, encerrarDaBandeja, listarApps, iconesDeApps, abrirApp, abrirComandoDoSistema } from "./controleRapido.ts";
 import { ocrDaRequisicao } from "./ocr.ts";
@@ -150,7 +149,7 @@ export const rotas: Connect.NextHandleFunction = async (req, res, proximo) => {
       return responder(res, 200, estadoConexoes());
     }
     if (caminho === "/cotacoes" && req.method === "GET") return responder(res, 200, await lerCotacoes());
-    if (caminho === "/google/login-direto" && req.method === "GET") return responder(res, 200, { disponivel: temClienteDoNiko() });
+    if (caminho === "/google/login-direto" && req.method === "GET") return responder(res, 200, { disponivel: false, emTestes: true });
     if (caminho === "/gmail/buscar" && req.method === "GET") return responder(res, 200, await buscarGmail(await chaveDe("google"), url.searchParams.get("q") ?? ""));
     if (caminho === "/agenda/eventos" && req.method === "GET") return responder(res, 200, await lerAgendaGoogle(await chaveDe("google"), url.searchParams.get("de") ?? "", url.searchParams.get("ate") ?? ""));
     if (caminho === "/gmail/rascunho" && req.method === "POST") return responder(res, 200, await criarRascunhoGmail(await chaveDe("google"), await lerCorpo(req)));
@@ -183,7 +182,12 @@ export const rotas: Connect.NextHandleFunction = async (req, res, proximo) => {
       return responder(res, 200, { pasta });
     }
     if (caminho === "/dados/backup" && req.method === "POST") {
-      return responder(res, 200, { pasta: backupManual() });
+      return responder(res, 200, { pasta: backupManual(String(req.headers["x-niko-banco"] ?? "")) });
+    }
+    if (caminho === "/confirmacoes/reservar" && req.method === "POST") {
+      const corpo = await lerCorpo(req);
+      if (typeof corpo.id !== "string" || typeof corpo.aceitar !== "boolean") return responder(res, 400, { erro: "confirmacao_invalida" });
+      return responder(res, 200, reservarConfirmacao(corpo.id, corpo.aceitar, String(req.headers["x-niko-banco"] ?? "")));
     }
     if (caminho === "/consumo" && req.method === "GET") {
       if (url.searchParams.get("oficial") === "1") return responder(res, 200, usoOficial());

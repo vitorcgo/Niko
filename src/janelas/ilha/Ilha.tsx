@@ -41,6 +41,7 @@ import { atributosDoFundo, usarAparenciaDeBorda, variaveisDaBorda } from "../apa
 import { movimentoDaVisibilidade } from "./animacoes/visibilidade";
 import type { AgenteId, EstadoAgente, ServicoId } from "../../tipos";
 import { alturaDasConexoes } from "./alturaDasConexoes";
+import { atrasoDeFechamento, editandoNaIlha } from "./fechamento";
 import { VisaoTime } from "./VisaoTime";
 import "./ilha.css";
 
@@ -288,24 +289,31 @@ export function Ilha() {
   }, [estadoEfetivo]);
 
   useEffect(() => {
-    if (estadoEfetivo !== "expandida" || sobre || barraEmUso || cfg.fechamentoSeg === 0 || abaAtual === "claude" || abaAtual === "time" || fixada) {
+    const atraso = atrasoDeFechamento(cfg.fechamentoSeg, abaAtual);
+    if (estadoEfetivo !== "expandida" || sobre || barraEmUso || atraso === null || fixada) {
       setRestanteFechar(null);
       return;
     }
-    const fim = Date.now() + cfg.fechamentoSeg * 1000;
-    const t = window.setInterval(() => {
-      const focoDentro = raiz.current?.contains(document.activeElement) && document.activeElement?.tagName === "INPUT";
-      if (focoDentro) return;
+    let fim = Date.now() + atraso;
+    const verificar = () => {
+      if (editandoNaIlha(raiz.current, document.activeElement)) {
+        fim = Date.now() + atraso;
+        setRestanteFechar(null);
+        return;
+      }
       const r = fim - Date.now();
       if (r <= 0) {
         recolher();
         void tocarSom("close");
         setRestanteFechar(null);
+        window.clearInterval(t);
         return;
       }
       setRestanteFechar(r);
-    }, 100);
-    return () => window.clearInterval(t);
+    };
+    const t = window.setInterval(verificar, 100);
+    const imediato = atraso === 0 ? window.setTimeout(verificar, 0) : undefined;
+    return () => { window.clearInterval(t); window.clearTimeout(imediato); };
   }, [estadoEfetivo, sobre, barraEmUso, cfg.fechamentoSeg, recolher, abaAtual, fixada]);
 
   useEffect(() => {

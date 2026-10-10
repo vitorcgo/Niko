@@ -4,6 +4,7 @@ import { lerSegredo, gravarSegredo, apagarSegredo } from "./segredos.ts";
 import { pastaDados, validarUrlBase } from "./ia.ts";
 import { autorizarWorkspace, lerGoogle } from "./google.ts";
 import { lerContribuicoesGithub, lerCommitsGithub } from "./github.ts";
+import { exigirConexaoDisponivel } from "../src/utilitarios/disponibilidadeConexoes.ts";
 
 export const SERVICOS = ["stripe", "github", "vercel", "resend", "notion", "calcom", "n8n", "google", "supabase", "cloudflare"] as const;
 const SERVICOS_ANTIGOS_DO_GOOGLE = ["gmail", "agenda"];
@@ -338,6 +339,7 @@ async function buscarConexao(servico: Servico, aindaValida: () => boolean) {
 }
 
 export async function lerConexao(servico: Servico, forcar = false) {
+  exigirConexaoDisponivel(servico);
   const anterior = cacheDados.get(servico);
   if (!forcar && anterior && Date.now() - anterior.quando < 20000) return anterior.dados;
   const emAndamento = leiturasEmAndamento.get(servico);
@@ -350,12 +352,14 @@ export async function lerConexao(servico: Servico, forcar = false) {
 }
 
 export async function chaveDe(servico: Servico): Promise<string> {
+  exigirConexaoDisponivel(servico);
   const chave = lerConfig()[servico]?.temChave ? await lerSegredo(`conexao-${servico}`) : null;
   if (!chave) throw new Error("sem_chave");
   return chave;
 }
 
 export async function salvarChaveConexao(servico: Servico, dados: { chave?: unknown; url?: unknown; clienteId?: unknown; segredo?: unknown }) {
+  exigirConexaoDisponivel(servico);
   if (servico === "google") {
     const credencial = await autorizarWorkspace(String(dados.clienteId ?? "").trim(), String(dados.segredo ?? "").trim());
     const texto = JSON.stringify(credencial);

@@ -120,7 +120,7 @@ function validarVisual(dados: unknown): Partial<ReturnType<typeof useConfig.getS
       fundo: fundoValido(i.fundo) ? i.fundo : CONFIG_PADRAO.ilha.fundo,
       opacidade: opacidadeValida(i.opacidade) ? i.opacidade : 1,
       repouso: ["nada", "relogio", "midia", "agente"].includes(i.repouso as string) ? i.repouso : "agente",
-      fechamentoSeg: typeof i.fechamentoSeg === "number" && i.fechamentoSeg >= 0 && i.fechamentoSeg <= 120 ? i.fechamentoSeg : 15,
+      fechamentoSeg: typeof i.fechamentoSeg === "number" && Number.isFinite(i.fechamentoSeg) && (i.fechamentoSeg === -1 || i.fechamentoSeg >= 0 && i.fechamentoSeg <= 300) ? i.fechamentoSeg : 15,
       abrirHover: i.abrirHover === true,
       laterais: i.laterais !== false,
     };
@@ -227,8 +227,10 @@ function SecaoDados() {
                 onClick={() => {
                   exportar(`niko-antes-de-restaurar-${hojeISO()}.json`);
                   for (const [k, v] of Object.entries(previa.dados)) gravarChave(k, v);
-                  avisar(T.configuracoes.restaurado);
-                  void salvarAgora().then(() => window.setTimeout(() => window.location.reload(), 400));
+                  void salvarAgora().then(() => {
+                    avisar(T.configuracoes.restaurado);
+                    window.setTimeout(() => window.location.reload(), 400);
+                  }).catch(() => avisar(T.configuracoes.restaurarFalhou));
                 }}
               >
                 {T.configuracoes.restaurar}
@@ -510,7 +512,8 @@ export default function Configuracoes() {
         <SeletorDeFundo id="il-fundo" fundo={cfg.ilha.fundo} opacidade={cfg.ilha.opacidade} aoMudar={(m) => cfg.definirIlha(m)} />
         <LinhaAjuste rotulo={T.configuracoes.fechamentoAuto} para="il-fech">
           <select id="il-fech" className="seletor ajuste-valor" value={cfg.ilha.fechamentoSeg} onChange={(e) => cfg.definirIlha({ fechamentoSeg: Number(e.target.value) })}>
-            {[5, 10, 15, 30, 60, 120].map((s) => <option key={s} value={s}>{T.conexoes.segundos(s)}</option>)}
+            <option value={-1}>{T.configuracoes.aoSairCursor}</option>
+            {[0.5, 1, 2, 3, 5, 10, 15, 30, 60, 120].map((s) => <option key={s} value={s}>{T.conexoes.segundos(s)}</option>)}
             <option value={0}>{T.configuracoes.nunca}</option>
           </select>
         </LinhaAjuste>

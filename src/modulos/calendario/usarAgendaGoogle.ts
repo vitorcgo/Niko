@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { conexoesPonte, type EventoGoogle } from "../../ponte/conexoesReais";
 import { useComunicacao } from "../../estado/comunicacao";
+import { conexaoEmTestes } from "../../utilitarios/disponibilidadeConexoes";
 
 export const INTERVALO_DA_AGENDA_MS = 30_000;
 const INTERVALO_MINIMO_MS = 5_000;
@@ -10,7 +11,7 @@ export type SituacaoDaAgendaGoogle = "desligada" | "carregando" | "ok" | "semPer
 
 export function usarAgendaGoogle(periodos: [string, string][]): { eventos: EventoGoogle[]; situacao: SituacaoDaAgendaGoogle; atualizar: () => void } {
   const agenda = useComunicacao((s) => s.conexoes.find((c) => c.id === "google"));
-  const ligada = Boolean(agenda?.ligada && agenda.chaveSalva);
+  const ligada = !conexaoEmTestes("google") && Boolean(agenda?.ligada && agenda.chaveSalva);
   const chave = periodos.map(([de, ate]) => `${de}_${ate}`).join("|");
   const [estado, setEstado] = useState<{ chave: string; eventos: EventoGoogle[]; situacao: SituacaoDaAgendaGoogle }>({ chave: "", eventos: [], situacao: "desligada" });
   const lerAgora = useRef<(forcar: boolean) => void>(() => undefined);

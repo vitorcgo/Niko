@@ -10,8 +10,29 @@ const servidor = await createServer({ configFile: false, server: { middlewareMod
 after(() => servidor.close());
 const { abaVizinha, alternarAbaDaBarra, criarAlternadorDoIniciar } = await servidor.ssrLoadModule("/src/janelas/ilha/barra/acoesDaBarra.ts");
 const { useIlha } = await servidor.ssrLoadModule("/src/estado/ilha.ts");
+const { atrasoDeFechamento, editandoNaIlha } = await servidor.ssrLoadModule("/src/janelas/ilha/fechamento.ts");
 const { controle, sistema } = await servidor.ssrLoadModule("/src/ponte/ponteLocal.ts");
 const { areaDeTrabalhoNaFrente, focoDaAreaPeloElemento, mostrarLateraisDaIlha } = await servidor.ssrLoadModule("/src/janelas/ilha/barra/visibilidadeDaBarra.ts");
+
+test("fechamento permite sair imediatamente ou esperar menos de cinco segundos, preservando Nunca", () => {
+  assert.equal(atrasoDeFechamento(0, "hoje"), null);
+  for (const aba of ["hoje", "chat", "time", "claude"]) assert.equal(atrasoDeFechamento(-1, aba), 0);
+  for (const s of [.5, 1, 2, 3, 5, 15]) assert.equal(atrasoDeFechamento(s, "hoje"), s * 1000);
+  assert.equal(atrasoDeFechamento(5, "time"), null);
+  assert.equal(atrasoDeFechamento(5, "claude"), null);
+  for (const valor of [NaN, Infinity, -2]) assert.equal(atrasoDeFechamento(valor, "hoje"), null);
+});
+
+test("edição protege inputs, texto, seletores e conteúdo editável, mas não foco fora da ilha", () => {
+  const raiz = { contains: (foco) => foco.dentro === true };
+  for (const tag of ["input", "textarea", "select", "contenteditable"]) {
+    const foco = { dentro: true, closest: (seletor) => { assert.match(seletor, /input, textarea, select/); return tag; } };
+    assert.equal(editandoNaIlha(raiz, foco), true);
+    assert.equal(editandoNaIlha(raiz, { ...foco, dentro: false }), false);
+  }
+  assert.equal(editandoNaIlha(raiz, null), false);
+  assert.equal(editandoNaIlha(raiz, { dentro: true, closest: () => null }), false);
+});
 
 test("grade de conexões mantém 350 px e somente os detalhes do GitHub conectado usam 500 px", async () => {
   const { alturaDasConexoes } = await servidor.ssrLoadModule("/src/janelas/ilha/alturaDasConexoes.ts");
@@ -66,7 +87,7 @@ test("foco no localhost distingue área de trabalho, janelas e controles da ilha
 
 test("usar os controles das pontas não recolhe a ilha nem dispara o fechamento automático", () => {
   const codigo = readFileSync(new URL("../src/janelas/ilha/Ilha.tsx", import.meta.url), "utf8");
-  assert.match(codigo, /sobre \|\| barraEmUso \|\| cfg\.fechamentoSeg/);
+  assert.match(codigo, /sobre \|\| barraEmUso \|\| atraso === null \|\| fixada/);
   assert.match(codigo, /e\.target\.closest\("\.ilha-barra, \.ilha-pop"\)\) return/);
   assert.match(codigo, /!areaEmFocoNoNavegador && alguemCobre/);
 });

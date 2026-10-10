@@ -17,6 +17,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { ContribuicoesGithub } from "./ContribuicoesGithub";
 import { CommitsGithub } from "./CommitsGithub";
+import { conexaoEmTestes } from "../../utilitarios/disponibilidadeConexoes";
 
 const MINIMO = { w: 560, h: 420 };
 const INTERVALOS = [30, 60, 120, 300, 600];
@@ -541,7 +542,7 @@ export function JanelaConexao({ janela }: { janela: EstadoJanela }) {
   const [buscando, setBuscando] = useState(false);
   const [confirmandoRemocao, setConfirmandoRemocao] = useState(false);
   const todas = useComunicacao((s) => s.conexoes);
-  const ativaAgora = Boolean(conexaoAtual?.ligada && conexaoAtual?.chaveSalva);
+  const ativaAgora = !conexaoEmTestes(janela.id) && Boolean(conexaoAtual?.ligada && conexaoAtual?.chaveSalva);
   const buscar = useCallback(
     async (forcar: boolean) => {
       setBuscando(true);
@@ -568,6 +569,7 @@ export function JanelaConexao({ janela }: { janela: EstadoJanela }) {
 
   if (!conexao || janela.minimizada) return null;
   const servico = T.conexoes.servicos[janela.id];
+  if (conexaoEmTestes(janela.id)) return <Janela className="estilo-sistema" titulo={servico.nome} rotuloAcessivel={servico.nome} geometria={janela.geometria} maximizada={janela.maximizada} z={janela.z} minimo={MINIMO} aoFocar={() => focar(janela.id)} aoFechar={() => fechar(janela.id)} aoMinimizar={() => atualizarJanela(janela.id, { minimizada: true })} aoMaximizar={() => atualizarJanela(janela.id, { maximizada: !janela.maximizada })} aoMudarGeometria={aoMudarGeometria}><AvisoFaixa>{T.conexoes.emTestesDica}</AvisoFaixa></Janela>;
   const ativa = conexao.ligada && conexao.chaveSalva;
   const status = conexao.status;
   const tomStatus = status === "conectado" ? "etiqueta-sucesso" : status === "erro" ? "etiqueta-erro" : "";

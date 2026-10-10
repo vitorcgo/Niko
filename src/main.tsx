@@ -56,7 +56,7 @@ async function iniciar() {
   await prepararPonte();
   desviarLinksExternos();
   let modo = "local";
-  for (let tentativa = 0; tentativa < (NATIVO ? 120 : 1); tentativa++) {
+  for (let tentativa = 0; tentativa < (NATIVO ? 5 : 1); tentativa++) {
     modo = await iniciarArmazenamento();
     if (modo === "banco") break;
     await new Promise((r) => setTimeout(r, 500));
@@ -64,9 +64,7 @@ async function iniciar() {
   const raiz = document.getElementById("raiz");
   if (!raiz) return;
   if (NATIVO && modo !== "banco") {
-    if (JANELA !== "sistema") return;
-    raiz.innerHTML = `<div class="falha-ponte"><h1>${T.app.ponteFalhou}</h1><p>${T.app.ponteFalhouDica}</p></div>`;
-    return;
+    throw new Error("ponte_indisponivel");
   }
   if (sobreposta) document.documentElement.classList.add("janela-sobreposta");
   let Raiz: () => React.ReactElement;
@@ -84,4 +82,22 @@ async function iniciar() {
   );
 }
 
-void iniciar();
+function mostrarFalhaInicial() {
+  const raiz = document.getElementById("raiz");
+  if (!raiz) return;
+  const painel = document.createElement("div");
+  painel.className = "falha-ponte";
+  const titulo = document.createElement("h1");
+  titulo.textContent = T.app.ponteFalhou;
+  const dica = document.createElement("p");
+  dica.textContent = T.app.ponteFalhouDica;
+  const repetir = document.createElement("button");
+  repetir.className = "botao botao-primario";
+  repetir.textContent = T.app.tentarNovamente;
+  repetir.onclick = () => window.location.reload();
+  painel.append(titulo, dica, repetir);
+  raiz.replaceChildren(painel);
+  if (NATIVO) void import("@tauri-apps/api/webviewWindow").then(({ getCurrentWebviewWindow }) => getCurrentWebviewWindow().show()).catch(() => undefined);
+}
+
+void iniciar().catch(mostrarFalhaInicial);

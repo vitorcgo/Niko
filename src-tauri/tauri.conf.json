@@ -15,7 +15,7 @@
                             ],
                 "withGlobalTauri":  false,
                 "security":  {
-                                 "csp":  "default-src \u0027self\u0027; connect-src \u0027self\u0027 ipc: http://ipc.localhost http://127.0.0.1:47831; img-src \u0027self\u0027 data: blob: https:; style-src \u0027self\u0027 \u0027unsafe-inline\u0027; font-src \u0027self\u0027 data:; script-src \u0027self\u0027 \u0027wasm-unsafe-eval\u0027; media-src \u0027self\u0027 data: blob:; frame-src \u0027self\u0027 blob:"
+                                 "csp":  "default-src \u0027self\u0027; connect-src \u0027self\u0027 ipc: http://ipc.localhost http://127.0.0.1:47831; img-src \u0027self\u0027 data: blob: https:; style-src \u0027self\u0027 \u0027unsafe-inline\u0027; font-src \u0027self\u0027 data:; script-src \u0027self\u0027 \u0027wasm-unsafe-eval\u0027; media-src \u0027self\u0027 data: blob:; frame-src \u0027self\u0027 blob:; worker-src \u0027self\u0027 blob:; object-src \u0027none\u0027; base-uri \u0027none\u0027; form-action \u0027none\u0027"
                              }
             },
     "bundle":  {

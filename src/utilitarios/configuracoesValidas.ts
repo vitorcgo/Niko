@@ -37,7 +37,7 @@ export function configuracoesValidas(valor: unknown, padrao: Configuracoes): Con
   c.ilha.repouso = escolher(c.ilha.repouso, ["nada", "relogio", "midia", "agente"], padrao.ilha.repouso);
   c.ilha.tamanho = escolher(c.ilha.tamanho, ["pequena", "media", "grande"], padrao.ilha.tamanho);
   c.ilha.notificacoes = escolher(c.ilha.notificacoes, ["todas", "importantes", "nenhuma"], padrao.ilha.notificacoes);
-  c.ilha.fechamentoSeg = limitar(c.ilha.fechamentoSeg, 0, 300);
+  c.ilha.fechamentoSeg = c.ilha.fechamentoSeg === -1 ? -1 : limitar(c.ilha.fechamentoSeg, 0, 300);
   c.ilha.esconderSeg = limitar(c.ilha.esconderSeg, 0, 300);
   c.ilha.ordemAbas = [...new Set(c.ilha.ordemAbas)];
   if (!c.ilha.ordemAbas.includes("time")) {

@@ -1,4 +1,5 @@
 import { T } from "../textos/textos";
+import { exigirConexaoDisponivel } from "../utilitarios/disponibilidadeConexoes";
 import type { ServicoId } from "../tipos";
 import type { CalendarioContribuicoesGithub } from "../utilitarios/contribuicoesGithub";
 import type { CommitGithub } from "../utilitarios/commitsGithub";
@@ -153,6 +154,9 @@ export type DadosServico = {
 const CABECALHOS = { "x-niko": "1", "content-type": "application/json" };
 
 async function pedir<R>(caminho: string, opcoes: RequestInit = {}): Promise<R> {
+  const recursoGoogle = /^\/(google|gmail|agenda)(\/|$)/.test(caminho);
+  const conexaoGoogle = /^\/conexoes\/google(?:\?|$|\/)/.test(caminho) && opcoes.method !== "DELETE";
+  if (recursoGoogle || conexaoGoogle) exigirConexaoDisponivel("google");
   const r = await fetch(`/ponte${caminho}`, { ...opcoes, headers: { ...CABECALHOS, ...(opcoes.headers ?? {}) } });
   const json = (await r.json().catch(() => ({}))) as R & { erro?: string };
   if (!r.ok) throw new Error(json.erro ?? `http_${r.status}`);
