@@ -9,7 +9,7 @@
 Rotina, estudos, finanças, metas e os serviços que você acompanha, reunidos em um só lugar e cuidados por um time de agentes com personalidade própria.
 
 ![Windows 10 e 11](https://img.shields.io/badge/Windows-10%20%7C%2011-0b0d10?style=flat-square)
-![Versão](https://img.shields.io/badge/versão-0.2.1-0b0d10?style=flat-square)
+![Versão](https://img.shields.io/badge/versão-0.2.2-0b0d10?style=flat-square)
 ![Licença](https://img.shields.io/badge/licença-proprietária-b42318?style=flat-square)
 
 <br />
