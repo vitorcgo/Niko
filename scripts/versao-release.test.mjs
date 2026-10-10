@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, rmSync, utimesSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { lerArgumentos, lerVersoes, validarVersoes, validarTag, planejarVersao, sincronizarVersao, verificarPublicacao, validarArtefatos, montarManifesto } from "./versao-release.mjs";
+import { lerArgumentos, lerNotasDoArquivo, lerVersoes, validarVersoes, validarTag, planejarVersao, sincronizarVersao, verificarPublicacao, validarArtefatos, montarManifesto } from "./versao-release.mjs";
 
 function projeto(t, versoes = ["0.1.1", "0.1.1", "0.1.1", "0.1.1"]) {
   const raiz = mkdtempSync(join(tmpdir(), "niko-release-teste-"));
@@ -34,6 +34,30 @@ test("recusa versões inválidas, argumentos desconhecidos e versões duplicadas
   assert.throws(() => lerArgumentos(["--versao"]), /versão|Versão/);
   assert.throws(() => lerArgumentos(["0.1.2", "--desconhecido"]), /Argumento desconhecido/);
   assert.throws(() => lerArgumentos(["0.1.2", "--versao", "0.1.3"]), /uma vez/);
+});
+
+test("notas podem vir de arquivo sem conflito, truncamento ou alteração da versão", (t) => {
+  const raiz = projeto(t);
+  const arquivo = 'notas da versão.md';
+  const texto = `# Niko\n\n${'Detalhes da atualização.\n'.repeat(600)}\nObrigado @gustavowalkersgroup.`;
+  writeFileSync(join(raiz, arquivo), `\uFEFF${texto}\n`);
+  const opcoes = lerArgumentos(['0.1.2', '--notas-arquivo', arquivo]);
+  assert.equal(opcoes.arquivoNotas, arquivo);
+  assert.equal(lerArgumentos(['0.1.2', `--notas-arquivo=${arquivo}`]).arquivoNotas, arquivo);
+  assert.equal(lerNotasDoArquivo(raiz, opcoes.arquivoNotas), texto);
+  const manifesto = montarManifesto('0.1.2', lerNotasDoArquivo(raiz, arquivo), { instalador: 'niko.exe', assinatura: 'nsis' }, { instalador: 'niko.msi', assinatura: 'msi' });
+  assert.equal(manifesto.notes, texto);
+  assert.equal(validarVersoes(lerVersoes(raiz)), '0.1.1');
+  assert.throws(() => lerArgumentos(['0.1.2', '--notas-arquivo']), /caminho/);
+  assert.throws(() => lerArgumentos(['0.1.2', '--notas-arquivo=']), /caminho/);
+  assert.throws(() => lerArgumentos(['0.1.2', '--notas-arquivo', '--verificar']), /caminho/);
+  assert.throws(() => lerArgumentos(['0.1.2', '--notas-arquivo', arquivo, '--notas-arquivo', arquivo]), /uma vez/);
+  assert.throws(() => lerArgumentos(['0.1.2', 'Texto', '--notas-arquivo', arquivo]), /não os dois/);
+  writeFileSync(join(raiz, arquivo), '   ');
+  assert.throws(() => lerNotasDoArquivo(raiz, arquivo), /vazio/);
+  writeFileSync(join(raiz, arquivo), 'x'.repeat(100_001));
+  assert.throws(() => lerNotasDoArquivo(raiz, arquivo), /100 KB/);
+  assert.throws(() => lerNotasDoArquivo(raiz, 'ausente.md'));
 });
 
 test("identifica divergências nos quatro arquivos e valida a tag", (t) => {

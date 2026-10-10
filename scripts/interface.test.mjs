@@ -11,6 +11,22 @@ after(() => vite.close());
 const { LimiteDeErro } = await vite.ssrLoadModule("/src/componentes/LimiteDeErro.tsx");
 const { circuloDoTema, animarTrocaDeTema } = await vite.ssrLoadModule("/src/utilitarios/transicaoTema.ts");
 
+test("novidades da 0.2.2 incluem o time, segurança e agradecimentos, sem antecipar a instalação", async () => {
+  const { novidadesAte, temNovidadesDe } = await vite.ssrLoadModule('/src/utilitarios/novidades.ts');
+  assert.equal(temNovidadesDe('0.2.2'), true);
+  assert.equal(novidadesAte('0.2.1').some(v => v.versao === '0.2.2'), false);
+  const novidades = novidadesAte('0.2.2');
+  assert.equal(novidades[0].versao, '0.2.2');
+  const textos = novidades[0].mudancas.map(([, texto]) => texto);
+  const completo = textos.join('\n');
+  for (const trecho of ['27 acessórios', 'Escritório de IAs', 'Tauri/Tokio', '@gustavowalkersgroup', '@landreussi', 'issue #5', 'desativado, em testes']) assert.ok(completo.includes(trecho), trecho);
+  assert.doesNotMatch(completo, /Google Workspace: Gmail/);
+  const descricao = readFileSync('docs/releases/0.2.2.md', 'utf8');
+  for (const texto of textos.filter(t => !t.startsWith('Agradecimento'))) assert.ok(descricao.includes(texto), texto);
+  assert.match(descricao, /https:\/\/github.com\/vitorcgo\/Niko\/issues\/5/);
+  assert.match(descricao, /https:\/\/github.com\/vitorcgo\/Niko\/pull\/8/);
+});
+
 const origemDoTema = { getBoundingClientRect: () => ({ left: 180, top: 670, width: 40, height: 40 }) };
 
 function prepararTransicao(t, opcoes = {}) {

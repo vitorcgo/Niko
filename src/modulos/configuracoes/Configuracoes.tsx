@@ -130,6 +130,8 @@ function validarVisual(dados: unknown): Partial<ReturnType<typeof useConfig.getS
     saida.dock = {
       ...useConfig.getState().dock,
       ativo: k.ativo !== false,
+      mostrarIniciar: typeof k.mostrarIniciar === "boolean" ? k.mostrarIniciar : CONFIG_PADRAO.dock.mostrarIniciar,
+      mostrarBusca: typeof k.mostrarBusca === "boolean" ? k.mostrarBusca : CONFIG_PADRAO.dock.mostrarBusca,
       modo: ["fixo", "esconder", "inteligente"].includes(k.modo as string) ? (k.modo as ModoBorda) : "inteligente",
       fundo: fundoValido(k.fundo) ? k.fundo : CONFIG_PADRAO.dock.fundo,
       opacidade: opacidadeValida(k.opacidade) ? k.opacidade : 1,
@@ -551,6 +553,8 @@ export default function Configuracoes() {
     dock: (
       <>
         <AlternadorAjuste rotulo={T.configuracoes.dockAtivo} ligado={cfg.dock.ativo} aoMudar={(v) => cfg.definir({ dock: { ...cfg.dock, ativo: v } })} />
+        <AlternadorAjuste rotulo={T.dock.menu.mostrarIniciar} ligado={cfg.dock.mostrarIniciar} aoMudar={(v) => cfg.definir({ dock: { ...cfg.dock, mostrarIniciar: v } })} />
+        <AlternadorAjuste rotulo={T.dock.menu.mostrarBusca} ligado={cfg.dock.mostrarBusca} aoMudar={(v) => cfg.definir({ dock: { ...cfg.dock, mostrarBusca: v } })} />
         <LinhaAjuste rotulo={T.configuracoes.modo} dica={T.configuracoes.modosDica[cfg.dock.modo]}>
           {segModo(cfg.dock.modo, (modo) => cfg.definir({ dock: { ...cfg.dock, modo } }))}
         </LinhaAjuste>

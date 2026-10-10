@@ -1,5 +1,5 @@
 import { existsSync, readFileSync, writeFileSync, renameSync, unlinkSync, statSync } from "node:fs";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 
 const ARQUIVOS = ["package.json", "src-tauri/tauri.conf.json", "src-tauri/Cargo.toml", "src-tauri/Cargo.lock"];
 const PADRAO_VERSAO = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/;
@@ -20,6 +20,12 @@ export function lerArgumentos(argumentos) {
     if (argumento === "--verificar") opcoes.verificar = true;
     else if (argumento === "--recompilar") opcoes.recompilar = true;
     else if (argumento === "--ajuda") opcoes.ajuda = true;
+    else if (argumento === "--notas-arquivo" || argumento.startsWith("--notas-arquivo=")) {
+      if (opcoes.arquivoNotas !== undefined) throw new Error("Informe o arquivo de notas apenas uma vez.");
+      const arquivo = argumento === "--notas-arquivo" ? argumentos[++i] : argumento.slice("--notas-arquivo=".length);
+      if (!arquivo || arquivo.startsWith("--")) throw new Error("Informe o caminho do arquivo de notas.");
+      opcoes.arquivoNotas = arquivo;
+    }
     else if (argumento === "--versao" || argumento.startsWith("--versao=")) {
       if (opcoes.versao) throw new Error("Informe a versão apenas uma vez.");
       opcoes.versao = validarVersao(argumento === "--versao" ? argumentos[++i] : argumento.slice("--versao=".length));
@@ -32,7 +38,17 @@ export function lerArgumentos(argumentos) {
   }
   if (opcoes.recompilar && !opcoes.versao) throw new Error("Informe a versão para recompilar.");
   opcoes.notas = notas.join(" ");
+  if (opcoes.arquivoNotas && opcoes.notas) throw new Error("Use o arquivo de notas ou o texto no comando, não os dois.");
   return opcoes;
+}
+
+export function lerNotasDoArquivo(raiz, arquivo) {
+  const caminho = resolve(raiz, arquivo);
+  const tamanho = statSync(caminho);
+  if (!tamanho.isFile() || tamanho.size > 100_000) throw new Error("Use um arquivo de notas de até 100 KB.");
+  const notas = readFileSync(caminho, "utf8").replace(/^\uFEFF/, "").trim();
+  if (!notas) throw new Error("O arquivo de notas está vazio.");
+  return notas;
 }
 
 function localizarVersao(nome, conteudo) {

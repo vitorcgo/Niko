@@ -78,6 +78,7 @@ Substitui a barra de tarefas do Windows com acesso ao Niko, ao Iniciar, à busca
 - **Perfis de navegador:** separa janelas do Chrome e do Edge quando o Windows fornece identificação do perfil.
 - **Botão direito:** menu para mostrar, minimizar e fechar janelas do grupo, além de acessos como Gerenciador de Tarefas e configurações do dock. Fechar todas exige confirmação e o programa pode pedir para salvar arquivos.
 - **Lupa:** procura aplicativos e janelas, oferece controles rápidos do Windows, calculadora e pesquisa pelo buscador escolhido. A pesquisa abre o navegador, não dá ao chat uma ferramenta de navegação web.
+- **Botões opcionais:** mostre ou esconda a lupa e o Iniciar separadamente pelo menu do dock ou em Ajustes. A escolha fica salva; esconder a lupa não desativa seu atalho nem o acesso à busca pelo menu.
 
 ### AtalhoTouch
 
@@ -267,6 +268,14 @@ Informe a versão explicitamente, sem editar os arquivos à mão:
 ```powershell
 pnpm lancar 0.2.2 "Descrição das novidades"
 ```
+
+As notas completas da versão 0.2.2 estão em [docs/releases/0.2.2.md](docs/releases/0.2.2.md), incluindo os agradecimentos. Para incluir esse mesmo texto no manifesto de atualização, sem colar uma descrição longa no terminal:
+
+```powershell
+pnpm lancar 0.2.2 --notas-arquivo docs/releases/0.2.2.md
+```
+
+Cole o conteúdo desse arquivo na descrição da release no GitHub. O histórico da versão também aparece na página Atualização do instalador 0.2.2; builds da versão anterior não apresentam essas mudanças como já instaladas.
 
 O comando sincroniza `package.json`, `src-tauri/tauri.conf.json`, a versão do pacote Niko em `src-tauri/Cargo.toml` e `src-tauri/Cargo.lock`, além do selo de versão deste README. Antes de escrever, valida os arquivos, recusa redução de versão e consulta o GitHub para impedir uma release duplicada. Em builds feitos a partir de uma tag no GitHub Actions, a tag precisa ser `v` seguida da mesma versão.
 

@@ -391,7 +391,7 @@ export function Dock() {
 
   if (!ativoAqui || frente.telaCheia) return null;
 
-  const largura = 170 + (janelas.length + (aberto ? 1 : 0)) * 50;
+  const largura = 70 + (Number(cfg.mostrarIniciar) + Number(cfg.mostrarBusca) + janelas.length + (aberto ? 1 : 0)) * 50;
   const area = { x: (window.innerWidth - largura) / 2, y: window.innerHeight - ALTURA_DOCK, w: largura, h: ALTURA_DOCK };
   const coberto = cfg.modo === "inteligente" && (NATIVO ? frente.cobre : alguemCobre(area));
   const escondido = (cfg.modo === "esconder" || coberto) && !perto && !buscaAberta && !menu;
@@ -435,6 +435,10 @@ export function Dock() {
       acao: async () => { await controle.comandoDoSistema(comando); },
     })),
     { id: "busca", texto: T.dock.busca.botao, icone: Search, acao: () => setBuscaAberta(true) },
+    { id: "mostrar-iniciar", texto: T.dock.menu.mostrarIniciar, icone: AppWindow, marcado: cfg.mostrarIniciar,
+      acao: () => { const s = useConfig.getState(); s.definir({ dock: { ...s.dock, mostrarIniciar: !s.dock.mostrarIniciar } }); } },
+    { id: "mostrar-busca", texto: T.dock.menu.mostrarBusca, icone: Search, marcado: cfg.mostrarBusca,
+      acao: () => { const s = useConfig.getState(); s.definir({ dock: { ...s.dock, mostrarBusca: !s.dock.mostrarBusca } }); } },
     { id: "comportamento", texto: T.dock.menu.comportamento, icone: SlidersHorizontal, itens: (["fixo", "esconder", "inteligente"] as const).map((modo) => ({
       id: modo, texto: T.configuracoes.modos[modo], marcado: cfg.modo === modo,
       acao: () => { const s = useConfig.getState(); s.definir({ dock: { ...s.dock, modo } }); },
@@ -470,8 +474,8 @@ export function Dock() {
         <ItemDock mouseX={mouseX} ampliar={cfg.ampliar} rotulo={T.dock.abrir} aoClicar={abrirNiko} aoMenu={(e) => abrirMenu(e, T.app.nome, [{ id: "abrir", texto: T.dock.abrir, icone: AppWindow, acao: abrirNiko }, ...itensDoDock])} alerta={alerta ? COR_AGENTE[alerta.agenteId] : undefined}>
           <span className="dock-logo"><LogoNiko tamanho={28} /></span>
         </ItemDock>
-        <IniciarDoDock mouseX={mouseX} ampliar={cfg.ampliar} visivel={!escondido} aoAcionar={fecharBusca} />
-        <ItemDock
+        {cfg.mostrarIniciar && <IniciarDoDock mouseX={mouseX} ampliar={cfg.ampliar} visivel={!escondido} aoAcionar={fecharBusca} />}
+        {cfg.mostrarBusca && <ItemDock
           mouseX={mouseX}
           ampliar={cfg.ampliar}
           rotulo={T.dock.busca.botao}
@@ -482,7 +486,7 @@ export function Dock() {
           }}
         >
           <span className="dock-icone"><Search size={19} /></span>
-        </ItemDock>
+        </ItemDock>}
         {buscaAberta && <BuscaApps aoFechar={fecharBusca} />}
         {NATIVO ? (
           <AppsDoWindows mouseX={mouseX} ampliar={cfg.ampliar} ativo={!escondido} monitor={monitorDosApps} menuAberto={Boolean(menu)} abrirMenu={abrirMenu} />

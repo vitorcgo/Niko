@@ -1,6 +1,7 @@
 import test, { after, beforeEach } from "node:test";
 import assert from "node:assert/strict";
 import { EventEmitter } from "node:events";
+import { readFileSync } from "node:fs";
 import { criarServidorDeTeste as createServer } from "./vite-para-testes.mjs";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
@@ -410,6 +411,52 @@ test("datas de estudo e revisões rejeitam dados inválidos", () => {
   assert.throws(() => e.criarCartao("sumiu", "Pergunta", "Resposta"));
   e.atualizarPagina(p.id, { conteudo: "Conteúdo válido" });
   assert.equal(useEstudos.getState().paginas[0].conteudo, "Conteúdo válido");
+});
+
+test("botões opcionais do dock mantêm o padrão em configurações antigas e salvam escolhas independentes", async () => {
+  const antigos = configuracoesValidas({ dock: { ativo: true } }, CONFIG_PADRAO);
+  assert.equal(antigos.dock.mostrarIniciar, true);
+  assert.equal(antigos.dock.mostrarBusca, true);
+  const invalidos = configuracoesValidas({ dock: { mostrarIniciar: 'false', mostrarBusca: 0 } }, CONFIG_PADRAO);
+  assert.equal(invalidos.dock.mostrarIniciar, true);
+  assert.equal(invalidos.dock.mostrarBusca, true);
+  const anterior = useConfig.getState();
+  try {
+    useConfig.getState().definir({ dock: { ...anterior.dock, mostrarIniciar: false, mostrarBusca: true } });
+    await useConfig.persist.rehydrate();
+    assert.equal(useConfig.getState().dock.mostrarIniciar, false);
+    assert.equal(useConfig.getState().dock.mostrarBusca, true);
+    useConfig.getState().definir({ dock: { ...useConfig.getState().dock, mostrarBusca: false } });
+    await useConfig.persist.rehydrate();
+    assert.equal(useConfig.getState().dock.mostrarBusca, false);
+    assert.equal(useConfig.getState().dock.mostrarIniciar, false);
+    useConfig.getState().definir({ dock: { ...useConfig.getState().dock, mostrarIniciar: true } });
+    assert.equal(useConfig.getState().dock.mostrarIniciar, true);
+    assert.equal(useConfig.getState().dock.mostrarBusca, false);
+    assert.deepEqual(useConfig.getState().dock.atalhos, anterior.dock.atalhos);
+  } finally { useConfig.setState(anterior); }
+});
+
+test("dock só renderiza os botões habilitados, mantendo Niko e acesso à busca pelo menu", async () => {
+  const { Dock } = await vite.ssrLoadModule('/src/janelas/dock/Dock.tsx');
+  const { T } = await vite.ssrLoadModule('/src/textos/textos.ts');
+  const inicial = useConfig.getInitialState();
+  const anterior = inicial.dock;
+  const largura = window.innerWidth, altura = window.innerHeight;
+  window.innerWidth = 1280; window.innerHeight = 720;
+  try {
+    for (const mostrarIniciar of [false, true]) for (const mostrarBusca of [false, true]) {
+      inicial.dock = { ...CONFIG_PADRAO.dock, modo: 'fixo', mostrarIniciar, mostrarBusca };
+      const html = renderToStaticMarkup(createElement(Dock));
+      assert.equal(html.includes(`aria-label="${T.ilha.barra.iniciar}"`), mostrarIniciar);
+      assert.equal(html.includes(`aria-label="${T.dock.busca.botao}"`), mostrarBusca);
+      assert.ok(html.includes(`aria-label="${T.dock.abrir}"`));
+    }
+    const origem = readFileSync(new URL('../src/janelas/dock/Dock.tsx', import.meta.url), 'utf8');
+    for (const opcao of ['mostrar-iniciar', 'mostrar-busca']) assert.ok(origem.includes(`id: "${opcao}"`));
+    assert.ok(origem.includes('ouvirEvento("niko://lupa", alternarBusca, true)'));
+    assert.ok(origem.includes('id: "busca", texto: T.dock.busca.botao'));
+  } finally { inicial.dock = anterior; window.innerWidth = largura; window.innerHeight = altura; }
 });
 
 test("configurações corrompidas caem no padrão e preservam atalhos válidos", () => {
