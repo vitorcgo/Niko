@@ -1,6 +1,7 @@
 import test, { after } from "node:test";
 import assert from "node:assert/strict";
 import { createServer } from "vite";
+import { readFileSync } from "node:fs";
 
 globalThis.BroadcastChannel = undefined;
 globalThis.localStorage = { getItem: () => null, setItem: () => undefined };
@@ -10,6 +11,35 @@ after(() => servidor.close());
 const { abaVizinha, alternarAbaDaBarra, criarAlternadorDoIniciar } = await servidor.ssrLoadModule("/src/janelas/ilha/barra/acoesDaBarra.ts");
 const { useIlha } = await servidor.ssrLoadModule("/src/estado/ilha.ts");
 const { controle, sistema } = await servidor.ssrLoadModule("/src/ponte/ponteLocal.ts");
+
+test("a ilha coberta desaparece gradualmente e retorna sem atraso ou deslocamento residual", async () => {
+  const { movimentoDaVisibilidade } = await servidor.ssrLoadModule("/src/janelas/ilha/animacoes/visibilidade.ts");
+  const saida = movimentoDaVisibilidade(true, false);
+  const entrada = movimentoDaVisibilidade(false, false);
+  assert.equal(saida.animate.opacity, 0);
+  assert.ok(saida.animate.y < 0);
+  assert.ok(saida.transition.duration >= 0.25 && saida.transition.duration <= 0.4);
+  assert.deepEqual(entrada.animate, { opacity: 1, y: 0 });
+  assert.deepEqual(entrada.transition, saida.transition);
+  assert.ok(!Object.hasOwn(entrada.transition, "delay"));
+  assert.deepEqual(movimentoDaVisibilidade(true, false), saida);
+});
+
+test("movimento reduzido mantém a saída com fade curto, sem deslocar a ilha", async () => {
+  const { movimentoDaVisibilidade } = await servidor.ssrLoadModule("/src/janelas/ilha/animacoes/visibilidade.ts");
+  const saida = movimentoDaVisibilidade(true, true);
+  assert.deepEqual(saida.animate, { opacity: 0, y: 0 });
+  assert.ok(saida.transition.duration > 0 && saida.transition.duration <= 0.12);
+  assert.deepEqual(movimentoDaVisibilidade(false, true).animate, { opacity: 1, y: 0 });
+});
+
+test("a ilha integra a saída animada sem zerar sua opacidade diretamente no estilo", () => {
+  const fonte = readFileSync(new URL("../src/janelas/ilha/Ilha.tsx", import.meta.url), "utf8");
+  assert.ok(!fonte.includes('opacity: coberta && estadoEfetivo === "escondida" ? 0 : 1'));
+  assert.match(fonte, /<motion\.div\s+ref=\{raiz\}/);
+  assert.match(fonte, /movimentoDaVisibilidade\(oculta, Boolean\(reduzirAnimacoes\)\)/);
+  assert.match(fonte, /ilha-raiz-oculta/);
+});
 
 test("clicar novamente na mesma aba recolhe a ilha", () => {
   useIlha.setState({ estado: "compacta", aba: "hoje" });

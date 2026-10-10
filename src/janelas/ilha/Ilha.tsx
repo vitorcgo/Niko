@@ -36,6 +36,7 @@ import { abaVizinha, alternarAbaDaBarra } from "./barra/acoesDaBarra";
 import { EspacoDoPersonagem, PersonagemContinuo } from "./animacoes/PersonagemContinuo";
 import { EtapaDeTrabalho, EtapasAnimadas } from "./animacoes/EtapasAnimadas";
 import { atributosDoFundo, usarAparenciaDeBorda, variaveisDaBorda } from "../aparencia";
+import { movimentoDaVisibilidade } from "./animacoes/visibilidade";
 import type { AgenteId, EstadoAgente } from "../../tipos";
 import "./ilha.css";
 
@@ -165,7 +166,7 @@ export function Ilha() {
       window.clearInterval(sempre);
     };
   }, []);
-  usarAreaInterativa([".ilha-raiz .ilha", ".ilha-gatilho", ".ilha-barra-aba", ".ilha-pop"]);
+  usarAreaInterativa([".ilha-raiz:not(.ilha-raiz-oculta) .ilha", ".ilha-gatilho", ".ilha-barra-aba", ".ilha-pop"]);
   usarCursorFora(useCallback(() => setSobre(false), []));
   useEffect(() => {
     let ativo = true;
@@ -240,6 +241,8 @@ export function Ilha() {
 
   const pedidoPendente = pedidosClaude.length > 0;
   const estadoEfetivo = saudando ? "compacta" : coberta && estado !== "expandida" && !revelacao && !pedidoPendente ? "escondida" : (cfg.modo === "fixo" || pedidoPendente) && estado === "escondida" ? "compacta" : estadoComAviso(estado, Boolean(revelacao));
+  const oculta = coberta && estadoEfetivo === "escondida";
+  const movimentoDeVisibilidade = movimentoDaVisibilidade(oculta, Boolean(reduzirAnimacoes));
 
   useEffect(() => {
     if (cfg.modo !== "esconder" || estadoEfetivo !== "compacta" || sobre || barraEmUso || revelacao || frescos > 0 || pomodoro.rodando || atualizacao.fase !== "nada" || pedidoPendente) return;
@@ -506,16 +509,20 @@ export function Ilha() {
           }}
         />
       )}
-      <div
+      <motion.div
         ref={raiz}
-        className="ilha-raiz"
+        className={`ilha-raiz${oculta ? " ilha-raiz-oculta" : ""}`}
         data-privacidade={privacidade ? "sim" : "nao"}
         {...atributosDoFundo(aparencia)}
+        initial={false}
+        animate={movimentoDeVisibilidade.animate}
+        transition={movimentoDeVisibilidade.transition}
         style={{
           ...variaveisDaBorda(aparencia),
-          transform: `translateX(-50%) scale(${escala})`,
+          x: "-50%",
+          scale: escala,
           transformOrigin: "top center",
-          opacity: coberta && estadoEfetivo === "escondida" ? 0 : 1,
+          pointerEvents: oculta ? "none" : "auto",
           ["--topo-orelhas" as string]: `${barraVisivel ? ALTURA_DA_FAIXA : 0}px`,
           ["--raio-orelha" as string]: barraVisivel ? "10px" : "14px",
         }}
@@ -744,7 +751,7 @@ export function Ilha() {
             <span className="ilha-contagem" style={{ width: (restanteFechar / 10000) * 160 }} aria-hidden="true" />
           )}
         </motion.div>
-      </div>
+      </motion.div>
     </>
   );
 }
