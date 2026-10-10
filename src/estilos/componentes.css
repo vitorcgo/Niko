@@ -741,3 +741,38 @@
   background: color-mix(in srgb, var(--erro) 8%, var(--superficie));
   border-color: color-mix(in srgb, var(--erro) 30%, var(--borda));
 }
+
+.falha-interface {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  min-height: 240px;
+  padding: 32px 20px;
+  color: var(--texto);
+  text-align: center;
+}
+
+.falha-interface-geral {
+  min-height: 100vh;
+  background: var(--fundo);
+}
+
+.falha-interface h1 {
+  margin: 0;
+  font-size: 20px;
+}
+
+.falha-interface p {
+  max-width: 480px;
+  margin: 0;
+  color: var(--texto-2);
+}
+
+.falha-interface-acoes {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+}

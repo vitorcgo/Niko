@@ -33,6 +33,7 @@ import { usarSaudacaoDiaria } from "./animacoes/usarSaudacaoDiaria";
 import { ALTURA_DA_SAUDACAO, EVENTO_DA_SAUDACAO, LARGURA_DA_SAUDACAO } from "./animacoes/pedirSaudacao";
 import { BarraDoTopo, ALTURA_DA_FAIXA } from "./barra/BarraDoTopo";
 import { abaVizinha, alternarAbaDaBarra } from "./barra/acoesDaBarra";
+import { areaDeTrabalhoNaFrente, focoDaAreaPeloElemento, mostrarLateraisDaIlha } from "./barra/visibilidadeDaBarra";
 import { EspacoDoPersonagem, PersonagemContinuo } from "./animacoes/PersonagemContinuo";
 import { EtapaDeTrabalho, EtapasAnimadas } from "./animacoes/EtapasAnimadas";
 import { atributosDoFundo, usarAparenciaDeBorda, variaveisDaBorda } from "../aparencia";
@@ -143,6 +144,7 @@ export function Ilha() {
   const [revelada, setRevelada] = useState(false);
   const sistemaAberto = useInterface((s) => s.sistemaAberto);
   const sistemaMinimizado = useInterface((s) => s.sistemaMinimizado);
+  const proximoZ = useInterface((s) => s.proximoZ);
   const irPara = useInterface((s) => s.irPara);
   const agentes = useAgentes();
   const pomodoro = usePomodoro();
@@ -226,11 +228,28 @@ export function Ilha() {
   const frente = usarEstadoDaFrente(cfg.ativa);
   const [lateraisLivresNativo, setLateraisLivresNativo] = useState(true);
   useEffect(() => {
-    if (frente.frente !== "sobreposta") setLateraisLivresNativo(!frente.maximizada && !frente.telaCheia);
-  }, [frente.frente, frente.maximizada, frente.telaCheia]);
+    setLateraisLivresNativo((anterior) => areaDeTrabalhoNaFrente(frente, anterior));
+  }, [frente]);
   const appAbertoNoNavegador = (sistemaAberto && !sistemaMinimizado) || janelasConexao.some((j) => !j.minimizada);
-  const lateraisLivres = NATIVO ? lateraisLivresNativo : !appAbertoNoNavegador;
-  const coberta = cfg.modo === "inteligente" && !revelada && (NATIVO ? frente.cobre : alguemCobre({ x: (window.innerWidth - LARGURA_EXPANDIDA) / 2, y: 0, w: LARGURA_EXPANDIDA, h: 40 }));
+  const [areaEmFocoNoNavegador, setAreaEmFocoNoNavegador] = useState(!appAbertoNoNavegador);
+  useEffect(() => {
+    if (!NATIVO) setAreaEmFocoNoNavegador(!appAbertoNoNavegador);
+  }, [appAbertoNoNavegador, proximoZ]);
+  useEffect(() => {
+    if (NATIVO) return;
+    const atualizarFoco = (e: Event) => {
+      const foco = focoDaAreaPeloElemento(e.target instanceof Element ? e.target : null);
+      if (foco !== undefined) setAreaEmFocoNoNavegador(foco);
+    };
+    window.addEventListener("pointerdown", atualizarFoco, true);
+    window.addEventListener("focusin", atualizarFoco, true);
+    return () => {
+      window.removeEventListener("pointerdown", atualizarFoco, true);
+      window.removeEventListener("focusin", atualizarFoco, true);
+    };
+  }, []);
+  const lateraisLivres = NATIVO ? lateraisLivresNativo : areaEmFocoNoNavegador;
+  const coberta = cfg.modo === "inteligente" && !revelada && (NATIVO ? frente.cobre : !areaEmFocoNoNavegador && alguemCobre({ x: (window.innerWidth - LARGURA_EXPANDIDA) / 2, y: 0, w: LARGURA_EXPANDIDA, h: 40 }));
   const pomodoroIniciado = pomodoro.rodando || pomodoro.restanteMs != null;
   const agora = useAgora(1000, pomodoro.rodando && estado !== "expandida");
   const relogio = useAgora(15000, cfg.repouso === "relogio" || cfg.repouso === "agente" || cfg.repouso === "midia");
@@ -259,7 +278,7 @@ export function Ilha() {
   }, [estadoEfetivo]);
 
   useEffect(() => {
-    if (estadoEfetivo !== "expandida" || sobre || cfg.fechamentoSeg === 0 || abaAtual === "claude" || fixada) {
+    if (estadoEfetivo !== "expandida" || sobre || barraEmUso || cfg.fechamentoSeg === 0 || abaAtual === "claude" || fixada) {
       setRestanteFechar(null);
       return;
     }
@@ -277,7 +296,7 @@ export function Ilha() {
       setRestanteFechar(r);
     }, 100);
     return () => window.clearInterval(t);
-  }, [estadoEfetivo, sobre, cfg.fechamentoSeg, recolher, abaAtual, fixada]);
+  }, [estadoEfetivo, sobre, barraEmUso, cfg.fechamentoSeg, recolher, abaAtual, fixada]);
 
   useEffect(() => {
     if (estadoEfetivo !== "expandida") return;
@@ -288,6 +307,7 @@ export function Ilha() {
       }
     };
     const aoClicarFora = (e: PointerEvent) => {
+      if (e.target instanceof Element && e.target.closest(".ilha-barra, .ilha-pop")) return;
       if (!fixada && raiz.current && !raiz.current.contains(e.target as Node)) recolher();
     };
     window.addEventListener("keydown", aoTeclar);
@@ -352,7 +372,7 @@ export function Ilha() {
   const agenteCompacto = ["agente", "pomodoro", "relogio", "nada"].includes(compacta.tipo) ? agenteDaVez : compacta.tipo === "trabalho" ? trabalhando[0] : compacta.tipo === "revelacao" && !revelacao?.marca ? revelacao?.agente : undefined;
   const agenteContinuo = estadoEfetivo === "expandida" ? agenteLateral : agenteCompacto ?? agenteDaVez;
   const restantePomodoro = restanteAtual(pomodoro, agora);
-  const barraVisivel = cfg.laterais && estadoEfetivo !== "escondida" && lateraisLivres && !saudando;
+  const barraVisivel = mostrarLateraisDaIlha({ ativadas: cfg.laterais, estado: estadoEfetivo, saudando, telaCheia: frente.telaCheia, areaEmFoco: lateraisLivres });
 
   const abaDaCompacta = (): VisaoIlha | undefined =>
     compacta.tipo === "revelacao" ? revelacao?.aba : compacta.tipo === "pomodoro" ? "foco" : compacta.tipo === "midia" ? "midia" : compacta.tipo === "trabalho" ? "chat" : compacta.tipo === "claude" || compacta.tipo === "claudePedido" ? "claude" : undefined;

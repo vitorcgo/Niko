@@ -24,6 +24,11 @@ import manifesto from "../../package.json";
 
 export const T = {
   app: {
+    paginaFalhou: "Não foi possível abrir esta página.",
+    interfaceFalhou: "Não foi possível exibir o Niko.",
+    interfaceFalhouDica: "Houve uma falha ao carregar a interface. Recarregue o Niko para tentar novamente. Alterações ainda não salvas podem ser perdidas.",
+    voltarInicio: "Voltar ao início",
+    recarregar: "Recarregar o Niko",
     ponteFalhou: "O Niko não conseguiu iniciar o serviço local.",
     ponteFalhouDica: "Feche pelo ícone da bandeja e abra de novo. Se continuar, o erro está em %APPDATA%\\com.niko.desktop\\ponte.log e niko.log.",
     nome: "Niko",
@@ -2674,7 +2679,7 @@ export const T = {
     nunca: "Nunca",
     abrirHover: "Abrir ao passar o mouse",
     lateraisIlha: "Barra completa no topo",
-    lateraisDica: "Na área de trabalho, mostra uma aba de cada lado da ilha: personalização, o Iniciar do Windows e as tarefas à esquerda, e a bandeja, o Wi-Fi, o volume e os controles do Windows à direita. Com um app na frente, fica só a ilha.",
+    lateraisDica: "Mostra os controles nas pontas esquerda e direita quando a área de trabalho está em foco ou a ilha está expandida. Com uma janela em foco, os lados somem enquanto o centro está compacto. Em tela cheia, a ilha fica oculta.",
     notificacoesIlha: "Notificações na ilha",
     notificacoesOpcoes: { importantes: "Só importantes", todas: "Todas", nenhuma: "Nenhuma" },
     notificacoesDica: {

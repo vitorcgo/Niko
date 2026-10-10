@@ -24,6 +24,9 @@ scripts/*
 !scripts/concorrencia.test.mjs
 !scripts/configuracao-vite.test.mjs
 !scripts/github.test.mjs
+!scripts/vite-para-testes.mjs
+!scripts/interface.test.mjs
+!scripts/ilha.test.mjs
 !scripts/testar.mjs
 testes/
 

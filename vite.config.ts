@@ -25,6 +25,7 @@ function politicaDeSeguranca(): Plugin {
 }
 
 export default defineConfig({
+  cacheDir: "node_modules/.vite-niko",
   plugins: [react(), politicaDeSeguranca(), ponteLocal()],
   server: { port: 5420, strictPort: false, host: "localhost" },
   preview: { port: 5421, host: "localhost" },

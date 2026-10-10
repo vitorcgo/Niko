@@ -39,6 +39,7 @@ import "./estilos/telas/busca.css";
 import { iniciarArmazenamento } from "./ponte/armazenamento";
 import { JANELA, NATIVO, prepararPonte, desviarLinksExternos } from "./desktop/desktop";
 import { T } from "./textos/textos";
+import { LimiteDeErro } from "./componentes/LimiteDeErro";
 
 document.documentElement.dataset.tema = "claro";
 
@@ -76,7 +77,9 @@ async function iniciar() {
   }
   createRoot(raiz).render(
     <StrictMode>
-      <Raiz />
+      <LimiteDeErro>
+        <Raiz />
+      </LimiteDeErro>
     </StrictMode>,
   );
 }

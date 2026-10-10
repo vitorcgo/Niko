@@ -1,7 +1,7 @@
 import test, { after, beforeEach } from "node:test";
 import assert from "node:assert/strict";
 import { EventEmitter } from "node:events";
-import { createServer } from "vite";
+import { criarServidorDeTeste as createServer } from "./vite-para-testes.mjs";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 

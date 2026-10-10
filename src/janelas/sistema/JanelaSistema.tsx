@@ -11,6 +11,7 @@ import { AvisosRodape } from "../../componentes/basicos";
 import { tocarSom } from "../../ponte/sons";
 import { NATIVO, janelaAtual } from "../../desktop/desktop";
 import { rotaLigada } from "../../utilitarios/funcoes";
+import { LimiteDeErro } from "../../componentes/LimiteDeErro";
 
 const MINIMO = { w: 960, h: 600 };
 
@@ -101,11 +102,13 @@ export function JanelaSistema() {
       <div className="sistema">
         <BarraLateral recolhida={recolhida} />
         <main className="sistema-conteudo" ref={conteudo}>
-          <Suspense fallback={<div className="carregando-pagina" aria-busy="true" />}>
-            <div className="pagina" key={rota}>
-              <Pagina />
-            </div>
-          </Suspense>
+          <LimiteDeErro key={rota} aoVoltar={() => useInterface.getState().irPara("inicio")}>
+            <Suspense fallback={<div className="carregando-pagina" aria-busy="true" />}>
+              <div className="pagina" key={rota}>
+                <Pagina />
+              </div>
+            </Suspense>
+          </LimiteDeErro>
         </main>
       </div>
       <AvisosRodape />

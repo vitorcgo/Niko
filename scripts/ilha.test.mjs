@@ -1,6 +1,6 @@
 import test, { after } from "node:test";
 import assert from "node:assert/strict";
-import { createServer } from "vite";
+import { criarServidorDeTeste as createServer } from "./vite-para-testes.mjs";
 import { readFileSync } from "node:fs";
 
 globalThis.BroadcastChannel = undefined;
@@ -11,6 +11,45 @@ after(() => servidor.close());
 const { abaVizinha, alternarAbaDaBarra, criarAlternadorDoIniciar } = await servidor.ssrLoadModule("/src/janelas/ilha/barra/acoesDaBarra.ts");
 const { useIlha } = await servidor.ssrLoadModule("/src/estado/ilha.ts");
 const { controle, sistema } = await servidor.ssrLoadModule("/src/ponte/ponteLocal.ts");
+const { areaDeTrabalhoNaFrente, focoDaAreaPeloElemento, mostrarLateraisDaIlha } = await servidor.ssrLoadModule("/src/janelas/ilha/barra/visibilidadeDaBarra.ts");
+
+test("laterais seguem o foco, não o tamanho da janela, e preservam foco ao usar sobreposições", () => {
+  const area = { frente: "area_de_trabalho", telaCheia: false, maximizada: false, cobre: false };
+  assert.equal(areaDeTrabalhoNaFrente(area, false), true);
+  for (const maximizada of [false, true]) {
+    assert.equal(areaDeTrabalhoNaFrente({ ...area, frente: "app", maximizada }, true), false);
+  }
+  for (const anterior of [true, false]) {
+    assert.equal(areaDeTrabalhoNaFrente({ ...area, frente: "sobreposta" }, anterior), anterior);
+  }
+  assert.equal(areaDeTrabalhoNaFrente({ ...area, telaCheia: true, frente: "sobreposta" }, true), false);
+});
+
+test("abrir a ilha mostra os dois lados mesmo sobre uma janela, recolher respeita o foco", () => {
+  const base = { ativadas: true, estado: "compacta", saudando: false, telaCheia: false, areaEmFoco: false };
+  assert.equal(mostrarLateraisDaIlha(base), false);
+  assert.equal(mostrarLateraisDaIlha({ ...base, areaEmFoco: true }), true);
+  assert.equal(mostrarLateraisDaIlha({ ...base, estado: "expandida" }), true);
+  assert.equal(mostrarLateraisDaIlha({ ...base, estado: "escondida", areaEmFoco: true }), false);
+  for (const bloqueio of [{ ativadas: false }, { saudando: true }, { telaCheia: true }]) {
+    assert.equal(mostrarLateraisDaIlha({ ...base, estado: "expandida", areaEmFoco: true, ...bloqueio }), false);
+  }
+});
+
+test("foco no localhost distingue área de trabalho, janelas e controles da ilha", () => {
+  const elemento = (janela, area) => ({ closest: () => janela ? {} : null, matches: () => area });
+  assert.equal(focoDaAreaPeloElemento(elemento(true, false)), false);
+  assert.equal(focoDaAreaPeloElemento(elemento(false, true)), true);
+  assert.equal(focoDaAreaPeloElemento(elemento(false, false)), undefined);
+  assert.equal(focoDaAreaPeloElemento(null), undefined);
+});
+
+test("usar os controles das pontas não recolhe a ilha nem dispara o fechamento automático", () => {
+  const codigo = readFileSync(new URL("../src/janelas/ilha/Ilha.tsx", import.meta.url), "utf8");
+  assert.match(codigo, /sobre \|\| barraEmUso \|\| cfg\.fechamentoSeg/);
+  assert.match(codigo, /e\.target\.closest\("\.ilha-barra, \.ilha-pop"\)\) return/);
+  assert.match(codigo, /!areaEmFocoNoNavegador && alguemCobre/);
+});
 
 test("a ilha coberta desaparece gradualmente e retorna sem atraso ou deslocamento residual", async () => {
   const { movimentoDaVisibilidade } = await servidor.ssrLoadModule("/src/janelas/ilha/animacoes/visibilidade.ts");
