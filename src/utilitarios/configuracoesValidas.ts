@@ -1,6 +1,8 @@
 import type { Configuracoes } from "../estado/configuracoes";
 import { exigir, objeto } from "./validacoes";
 import { validarAssistive } from "../janelas/assistive/regras";
+import type { AgenteId } from "../tipos";
+import { aparenciaValida, personaValida, textoDeIdentidade } from "../personagens/personalizacao";
 
 function conformePadrao(valor: unknown, padrao: unknown): unknown {
   if (padrao === null) return valor === null || typeof valor === "string" || objeto(valor) ? valor : null;
@@ -51,6 +53,12 @@ export function configuracoesValidas(valor: unknown, padrao: Configuracoes): Con
   c.dock.atalhos = Array.isArray(bruto) ? bruto.filter((a) => objeto(a) && typeof a.id === "string" && typeof a.nome === "string" && typeof a.url === "string").slice(0, 100) as Configuracoes["dock"]["atalhos"] : [];
   c.agentes.favorito = escolher(c.agentes.favorito, Object.keys(padrao.agentes.nomes), padrao.agentes.favorito);
   c.agentes.inatividadeMin = limitar(c.agentes.inatividadeMin, 1, 1440);
+  for (const agente of Object.keys(padrao.agentes.nomes) as AgenteId[]) {
+    c.agentes.nomes[agente] = textoDeIdentidade(c.agentes.nomes[agente], padrao.agentes.nomes[agente], 20);
+    c.agentes.cargos[agente] = textoDeIdentidade(c.agentes.cargos[agente], padrao.agentes.cargos[agente], 32);
+    c.agentes.aparencias[agente] = aparenciaValida(c.agentes.aparencias[agente], agente);
+    c.agentes.personas[agente] = personaValida(c.agentes.personas[agente]);
+  }
   for (const k of ["foco", "curta", "longa"] as const) c.pomodoro[k] = Math.round(limitar(c.pomodoro[k], 1, 1440));
   c.pomodoro.ciclos = Math.round(limitar(c.pomodoro.ciclos, 1, 100));
   c.agua.meta = limitar(c.agua.meta, 1, 100000);

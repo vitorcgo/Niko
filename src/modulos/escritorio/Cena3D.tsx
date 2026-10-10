@@ -5,7 +5,7 @@ import { CanvasTexture, RepeatWrapping, SRGBColorSpace, PCFShadowMap, Vector3, t
 import { Plus, Minus, Maximize2 } from "lucide-react";
 import { T } from "../../textos/textos";
 import { Personagem } from "../../personagens/Personagem";
-import { COR_AGENTE } from "../../personagens/cores";
+import { useConfig } from "../../estado/configuracoes";
 import { AGENTES } from "../../estado/agentes";
 import { Pensamento } from "./Pensamento";
 import { MESAS, LUGARES, type Comportamento } from "./comportamento";
@@ -337,7 +337,7 @@ function Cadeira({ cor, tecido }: { cor: string; tecido: Texturas["tecido"] }) {
 
 function Mesa({ agente, tarefa, erro, texturas }: { agente: AgenteId; tarefa: string; erro: boolean; texturas: Texturas }) {
   const [x, z] = MESAS[agente];
-  const cor = COR_AGENTE[agente];
+  const cor = useConfig((s) => s.agentes.aparencias[agente].cor);
   return (
     <group position={[x, 0, z]}>
       <RoundedBox args={[1.9, 0.07, 0.95]} radius={0.02} position={[0, 0.74, 0]}>

@@ -14,6 +14,7 @@ import {
   BrainCircuit,
   Trophy,
   Settings,
+  Users,
   type LucideIcon,
 } from "lucide-react";
 import type { Rota } from "../../tipos";
@@ -33,6 +34,7 @@ export const ICONE_ROTA: Record<Rota, LucideIcon> = {
   consumo: Gauge,
   conquistas: Trophy,
   configuracoes: Settings,
+  agentes: Users,
 };
 
 export const PAGINA_ROTA: Record<Rota, React.LazyExoticComponent<() => React.JSX.Element>> = {
@@ -50,4 +52,5 @@ export const PAGINA_ROTA: Record<Rota, React.LazyExoticComponent<() => React.JSX
   consumo: lazy(() => import("../../modulos/consumo-ia/ConsumoIa")),
   conquistas: lazy(() => import("../../modulos/conquistas/Conquistas")),
   configuracoes: lazy(() => import("../../modulos/configuracoes/Configuracoes")),
+  agentes: lazy(() => import("../../modulos/agentes/Agentes")),
 };

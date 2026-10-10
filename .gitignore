@@ -20,6 +20,7 @@ IDEIAS.md
 scripts/*
 !scripts/validacoes.test.mjs
 !scripts/escritorio.test.mjs
+!scripts/personalizacao-agentes.test.mjs
 testes/
 
 # Vídeo e material de divulgação

@@ -9,7 +9,7 @@
         "build": "tsc && vite build",
         "preview": "vite preview",
         "verificar": "tsc",
-        "test": "node --test --test-concurrency=1 scripts/validacoes.test.mjs scripts/escritorio.test.mjs scripts/chat.test.mjs scripts/midia.test.mjs scripts/claude.test.mjs scripts/agentes.test.mjs scripts/dock.test.mjs scripts/calendario.test.mjs scripts/avisos.test.mjs scripts/financas.test.mjs scripts/integracoes.test.mjs scripts/ilha.test.mjs scripts/versao-release.test.mjs scripts/animacoes-ilha.test.mjs scripts/navegacao-ilha.test.mjs scripts/ponte.test.mjs scripts/busca.test.mjs scripts/atalhos.test.mjs scripts/resumo-semanal.test.mjs scripts/pensamento.test.mjs scripts/github.test.mjs scripts/status-claude.test.mjs",
+        "test": "node --test --test-concurrency=1 scripts/validacoes.test.mjs scripts/escritorio.test.mjs scripts/chat.test.mjs scripts/midia.test.mjs scripts/claude.test.mjs scripts/agentes.test.mjs scripts/personalizacao-agentes.test.mjs scripts/dock.test.mjs scripts/calendario.test.mjs scripts/avisos.test.mjs scripts/financas.test.mjs scripts/integracoes.test.mjs scripts/ilha.test.mjs scripts/versao-release.test.mjs scripts/animacoes-ilha.test.mjs scripts/navegacao-ilha.test.mjs scripts/ponte.test.mjs scripts/busca.test.mjs scripts/atalhos.test.mjs scripts/resumo-semanal.test.mjs scripts/pensamento.test.mjs scripts/github.test.mjs scripts/status-claude.test.mjs",
         "personagens": "node scripts/preparar-personagens.mjs",
         "ponte:build": "node scripts/construir-ponte.mjs",
         "tauri": "tauri",
@@ -19,6 +19,7 @@
         "lancar:testar": "node --test scripts/versao-release.test.mjs",
         "assistive:testar": "node --test scripts/assistive.test.mjs",
         "chat:testar": "node --test scripts/chat.test.mjs",
+        "agentes:personalizacao:testar": "node --test scripts/personalizacao-agentes.test.mjs",
         "midia:testar": "node --test scripts/midia.test.mjs"
     },
     "dependencies": {

@@ -24,7 +24,8 @@ export type Rota =
   | "ia"
   | "consumo"
   | "conquistas"
-  | "configuracoes";
+  | "configuracoes"
+  | "agentes";
 
 export type StatusTarefa = "a_fazer" | "em_andamento" | "concluida" | "reagendada" | "cancelada" | "em_aguardo";
 

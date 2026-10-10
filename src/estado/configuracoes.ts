@@ -9,6 +9,7 @@ import { ATALHOS_PADRAO, atalhosComPadrao, type AcaoGlobal } from "../utilitario
 import { ASSISTIVE_PADRAO, validarAssistive, type ConfigAssistive } from "../janelas/assistive/regras";
 import { configuracoesValidas } from "../utilitarios/configuracoesValidas";
 import { objeto } from "../utilitarios/validacoes";
+import { aparenciaPadrao, type AparenciaAgente } from "../personagens/personalizacao";
 
 const DESTAQUE_ESCURO_PADRAO = "#a78bfa";
 
@@ -73,6 +74,7 @@ export const GRUPO_DA_ROTA: Record<Rota, "principal" | "organizacao" | "ferramen
   consumo: "ferramentas",
   conquistas: "ferramentas",
   configuracoes: "ferramentas",
+  agentes: "principal",
 };
 
 export const BLOCOS_INICIO_PADRAO: { id: BlocoInicio; visivel: boolean }[] = [
@@ -141,7 +143,7 @@ export interface Configuracoes {
   pomodoro: { foco: number; curta: number; longa: number; ciclos: number; autoProxima: boolean; tique: boolean };
   agua: { meta: number; copo: number };
   sons: { ligado: boolean; volume: number; categorias: Record<CategoriaSom, boolean> };
-  agentes: { nomes: Record<AgenteId, string>; cargos: Record<AgenteId, string>; inatividadeMin: number; favorito: AgenteId };
+  agentes: { nomes: Record<AgenteId, string>; cargos: Record<AgenteId, string>; aparencias: Record<AgenteId, AparenciaAgente>; personas: Record<AgenteId, string>; inatividadeMin: number; favorito: AgenteId };
   consumo: { precoEntrada: number; precoSaida: number; limiteMensal: number; lerPlanos: boolean };
   ia: { provedorId: string | null; modelo: string; reservas: string[]; modelos: Record<string, string>; autoAprovar: CartaoConfirmacao["tipo"][] };
   privacidade: boolean;
@@ -206,6 +208,8 @@ export const CONFIG_PADRAO: Configuracoes = {
   agentes: {
     nomes: { organizador: "Rubi", tutor: "Nanquim", operador: "Sol", java: "Java" },
     cargos: { organizador: "Gerente de projetos", tutor: "Professor", operador: "Analista de operações", java: "Engenheiro de software" },
+    aparencias: { organizador: aparenciaPadrao("organizador"), tutor: aparenciaPadrao("tutor"), operador: aparenciaPadrao("operador"), java: aparenciaPadrao("java") },
+    personas: { organizador: "", tutor: "", operador: "", java: "" },
     inatividadeMin: 10,
     favorito: "organizador",
   },

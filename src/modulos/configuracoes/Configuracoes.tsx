@@ -587,18 +587,7 @@ export default function Configuracoes() {
     ),
     agentes: (
       <>
-        {AGENTES.map((a) => (
-          <LinhaAjuste key={a} rotulo={cfg.agentes.nomes[a]} dica={T.agentes.areas[a]} inicio={<span className="ajuste-personagem"><Personagem agente={a} tamanho={36} /></span>}>
-            <label className="ajuste-rotulado">
-              <span>{T.configuracoes.nomeAgente}</span>
-              <input id={`ag-${a}`} className="campo ajuste-valor" value={cfg.agentes.nomes[a]} maxLength={20} onChange={(e) => cfg.definir({ agentes: { ...cfg.agentes, nomes: { ...cfg.agentes.nomes, [a]: e.target.value.slice(0, 20) } } })} onBlur={(e) => !e.target.value.trim() && cfg.definir({ agentes: { ...cfg.agentes, nomes: { ...cfg.agentes.nomes, [a]: CONFIG_PADRAO.agentes.nomes[a] } } })} />
-            </label>
-            <label className="ajuste-rotulado">
-              <span>{T.configuracoes.cargoAgente}</span>
-              <input id={`cg-${a}`} className="campo ajuste-valor ajuste-valor-largo" value={cfg.agentes.cargos[a]} maxLength={32} onChange={(e) => cfg.definir({ agentes: { ...cfg.agentes, cargos: { ...cfg.agentes.cargos, [a]: e.target.value.slice(0, 32) } } })} onBlur={(e) => !e.target.value.trim() && cfg.definir({ agentes: { ...cfg.agentes, cargos: { ...cfg.agentes.cargos, [a]: CONFIG_PADRAO.agentes.cargos[a] } } })} />
-            </label>
-          </LinhaAjuste>
-        ))}
+        <NotaAjuste><Botao icone={<Users size={14} />} onClick={() => useInterface.getState().irPara("agentes")}>{T.agentes.personalizacao.abrir}</Botao></NotaAjuste>
         <LinhaAjuste rotulo={T.configuracoes.inatividade} para="ag-ina">
           <input id="ag-ina" className="campo ajuste-valor ajuste-valor-numero" type="number" min={1} max={240} value={cfg.agentes.inatividadeMin} onChange={(e) => cfg.definir({ agentes: { ...cfg.agentes, inatividadeMin: numeroLimitado(e.target.value, 1, 240, 10) } })} />
         </LinhaAjuste>

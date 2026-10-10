@@ -720,6 +720,7 @@ function LinhaOrdenavel({ id, visivel, aoMudar }: { id: BlocoInicio; visivel: bo
 }
 
 export default function Inicio() {
+  const irPara = useInterface((s) => s.irPara);
   const todosOsBlocos = useConfig((s) => s.blocosInicio);
   const desligadas = useConfig((s) => s.funcoesDesligadas);
   const blocos = useMemo(() => todosOsBlocos.filter((b) => blocoLigado(b.id, desligadas)), [todosOsBlocos, desligadas]);
@@ -766,6 +767,7 @@ export default function Inicio() {
           <>
             <Botao icone={<ToggleRight size={13} />} onClick={() => setEscolhendoFuncoes(true)}>{T.funcoes.botao}</Botao>
             <Botao icone={<SlidersHorizontal size={13} />} onClick={() => setPersonalizando(true)}>{T.inicio.personalizar}</Botao>
+            <Botao icone={<Users size={13} />} onClick={() => irPara("agentes")}>{T.agentes.personalizacao.botao}</Botao>
           </>
         }
       />
