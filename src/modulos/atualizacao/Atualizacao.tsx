@@ -13,14 +13,16 @@ import { T } from "../../textos/textos";
 const REPOSITORIO = "https://github.com/vitorcgo/niko";
 const VERSOES = `${REPOSITORIO}/releases`;
 
-function LinhaDaVersao({ versao: v, atual }: { versao: VersaoComNovidades; atual?: boolean }) {
+function GavetaDaVersao({ versao: v, atual, aberta }: { versao: VersaoComNovidades; atual?: boolean; aberta?: boolean }) {
   return (
-    <section className="atualizacao-versao-linha" aria-label={`v${v.versao}`}>
-      <div className="atualizacao-versao-lado">
+    <details className="atualizacao-versao-gaveta" aria-label={`v${v.versao}`} open={aberta}>
+      <summary className="atualizacao-versao-resumo">
+        <ChevronDown size={14} className="atualizacao-gaveta-seta" />
         <span className="atualizacao-versao-rotulo">{v.versao}</span>
         {"data" in v && v.data && <span className="atualizacao-versao-data">{formatar(v.data, "dd/MM/yyyy")}</span>}
         {atual && <span className="atualizacao-esta">{T.atualizacao.estaVersao}</span>}
-      </div>
+        <span className="atualizacao-versao-contagem">{T.atualizacao.quantidadeDeMudancas(v.mudancas.length)}</span>
+      </summary>
       <ul className="atualizacao-versao-itens">
         {v.mudancas.map(([tipo, texto]) => (
           <li key={texto} data-tipo={tipo}>
@@ -29,7 +31,7 @@ function LinhaDaVersao({ versao: v, atual }: { versao: VersaoComNovidades; atual
           </li>
         ))}
       </ul>
-    </section>
+    </details>
   );
 }
 
@@ -61,6 +63,20 @@ export default function Atualizacao() {
   return (
     <>
       <CabecalhoAba titulo={T.atualizacao.titulo} subtitulo={T.atualizacao.subtitulo} />
+      <section className="atualizacao-criador">
+        <img className="atualizacao-foto" src="/criador-vitor.jpg" width={56} height={56} alt={T.atualizacao.fotoCriador} />
+        <span className="atualizacao-criador-texto">
+          <span className="rotulo-secao">{T.atualizacao.criador}</span>
+          <b className="atualizacao-criador-nome">{T.atualizacao.nomeCriador} <span>{T.atualizacao.usuarioCriador}</span></b>
+          <span className="atualizacao-criador-descricao">{T.atualizacao.descricaoCriador}</span>
+        </span>
+        <nav className="atualizacao-links" aria-label={T.app.nome}>
+          <a href={REPOSITORIO} target="_blank" rel="noopener noreferrer"><Marca marca="github" tamanho={13} monocromatica />{T.atualizacao.github}<ArrowUpRight size={12} className="atualizacao-link-seta" /></a>
+          <a href="https://nikoapp-eight.vercel.app/" target="_blank" rel="noopener noreferrer"><Globe size={13} />{T.atualizacao.site}<ArrowUpRight size={12} className="atualizacao-link-seta" /></a>
+          <a href={VERSOES} target="_blank" rel="noopener noreferrer"><History size={13} />{T.atualizacao.versoes}<ArrowUpRight size={12} className="atualizacao-link-seta" /></a>
+          <a href="https://github.com/vitorcgo" target="_blank" rel="noopener noreferrer"><img src="/criador-vitor.jpg" width={16} height={16} alt="" className="atualizacao-link-foto" />{T.atualizacao.githubCriador}<ArrowUpRight size={12} className="atualizacao-link-seta" /></a>
+        </nav>
+      </section>
       <section className="atualizacao-painel">
         <div className="atualizacao-versao">
           <span className="rotulo-secao">{T.atualizacao.versaoAtual}</span>
@@ -102,18 +118,19 @@ export default function Atualizacao() {
             <span className="atualizacao-novidades-dica">{T.atualizacao.oQueMudouDica}</span>
           </div>
           {disponivel && atualizacao.notas && (
-            <div className="atualizacao-versao-linha">
-              <div className="atualizacao-versao-lado">
+            <details className="atualizacao-versao-gaveta">
+              <summary className="atualizacao-versao-resumo">
+                <ChevronDown size={14} className="atualizacao-gaveta-seta" />
                 <span className="atualizacao-versao-rotulo">{atualizacao.versao}</span>
                 <span className="atualizacao-versao-data">{T.atualizacao.versaoDisponivel}</span>
-              </div>
+              </summary>
               <div className="atualizacao-versao-itens">
                 <span className="atualizacao-rotulo-notas">{T.atualizacao.novidades}</span>
                 <p className="atualizacao-notas">{atualizacao.notas}</p>
               </div>
-            </div>
+            </details>
           )}
-          {versoes.slice(0, 1).map((v) => <LinhaDaVersao key={v.versao} versao={v} atual />)}
+          {versoes.slice(0, 1).map((v) => <GavetaDaVersao key={v.versao} versao={v} atual aberta={parametros.secao === "novidades"} />)}
           {versoes.length > 1 && (
             <details className="atualizacao-gaveta">
               <summary className="atualizacao-gaveta-botao">
@@ -121,26 +138,12 @@ export default function Atualizacao() {
                 {T.atualizacao.versoesAnteriores(versoes.length - 1)}
               </summary>
               <div className="atualizacao-gaveta-conteudo">
-                {versoes.slice(1).map((v) => <LinhaDaVersao key={v.versao} versao={v} />)}
+                {versoes.slice(1).map((v) => <GavetaDaVersao key={v.versao} versao={v} />)}
               </div>
             </details>
           )}
         </section>
       )}
-      <section className="atualizacao-criador">
-        <img className="atualizacao-foto" src="/criador-vitor.jpg" width={56} height={56} alt={T.atualizacao.fotoCriador} />
-        <span className="atualizacao-criador-texto">
-          <span className="rotulo-secao">{T.atualizacao.criador}</span>
-          <b className="atualizacao-criador-nome">{T.atualizacao.nomeCriador} <span>{T.atualizacao.usuarioCriador}</span></b>
-          <span className="atualizacao-criador-descricao">{T.atualizacao.descricaoCriador}</span>
-        </span>
-        <nav className="atualizacao-links" aria-label={T.app.nome}>
-          <a href={REPOSITORIO} target="_blank" rel="noopener noreferrer"><Marca marca="github" tamanho={13} monocromatica />{T.atualizacao.github}<ArrowUpRight size={12} className="atualizacao-link-seta" /></a>
-          <a href="https://nikoapp-eight.vercel.app/" target="_blank" rel="noopener noreferrer"><Globe size={13} />{T.atualizacao.site}<ArrowUpRight size={12} className="atualizacao-link-seta" /></a>
-          <a href={VERSOES} target="_blank" rel="noopener noreferrer"><History size={13} />{T.atualizacao.versoes}<ArrowUpRight size={12} className="atualizacao-link-seta" /></a>
-          <a href="https://github.com/vitorcgo" target="_blank" rel="noopener noreferrer"><img src="/criador-vitor.jpg" width={16} height={16} alt="" className="atualizacao-link-foto" />{T.atualizacao.githubCriador}<ArrowUpRight size={12} className="atualizacao-link-seta" /></a>
-        </nav>
-      </section>
     </>
   );
 }

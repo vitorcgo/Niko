@@ -50,7 +50,7 @@ function processoSimulado() {
       return p;
     },
   });
-  const codigo = lerCodigo("servidor/processoPowerShell.ts").replace(/^import .*;\r?\n/gm, "").replace("export function", "function");
+  const codigo = lerCodigo("servidor/plataforma/windows/processoPowerShell.ts").replace(/^import .*;\r?\n/gm, "").replace("export function", "function");
   vm.runInContext(`${codigo}\nglobalThis.criar = criarProcessoPowerShell;`, contexto);
   return { filhos, relogio, ponte: contexto.criar("teste", "", "processo_encerrado") };
 }
@@ -106,17 +106,19 @@ function consultasSimuladas(nome) {
       return [inicial, (valor) => { estado = typeof valor === "function" ? valor(estado) : valor; }];
     },
     useEffect(fn) { limpar = fn(); },
+    useRef: (inicial) => ({ current: inicial }),
     invocar: () => new Promise((resolver) => pedidos.push({ resolver })),
     fetch: (_url, opcoes) => new Promise((resolver) => pedidos.push({ resolver, sinal: opcoes.signal })),
   });
   const periodica = lerCodigo("src/desktop/consultaPeriodica.ts").replace("export function", "function");
   const desktop = lerCodigo("src/desktop/desktop.ts");
-  const inicio = desktop.indexOf(`export function ${nome}(`);
-  const resto = desktop.slice(inicio);
-  const fim = resto.indexOf("\nexport ", 1);
-  const funcao = (fim === -1 ? resto : resto.slice(0, fim)).replace("export function", "function");
-  vm.runInContext(`${periodica}\n${funcao}\nglobalThis.usar = ${nome};`, contexto);
-  contexto.usar(true);
+  const trecho = (nomeDaFuncao) => {
+    const resto = desktop.slice(desktop.search(new RegExp(`(export )?function ${nomeDaFuncao}\\(`)));
+    const fim = resto.search(/\n(export |function |interface )/);
+    return (fim === -1 ? resto : resto.slice(0, fim)).replace("export function", "function");
+  };
+  vm.runInContext(`${periodica}\n${trecho("semExe")}\n${trecho("deveSumirPelaFrente")}\n${trecho(nome)}\nglobalThis.usar = ${nome};`, contexto);
+  contexto.usar(true, { esconderTelaCheia: true, apps: "" });
   return { pedidos, relogio, limpar: () => limpar(), estado: () => estado };
 }
 
@@ -175,11 +177,28 @@ test("consulta expirada não atualiza a interface nem acumula uma invocação na
 function carregarCopia() {
   const codigo = lerCodigo("servidor/arquivos.ts");
   const inicio = codigo.indexOf("export async function copiarSemSubstituir(");
-  const fim = codigo.indexOf("\nfunction abrirNoWindows", inicio);
+  const fim = codigo.indexOf("\nexport async function baixarArquivo", inicio);
   const contexto = vm.createContext({ copyFile, constants, join, parse });
   vm.runInContext(`${codigo.slice(inicio, fim).replace("export async function", "async function")}\nglobalThis.copiar = copiarSemSubstituir;`, contexto);
   return contexto.copiar;
 }
+
+test("imports relativos da ponte terminam em .ts para o Node conseguir carregar", async () => {
+  const semExtensao = [];
+  const visitar = async (pasta) => {
+    for (const item of await readdir(pasta, { withFileTypes: true })) {
+      const caminho = join(pasta, item.name);
+      if (item.isDirectory()) await visitar(caminho);
+      else if (item.name.endsWith(".ts")) {
+        for (const [, alvo] of readFileSync(caminho, "utf8").matchAll(/(?:from|import)\s*\(?\s*"(\.\.?\/[^"]+)"/g)) {
+          if (!alvo.endsWith(".ts") && !alvo.endsWith(".json")) semExtensao.push(`${caminho}: ${alvo}`);
+        }
+      }
+    }
+  };
+  await visitar("servidor");
+  assert.deepEqual(semExtensao, []);
+});
 
 test("downloads simultâneos usam nomes diferentes sem substituir arquivos", async () => {
   const pasta = await mkdtemp(join(tmpdir(), "niko-copias-"));

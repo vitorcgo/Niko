@@ -118,6 +118,7 @@ function Pergunta({ pedido, perguntas, fila }: { pedido: PedidoDePermissao; perg
         <span>{C.pergunta.titulo(nome)}</span>
         <span className="vsc-chip">{pedido.projeto}</span>
       </div>
+      <div className="vsc-pergunta-corpo">
       {perguntas.map((p, ip) => (
         <div key={`${ip}-${p.pergunta}`} className="vsc-pergunta-bloco" role="group" aria-label={p.pergunta}>
           {p.titulo && <span className="vsc-pergunta-cabecalho">{p.titulo}</span>}
@@ -145,6 +146,7 @@ function Pergunta({ pedido, perguntas, fila }: { pedido: PedidoDePermissao; perg
           </div>
         </div>
       ))}
+      </div>
       <div className="vsc-permissao-rodape">
         <span className="vsc-dim">
           {C.expiraEm(restante)}

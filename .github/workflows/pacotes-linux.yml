@@ -1,0 +1,73 @@
+name: Pacotes Linux
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  pacotes:
+    name: deb, rpm e AppImage
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Bibliotecas do Tauri
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev file
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.20.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Versão
+        run: pnpm lancar:verificar
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - name: Gerar pacotes
+        env:
+          NO_STRIP: "true"
+        run: pnpm tauri build
+
+      - name: Conferir o Node embutido
+        run: |
+          deb=$(ls src-tauri/target/release/bundle/deb/*.deb)
+          dpkg-deb -c "$deb" | grep -E "recursos/node$"
+          dpkg-deb -c "$deb" | grep -E "recursos/ponte.mjs$"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: niko-linux
+          path: |
+            src-tauri/target/release/bundle/deb/*.deb
+            src-tauri/target/release/bundle/rpm/*.rpm
+            src-tauri/target/release/bundle/appimage/*.AppImage
+          if-no-files-found: error
+
+      - name: Anexar na release
+        if: github.event_name == 'release'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release upload "${{ github.event.release.tag_name }}" --repo "${{ github.repository }}" --clobber \
+            src-tauri/target/release/bundle/deb/*.deb \
+            src-tauri/target/release/bundle/rpm/*.rpm \
+            src-tauri/target/release/bundle/appimage/*.AppImage

@@ -1,8 +1,6 @@
 use std::collections::HashMap;
 use std::process::{Child, Command};
 use std::sync::atomic::{AtomicBool, Ordering};
-#[cfg(windows)]
-use std::sync::atomic::AtomicIsize;
 use std::sync::Mutex;
 use std::time::Duration;
 
@@ -13,23 +11,11 @@ use tauri::{AppHandle, Emitter, Manager, RunEvent, WebviewUrl, WebviewWindow, We
 use tauri_plugin_global_shortcut::ShortcutState;
 
 mod atalhos;
-#[cfg(windows)]
-mod barra_windows;
-#[cfg(not(windows))]
-#[path = "barra_linux.rs"]
-mod barra_windows;
 mod docks;
-#[cfg(windows)]
-mod janela_frente;
-#[cfg(not(windows))]
-#[path = "janela_frente_linux.rs"]
-mod janela_frente;
-#[cfg(windows)]
-mod miniaturas;
-#[cfg(not(windows))]
-#[path = "miniaturas_linux.rs"]
-mod miniaturas;
+mod plataforma;
 mod salvamento;
+
+use plataforma::{barra, janela_frente, miniaturas};
 
 const PORTA: u16 = 47831;
 const ALTURA_ILHA: f64 = 720.0;
@@ -77,8 +63,6 @@ fn mostrar_sistema(app: AppHandle) {
     mostrar(&app);
 }
 
-#[cfg(windows)]
-static ULTIMA_FRENTE: AtomicIsize = AtomicIsize::new(0);
 static ABERTURA_PENDENTE: AtomicBool = AtomicBool::new(false);
 const LIMITE_DA_ABERTURA: Duration = Duration::from_secs(9);
 
@@ -111,111 +95,26 @@ fn liberar_sistema_inicial(app: AppHandle) {
     liberar_abertura(&app);
 }
 
-#[cfg(not(windows))]
 #[tauri::command]
-fn tempo_ocioso_ms() -> u64 {
-    // GNOME: o monitor de inatividade do Mutter responde em milissegundos, por exemplo "(uint64 4231,)".
-    let saida = Command::new("gdbus")
-        .args(["call", "--session", "--dest", "org.gnome.Mutter.IdleMonitor", "--object-path", "/org/gnome/Mutter/IdleMonitor/Core", "--method", "org.gnome.Mutter.IdleMonitor.GetIdletime"])
-        .output();
-    let Ok(saida) = saida else { return 0 };
-    let texto = String::from_utf8_lossy(&saida.stdout).to_string();
-    let digitos: String = texto.split_whitespace().nth(1).unwrap_or("").chars().take_while(|c| c.is_ascii_digit()).collect();
-    digitos.parse::<u64>().unwrap_or(0)
+async fn tempo_ocioso_ms() -> u64 {
+    tauri::async_runtime::spawn_blocking(plataforma::tempo_ocioso_ms).await.unwrap_or(0)
 }
 
-#[cfg(windows)]
-#[tauri::command]
-fn tempo_ocioso_ms() -> u64 {
-    use windows::Win32::System::SystemInformation::GetTickCount;
-    use windows::Win32::UI::Input::KeyboardAndMouse::{GetLastInputInfo, LASTINPUTINFO};
-    let mut info = LASTINPUTINFO { cbSize: std::mem::size_of::<LASTINPUTINFO>() as u32, dwTime: 0 };
-    if !unsafe { GetLastInputInfo(&mut info) }.as_bool() {
-        return 0;
-    }
-    u64::from(unsafe { GetTickCount() }.wrapping_sub(info.dwTime))
-}
-
-#[cfg(not(windows))]
-fn registrar_frente(_app: &AppHandle) {}
-
-#[cfg(windows)]
-fn registrar_frente(app: &AppHandle) {
-    let frente = unsafe { windows::Win32::UI::WindowsAndMessaging::GetForegroundWindow() }.0 as isize;
-    if frente == 0 {
-        return;
-    }
-    let sobreposta = app.webview_windows().iter().any(|(r, j)| (r == "ilha" || r == "assistive" || docks::eh_dock(r)) && j.hwnd().map(|h| h.0 as isize == frente).unwrap_or(false));
-    if !sobreposta {
-        ULTIMA_FRENTE.store(frente, Ordering::Relaxed);
-    }
-}
-
-#[cfg(not(windows))]
-#[tauri::command]
-fn devolver_foco() {}
-
-#[cfg(windows)]
 #[tauri::command]
 fn devolver_foco() {
-    let anterior = ULTIMA_FRENTE.load(Ordering::Relaxed);
-    if anterior != 0 {
-        let janela = windows::Win32::Foundation::HWND(anterior as *mut core::ffi::c_void);
-        unsafe {
-            let _ = windows::Win32::UI::WindowsAndMessaging::SetForegroundWindow(janela);
-        }
-    }
+    plataforma::devolver_foco();
 }
 
 #[tauri::command]
 fn alternar_sistema(app: AppHandle) {
     if let Some(janela) = app.get_webview_window("sistema") {
         let visivel = janela.is_visible().unwrap_or(false) && !janela.is_minimized().unwrap_or(false);
-        #[cfg(windows)]
-        let focada = janela.hwnd().map(|h| h.0 as isize == ULTIMA_FRENTE.load(Ordering::Relaxed)).unwrap_or(false);
-        #[cfg(not(windows))]
-        let focada = janela.is_focused().unwrap_or(false);
-        if visivel && focada {
+        if visivel && plataforma::janela_em_foco(&janela) {
             let _ = janela.minimize();
         } else {
             mostrar(&app);
         }
     }
-}
-
-#[cfg(windows)]
-fn abrir_no_sistema(endereco: &str) -> Result<(), String> {
-    let largo: Vec<u16> = endereco.encode_utf16().chain(std::iter::once(0)).collect();
-    let resultado = unsafe {
-        windows::Win32::UI::Shell::ShellExecuteW(
-            None,
-            windows::core::w!("open"),
-            windows::core::PCWSTR(largo.as_ptr()),
-            None,
-            None,
-            windows::Win32::UI::WindowsAndMessaging::SW_SHOWNORMAL,
-        )
-    };
-    if resultado.0 as isize > 32 {
-        Ok(())
-    } else {
-        Err("falha_ao_abrir".into())
-    }
-}
-
-#[cfg(not(windows))]
-fn abrir_no_sistema(endereco: &str) -> Result<(), String> {
-    let mut filho = Command::new("xdg-open")
-        .arg(endereco)
-        .stdin(std::process::Stdio::null())
-        .stdout(std::process::Stdio::null())
-        .stderr(std::process::Stdio::null())
-        .spawn()
-        .map_err(|_| "falha_ao_abrir".to_string())?;
-    std::thread::spawn(move || {
-        let _ = filho.wait();
-    });
-    Ok(())
 }
 
 #[tauri::command]
@@ -224,7 +123,7 @@ fn abrir_link(url: String) -> Result<(), String> {
     if !(endereco.starts_with("https://") || endereco.starts_with("http://")) || endereco.chars().any(|c| c.is_whitespace() || c.is_control()) {
         return Err("link_invalido".into());
     }
-    abrir_no_sistema(endereco)
+    plataforma::abrir_no_sistema(endereco)
 }
 
 #[tauri::command]
@@ -292,17 +191,6 @@ fn criar_sobreposta(app: &AppHandle, rotulo: &str, y: f64, x: f64, largura: f64,
         .build()
 }
 
-// No Linux, uma janela escondida ainda não existe de verdade e o tao falha ao pedir click-through nela.
-fn ignorar_cursor(janela: &WebviewWindow, ignorar: bool) -> bool {
-    #[cfg(target_os = "linux")]
-    {
-        if !janela.is_visible().unwrap_or(false) {
-            return false;
-        }
-    }
-    janela.set_ignore_cursor_events(ignorar).is_ok()
-}
-
 fn vigiar_cursor(app: AppHandle) {
     tauri::async_runtime::spawn(async move {
         let mut fora: HashMap<String, bool> = HashMap::new();
@@ -320,12 +208,14 @@ fn vigiar_cursor(app: AppHandle) {
 
 fn atualizar_cursor(app: &AppHandle, mut fora: HashMap<String, bool>) -> HashMap<String, bool> {
     if ENCERRANDO.load(Ordering::Relaxed) { return fora; }
-    registrar_frente(app);
+    plataforma::registrar_frente(app);
     let areas = match app.state::<Estado>().areas.lock() {
         Ok(a) => a.clone(),
         Err(_) => return fora,
     };
     let Ok(cursor) = app.cursor_position() else { return fora };
+    let pressionado = plataforma::botao_do_mouse_pressionado();
+    let clicou = pressionado && !BOTAO_PRESSIONADO.swap(pressionado, Ordering::Relaxed);
     let sobrepostas: Vec<(String, WebviewWindow)> = app.webview_windows().into_iter().filter(|(r, _)| r == "ilha" || r == "assistive" || docks::eh_dock(r)).collect();
     fora.retain(|r, _| sobrepostas.iter().any(|(s, _)| s == r));
     for (rotulo, janela) in &sobrepostas {
@@ -339,8 +229,11 @@ fn atualizar_cursor(app: &AppHandle, mut fora: HashMap<String, bool>) -> HashMap
             lista.iter().any(|r| x >= r.x - 4.0 && x <= r.x + r.w + 4.0 && y >= r.y - 4.0 && y <= r.y + r.h + 4.0)
         } else { false };
         let agora_fora = !dentro;
+        if clicou && agora_fora {
+            let _ = janela.emit_to(rotulo, "niko://clique-fora", ());
+        }
         if fora.get(rotulo) != Some(&agora_fora) {
-            if !ignorar_cursor(janela, agora_fora) { continue; }
+            if !plataforma::ignorar_cursor(janela, agora_fora) { continue; }
             if agora_fora {
                 let _ = janela.emit_to(rotulo, "niko://cursor-fora", ());
             }
@@ -410,11 +303,7 @@ fn iniciar_ponte(app: &AppHandle, token: &str, reinicio: bool) {
         }
     }
     comando.arg("ponte.mjs").env("NIKO_PORTA", PORTA.to_string()).env("NIKO_TOKEN", token).env("NIKO_PAI", std::process::id().to_string());
-    #[cfg(windows)]
-    {
-        use std::os::windows::process::CommandExt;
-        comando.creation_flags(0x0800_0000);
-    }
+    plataforma::esconder_console(&mut comando);
     let estado = app.state::<Estado>();
     let Ok(mut ponte) = estado.ponte.lock() else { return };
     if ENCERRANDO.load(Ordering::Relaxed) { return; }
@@ -447,17 +336,18 @@ async fn preparar_atualizacao(app: AppHandle) -> Result<(), String> {
     ENCERRANDO.store(true, Ordering::Relaxed);
     for (rotulo, janela) in app.webview_windows() {
         if docks::eh_dock(&rotulo) {
-            barra_windows::reservar_espaco_do_dock(&janela, false);
+            barra::reservar_espaco_do_dock(&janela, false);
         }
     }
     let _ = tauri::async_runtime::spawn_blocking(move || {
-        barra_windows::restaurar(&app);
+        barra::restaurar(&app);
         parar_ponte(&app);
     }).await;
     Ok(())
 }
 
 static ENCERRANDO: AtomicBool = AtomicBool::new(false);
+static BOTAO_PRESSIONADO: AtomicBool = AtomicBool::new(false);
 static ENCERRAMENTO_PEDIDO: AtomicBool = AtomicBool::new(false);
 const MAXIMO_REINICIOS_DA_PONTE: u32 = 5;
 
@@ -504,13 +394,7 @@ fn vigiar_ponte(app: AppHandle, token: String) {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    // O Niko posiciona janelas por coordenada e lê o cursor global: isso só funciona sob X11/XWayland.
-    #[cfg(target_os = "linux")]
-    {
-        if std::env::var_os("GDK_BACKEND").is_none() {
-            std::env::set_var("GDK_BACKEND", "x11");
-        }
-    }
+    plataforma::preparar_ambiente();
     let token = gerar_token();
     let escondido = std::env::args().any(|a| a == "--escondido");
 
@@ -560,8 +444,8 @@ pub fn run() {
             tempo_ocioso_ms,
             abrir_link,
             sair,
-            barra_windows::barra_windows,
-            barra_windows::reservar_dock,
+            barra::barra_windows,
+            barra::reservar_dock,
             janela_frente::frente_cobre_tela,
             miniaturas::miniaturas_janelas,
             atalhos::definir_atalhos,
@@ -569,7 +453,7 @@ pub fn run() {
         ])
         .setup(move |app| {
             let handle = app.handle().clone();
-            barra_windows::restaurar(&handle);
+            barra::restaurar(&handle);
             let alvo_da_ponte = handle.clone();
             let chave_da_ponte = token.clone();
             tauri::async_runtime::spawn_blocking(move || iniciar_ponte(&alvo_da_ponte, &chave_da_ponte, false));
@@ -623,7 +507,7 @@ pub fn run() {
             criar_sobreposta(&handle, "assistive", my, mx, mw, mh)?;
             for rotulo in ["ilha", "dock", "assistive"] {
                 if let Some(j) = handle.get_webview_window(rotulo) {
-                    ignorar_cursor(&j, true);
+                    plataforma::ignorar_cursor(&j, true);
                 }
             }
             docks::sincronizar(&handle);
@@ -661,10 +545,10 @@ pub fn run() {
             ENCERRANDO.store(true, Ordering::Relaxed);
             for (rotulo, janela) in handle.webview_windows() {
                 if docks::eh_dock(&rotulo) {
-                    barra_windows::reservar_espaco_do_dock(&janela, false);
+                    barra::reservar_espaco_do_dock(&janela, false);
                 }
             }
-            barra_windows::restaurar(handle);
+            barra::restaurar(handle);
             parar_ponte(handle);
         }
     });

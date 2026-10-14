@@ -1129,6 +1129,26 @@
 .cfg-retorno-erro {
   color: var(--vsc-vermelho);
 }
+.vsc-pergunta {
+  overflow: hidden;
+}
+
+.vsc-pergunta-corpo {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding-right: 4px;
+}
+
+.vsc-pergunta .vsc-permissao-topo,
+.vsc-pergunta .vsc-permissao-rodape {
+  flex: none;
+}
+
 .vsc-pergunta-bloco {
   display: flex;
   flex-direction: column;
@@ -1157,8 +1177,6 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
-  max-height: 220px;
-  overflow-y: auto;
 }
 
 .vsc-pergunta-opcao {

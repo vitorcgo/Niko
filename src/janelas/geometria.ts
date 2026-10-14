@@ -6,9 +6,13 @@ export const ALTURA_DOCK = 62;
 export const FOLGA_DOCK = 10;
 export const TOPO_RESERVADO = 40;
 
+export function alturaDoDock(escala: number): number {
+  return Math.round(ALTURA_DOCK * escala);
+}
+
 export function reservaDock(): number {
   const dock = useConfig.getState().dock;
-  return dock.ativo && dock.modo === "fixo" ? ALTURA_DOCK : 0;
+  return dock.ativo && dock.modo === "fixo" ? alturaDoDock(dock.escala) : 0;
 }
 
 export function areaUtil() {

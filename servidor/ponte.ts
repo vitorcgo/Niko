@@ -6,17 +6,17 @@ import { lerConsumo, usoOficial } from "./consumo.ts";
 import { lerUltimaVersao } from "./atualizacoes.ts";
 import { lerTudo, gravar, backupManual, zerarBanco, reservarConfirmacao } from "./banco.ts";
 import { pedirMidia } from "./midia.ts";
-import { pedirJanelas } from "./janelasWindows.ts";
+import { pedirJanelas } from "./janelas.ts";
 import { estadoConexoes, lerConexao, salvarChaveConexao, removerChaveConexao, servicoValido, chaveDe, SERVICOS as SERVICOS_CONEXAO } from "./conexoes.ts";
 import { buscarGmail, criarRascunhoGmail, enviarGmail } from "./gmail.ts";
 import { lerAgendaGoogle } from "./agendaGoogle.ts";
 import { lerCotacoes } from "./cotacoes.ts";
-import { lerAudio, definirVolume, definirMudo, ajustarSessao, lerTema, lerIniciar, definirTema, abrirFerramenta, agirNaEnergia, lerBandeja, abrirDaBandeja, pastaDaBandeja, encerrarDaBandeja, listarApps, iconesDeApps, abrirApp, abrirComandoDoSistema } from "./controleRapido.ts";
+import { lerAudio, definirVolume, definirMudo, ajustarSessao, lerTema, lerIniciar, definirTema, abrirFerramenta, agirNaEnergia, lerBandeja, abrirDaBandeja, pastaDaBandeja, encerrarDaBandeja, listarApps, iconesDeApps, abrirApp, appDaJanela, abrirComandoDoSistema } from "./controleRapido.ts";
 import { ocrDaRequisicao } from "./ocr.ts";
 import { receberEventoDoGancho, ehRotaDoGancho, ouvirEventos, decidirPedido, estadoDaInstalacao, previaDaInstalacao, instalarGanchos, removerGanchos, abrirProjeto, trazerTerminal, ehRotaDaStatus, receberStatusDoClaude } from "./claude.ts";
 import { ehRotaDeAgente, receberEventoDeAgente, estadoDosAgentes, instalarAgente, removerAgente } from "./agentesDeCodigo.ts";
-import { listarArquivos, receberArquivo, enviarConteudo, excluirArquivo, excluirArquivosDaMateria, baixarArquivo, abrirArquivoNoPrograma } from "./arquivos.ts";
-import { tipoDoComputador, estadoDoSistema, listarRedes, listarBluetooth, lerComputador, conectarRede, esquecerRede, desconectarRede, definirBrilho, definirRadio, abrirConfiguracoesWindows } from "./sistema.ts";
+import { listarArquivos, receberArquivo, enviarConteudo, excluirArquivo, excluirArquivosDaMateria, baixarArquivo, abrirArquivoNoPrograma, exportarParaDownloads } from "./arquivos.ts";
+import { tipoDoComputador, estadoDoSistema, listarRedes, listarBluetooth, lerComputador, conectarRede, esquecerRede, desconectarRede, definirBrilho, definirRadio, abrirConfiguracoesDoSistema } from "./sistema.ts";
 
 const LIMITE_CORPO = 24 * 1024 * 1024;
 
@@ -119,6 +119,7 @@ export const rotas: Connect.NextHandleFunction = async (req, res, proximo) => {
     const agente = /^\/agentes\/([a-z]{2,20})\/(instalar|remover)$/.exec(caminho);
     if (agente && req.method === "POST") return responder(res, 200, agente[2] === "instalar" ? instalarAgente(agente[1], await lerCorpo(req)) : removerAgente(agente[1], await lerCorpo(req)));
     if (caminho === "/ocr" && req.method === "POST") return responder(res, 200, await ocrDaRequisicao(req));
+    if (caminho === "/exportar" && req.method === "POST") return responder(res, 200, await exportarParaDownloads(req, url.searchParams.get("nome") ?? "", url.searchParams.get("mostrar") !== "0"));
     const arquivo = /^\/arquivos\/([A-Za-z0-9-]{1,64})(?:\/([A-Za-z0-9-]{1,64})(?:\/(baixar|abrir))?)?$/.exec(caminho);
     if (arquivo) {
       const banco = String(req.headers["x-niko-banco"] ?? "");
@@ -218,7 +219,7 @@ export const rotas: Connect.NextHandleFunction = async (req, res, proximo) => {
         desconectar: () => desconectarRede(),
         brilho: definirBrilho,
         radio: definirRadio,
-        configuracoes: abrirConfiguracoesWindows,
+        configuracoes: abrirConfiguracoesDoSistema,
       };
       if (req.method === "GET" && leitura[acao]) return responder(res, 200, await leitura[acao]());
       if (req.method === "POST" && escrita[acao]) return responder(res, 200, await escrita[acao](await lerCorpo(req)));
@@ -239,6 +240,7 @@ export const rotas: Connect.NextHandleFunction = async (req, res, proximo) => {
         apps: listarApps,
         iconesApps: iconesDeApps,
         abrirApp,
+        appDaJanela,
         comandoDoSistema: abrirComandoDoSistema,
       };
       if (req.method === "GET" && leitura[acao]) return responder(res, 200, await leitura[acao]());

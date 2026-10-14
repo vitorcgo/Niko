@@ -23,8 +23,23 @@ pub struct EstadoDaFrente {
     tela_cheia: bool,
     maximizada: bool,
     frente: TipoDaFrente,
+    programa: String,
     #[serde(skip)]
     outro_monitor: bool,
+}
+
+unsafe fn programa_do_processo(pid: u32) -> String {
+    use windows::Win32::Foundation::CloseHandle;
+    use windows::Win32::System::Threading::{OpenProcess, QueryFullProcessImageNameW, PROCESS_NAME_WIN32, PROCESS_QUERY_LIMITED_INFORMATION};
+    let Ok(processo) = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, false, pid) else { return String::new() };
+    let mut caminho = [0u16; 1024];
+    let mut tamanho = caminho.len() as u32;
+    let leu = QueryFullProcessImageNameW(processo, PROCESS_NAME_WIN32, windows::core::PWSTR(caminho.as_mut_ptr()), &mut tamanho).is_ok();
+    let _ = CloseHandle(processo);
+    if !leu {
+        return String::new();
+    }
+    String::from_utf16_lossy(&caminho[..tamanho as usize]).rsplit(['\\', '/']).next().unwrap_or("").to_lowercase()
 }
 
 fn windows_em_tela_cheia() -> bool {
@@ -76,7 +91,7 @@ unsafe fn ler_janela_da_frente(app: &AppHandle, monitor_alvo: HMONITOR) -> Estad
     }
     let maximizada = IsZoomed(frente).as_bool();
     let cobre_monitor = retangulo_cobre_monitor(frente, monitor);
-    EstadoDaFrente { cobre: maximizada || cobre_monitor, tela_cheia: !maximizada && cobre_monitor, maximizada, frente: TipoDaFrente::App, outro_monitor: false }
+    EstadoDaFrente { cobre: maximizada || cobre_monitor, tela_cheia: !maximizada && cobre_monitor, maximizada, frente: TipoDaFrente::App, programa: programa_do_processo(pid), outro_monitor: false }
 }
 
 #[tauri::command]
@@ -87,5 +102,5 @@ pub fn frente_cobre_tela(app: AppHandle, window: WebviewWindow) -> EstadoDaFrent
     };
     let janela = unsafe { ler_janela_da_frente(&app, monitor_alvo) };
     let tela_cheia = janela.tela_cheia || (!janela.outro_monitor && windows_em_tela_cheia());
-    EstadoDaFrente { cobre: janela.cobre || tela_cheia, tela_cheia, maximizada: janela.maximizada, frente: if tela_cheia { TipoDaFrente::App } else { janela.frente }, outro_monitor: janela.outro_monitor }
+    EstadoDaFrente { cobre: janela.cobre || tela_cheia, tela_cheia, maximizada: janela.maximizada, frente: if tela_cheia { TipoDaFrente::App } else { janela.frente }, programa: janela.programa, outro_monitor: janela.outro_monitor }
 }

@@ -1,5 +1,5 @@
-import { criarProcessoPowerShell } from "./processoPowerShell";
-import { pedirJanelasLinux } from "./janelasLinux";
+import { criarProcessoPowerShell } from "./processoPowerShell.ts";
+import type { Plataforma } from "../tipos.ts";
 
 const CODIGO = String.raw`
 using System;
@@ -195,14 +195,10 @@ while ($true) {
 }
 `;
 
-const janelas = criarProcessoPowerShell("niko-janelas", SCRIPT, "janelas_encerrado");
+const processo = criarProcessoPowerShell("niko-janelas", SCRIPT, "janelas_encerrado");
 
-export function pedirJanelas(acao: "listar" | "focar" | "minimizar" | "fechar", janela?: string): Promise<unknown> {
-  if (janela !== undefined && !/^\d{1,20}$/.test(janela)) return Promise.reject(new Error("janela_invalida"));
-  if (process.platform === "linux") return pedirJanelasLinux(acao, janela);
-  return janelas.pedir({ acao, janela }, 20000);
-}
-
-export function encerrarJanelas() {
-  janelas.encerrar();
-}
+export const janelas: Plataforma["janelas"] = {
+  listar: () => processo.pedir({ acao: "listar" }, 20000) as ReturnType<Plataforma["janelas"]["listar"]>,
+  agir: (acao, janela) => processo.pedir({ acao, janela }, 20000) as ReturnType<Plataforma["janelas"]["agir"]>,
+  encerrar: () => processo.encerrar(),
+};

@@ -1,4 +1,4 @@
-import type { Configuracoes } from "../estado/configuracoes";
+import { ESCALAS_DO_DOCK, LIMITE_DE_FIXADOS, type AppFixado, type Configuracoes } from "../estado/configuracoes";
 import { exigir, objeto } from "./validacoes";
 import { validarAssistive } from "../janelas/assistive/regras";
 import type { AgenteId } from "../tipos";
@@ -20,6 +20,30 @@ function conformePadrao(valor: unknown, padrao: unknown): unknown {
   }
   if (typeof padrao === "number") return typeof valor === "number" && Number.isFinite(valor) ? valor : padrao;
   return typeof valor === typeof padrao ? valor : padrao;
+}
+
+const TAMANHO_MAXIMO_DO_ICONE_FIXADO = 200_000;
+
+function textoLimpo(v: unknown, max: number): string | null {
+  return typeof v === "string" && v.length > 0 && v.length <= max && !/[\u0000-\u001f]/.test(v) ? v : null;
+}
+
+export function appsFixadosValidos(valor: unknown): AppFixado[] {
+  if (!Array.isArray(valor)) return [];
+  const vistos = new Set<string>();
+  const lista: AppFixado[] = [];
+  for (const item of valor) {
+    if (!objeto(item)) continue;
+    const id = textoLimpo(item.id, 500);
+    const nome = textoLimpo(item.nome, 120);
+    const chave = textoLimpo(item.chave, 600);
+    if (!id || !nome || !chave || vistos.has(id)) continue;
+    vistos.add(id);
+    const icone = typeof item.icone === "string" && item.icone.startsWith("data:image/") && item.icone.length <= TAMANHO_MAXIMO_DO_ICONE_FIXADO ? item.icone : null;
+    lista.push({ id, nome, chave, icone });
+    if (lista.length >= LIMITE_DE_FIXADOS) break;
+  }
+  return lista;
 }
 
 export function configuracoesValidas(valor: unknown, padrao: Configuracoes): Configuracoes {
@@ -56,6 +80,8 @@ export function configuracoesValidas(valor: unknown, padrao: Configuracoes): Con
   c.dock.favoritos = [...new Set(c.dock.favoritos.filter((r) => rotas.includes(r)))];
   const bruto = objeto(valor) && objeto(valor.dock) ? valor.dock.atalhos : [];
   c.dock.atalhos = Array.isArray(bruto) ? bruto.filter((a) => objeto(a) && typeof a.id === "string" && typeof a.nome === "string" && typeof a.url === "string").slice(0, 100) as Configuracoes["dock"]["atalhos"] : [];
+  c.dock.fixados = appsFixadosValidos(objeto(valor) && objeto(valor.dock) ? valor.dock.fixados : []);
+  c.dock.escala = ESCALAS_DO_DOCK.reduce((perto, e) => (Math.abs(e - c.dock.escala) < Math.abs(perto - c.dock.escala) ? e : perto), 1);
   c.agentes.favorito = escolher(c.agentes.favorito, Object.keys(padrao.agentes.nomes), padrao.agentes.favorito);
   c.agentes.inatividadeMin = limitar(c.agentes.inatividadeMin, 1, 1440);
   for (const agente of Object.keys(padrao.agentes.nomes) as AgenteId[]) {

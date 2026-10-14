@@ -407,6 +407,71 @@
   color: var(--texto-3);
 }
 
+.estilo-sistema .jn-pendentes {
+  display: grid;
+  gap: 6px;
+  padding: 8px 10px;
+  border: 1px dashed var(--borda);
+  border-radius: 10px;
+  background: var(--superficie-2);
+}
+
+.estilo-sistema .jn-pendentes-topo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.estilo-sistema .jn-pendentes-icone {
+  flex: none;
+  color: var(--alerta);
+}
+
+.estilo-sistema .jn-pendentes-titulo {
+  flex: 1;
+  min-width: 0;
+  font-size: 12.5px;
+  color: var(--texto-2);
+}
+
+.estilo-sistema .jn-pendentes-lista {
+  display: grid;
+  gap: 2px;
+  max-height: 248px;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.estilo-sistema .jn-pendentes-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 30px;
+  padding-left: 22px;
+}
+
+.estilo-sistema .jn-pendentes-data {
+  flex: none;
+  width: 40px;
+  font-family: var(--fonte-mono);
+  font-size: 11px;
+  color: var(--texto-3);
+}
+
+.estilo-sistema .jn-pendentes-nome {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+}
+
+.estilo-sistema .jn-tarefa-status .menu-separador {
+  height: 1px;
+  margin: 4px 6px;
+  background: var(--borda);
+}
+
 .estilo-sistema .jn-periodo {
   display: grid;
   grid-template-columns: 72px minmax(0, 1fr);

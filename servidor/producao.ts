@@ -2,7 +2,7 @@ import { createServer } from "node:http";
 import { rotas } from "./ponte.ts";
 import { fecharBanco } from "./banco.ts";
 import { encerrarMidia } from "./midia.ts";
-import { encerrarJanelas } from "./janelasWindows.ts";
+import { encerrarJanelas } from "./janelas.ts";
 import { encerrarControle } from "./controleRapido.ts";
 import { encerrarSistema } from "./sistema.ts";
 

@@ -1,6 +1,22 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { chmodSync, copyFileSync, existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { pastaDados } from "./ia.ts";
+
+/** No AppImage o Node fica numa pasta temporária que muda a cada abertura, então a status line usa uma cópia fixa. */
+export function nodeDaStatus(execucao = process.execPath, appImage = process.env.APPIMAGE, pasta = pastaDados()): string {
+  if (!appImage) return execucao;
+  const copia = join(pasta, "node-da-status");
+  try {
+    if (!existsSync(copia) || statSync(copia).size !== statSync(execucao).size) {
+      mkdirSync(pasta, { recursive: true });
+      copyFileSync(execucao, copia);
+      chmodSync(copia, 0o755);
+    }
+    return copia;
+  } catch {
+    return execucao;
+  }
+}
 
 export const CAMINHO_DA_STATUS = "/ponte/claude/status";
 const NOME_DO_SCRIPT = "status-claude-niko.mjs";
@@ -89,7 +105,7 @@ export function anteriorDaStatus(valor: unknown): Record<string, unknown> | unde
   }
 }
 
-export function statusDoNiko(anterior: Record<string, unknown> | undefined, porta: number, segredo: string, node = process.execPath) {
+export function statusDoNiko(anterior: Record<string, unknown> | undefined, porta: number, segredo: string, node = nodeDaStatus()) {
   const guardada = anterior && typeof anterior.command === "string" && anterior.command.trim() ? Buffer.from(JSON.stringify(anterior), "utf8").toString("base64") : "";
   const comando = `"${comBarras(node)}" "${comBarras(caminhoDoScript())}" ${porta} ${segredo}${guardada ? ` a=${guardada}` : ""}`;
   return { ...(anterior ?? {}), type: "command", command: comando };

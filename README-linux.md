@@ -9,18 +9,30 @@
 Adaptação do Niko para Linux: a ilha, o dock e a janela do sistema rodando sobre o mesmo código, com as partes exclusivas do Windows trocadas por equivalentes do Linux.
 
 ![Linux](https://img.shields.io/badge/Fedora%20%7C%20Ubuntu-GNOME-0b0d10?style=flat-square)
-![Versão base](https://img.shields.io/badge/base-0.2.2-0b0d10?style=flat-square)
+![Versão](https://img.shields.io/badge/versão-0.2.3-0b0d10?style=flat-square)
 ![Licença](https://img.shields.io/badge/licença-proprietária-b42318?style=flat-square)
 
 </div>
 
 ---
 
-Este documento descreve a adaptação para Linux feita sobre o código da versão 0.2.2. O [README](README.md) continua sendo a referência do app. O app foi testado em Fedora com GNOME em Wayland. Para Ubuntu, os pacotes foram conferidos no Ubuntu 24.04, mas o app ainda não foi executado nele. Outras distribuições e ambientes podem precisar de ajustes.
+Este documento descreve a adaptação para Linux, que começou no código da versão 0.2.2 e entrou no app a partir da 0.2.3. O [README](README.md) continua sendo a referência do app. O app foi testado em Fedora com GNOME em Wayland. Para Ubuntu, os pacotes foram conferidos no Ubuntu 24.04, mas o app ainda não foi executado nele. Outras distribuições e ambientes podem precisar de ajustes.
+
+## Instalar
+
+Baixe o pacote na [página de releases](https://github.com/vitorcgo/niko/releases/latest). O Node já vem dentro do pacote.
+
+```bash
+sudo apt install ./Niko_*_amd64.deb        # Ubuntu e Debian
+sudo dnf install ./Niko-*.x86_64.rpm       # Fedora
+chmod +x Niko_*_amd64.AppImage && ./Niko_*_amd64.AppImage   # outras distribuições
+```
+
+Depois instale as ferramentas da tabela abaixo que quiser usar. Sem elas o Niko abre, mas o recurso correspondente fica indisponível. No Linux o app avisa quando sai versão nova, mas não se atualiza sozinho: baixe o pacote novo e instale por cima.
 
 ## O que foi feito
 
-O Windows continua funcionando como antes. Cada ponto específico dele ganhou uma versão para Linux, escolhida em tempo de compilação (`#[cfg(windows)]` no Rust) ou pela plataforma (`process.platform` na ponte).
+O Windows continua funcionando como antes. Tudo o que depende do sistema fica numa pasta `plataforma`, com uma implementação para cada sistema e as mesmas funções nas duas. O resto do app chama só a `plataforma` e nunca fala direto com o Windows ou com o Linux. No Rust, o compilador escolhe o arquivo certo. Na ponte, o tipo `Plataforma` obriga as duas implementações a terem as mesmas funções com o mesmo formato de resposta, então o `pnpm verificar` acusa quando um lado fica para trás.
 
 | Recurso | Como funciona no Linux | Fedora | Ubuntu |
 | ------- | ---------------------- | ------ | ------ |
@@ -34,6 +46,9 @@ O Windows continua funcionando como antes. Cada ponto específico dele ganhou um
 | **OCR de anexos** | Tesseract, com o idioma da sessão | `tesseract`, `tesseract-langpack-por` | `tesseract-ocr`, `tesseract-ocr-por` |
 | **Janelas abertas no dock** | Extensão Window Calls; sem ela, `wmctrl` (só X11 e XWayland) | extensão, `wmctrl`, `xdotool`, `xorg-x11-utils` | extensão, `wmctrl`, `xdotool`, `x11-utils` |
 | **Busca e abertura de apps** | Arquivos `.desktop` e `gio launch` | já vem no sistema | já vem no sistema |
+| **Atalhos do sistema na lupa** | Configurações do GNOME (ou do KDE), monitor do sistema, terminal e arquivos | já vem no sistema | já vem no sistema |
+| **Trazer o terminal de uma sessão de código** | `ss` para achar o processo e a lista de janelas para focar | já vem no sistema | já vem no sistema |
+| **Mostrar download na pasta** | Gerenciador de arquivos pelo D-Bus (`FileManager1`), com o arquivo destacado | já vem no sistema | já vem no sistema |
 | **Captura de tela e teclado virtual** | `gnome-screenshot` (ou Spectacle, Flameshot) e `onboard` | `gnome-screenshot` | `gnome-screenshot`, `onboard` |
 | **Abrir links, pastas e VS Code** | `xdg-open` | já vem no sistema | `xdg-utils` |
 | **Tempo ocioso** | Monitor de inatividade do GNOME | já vem no sistema | já vem no sistema |
@@ -44,12 +59,15 @@ A pasta de dados do app fica em `~/.local/share/com.niko.desktop`. No Linux o Ni
 ## O que muda ou não existe
 
 - O dock **não reserva espaço** na tela nem esconde a barra do sistema.
-- Sem prévias ao vivo das janelas e sem detecção de tela cheia: o dock fica sempre visível.
+- Sem prévias ao vivo das janelas e sem detecção de tela cheia: o dock fica sempre visível. As opções de esconder em tela cheia e por app ficam ocultas nos Ajustes.
+- A ilha aberta não recolhe ao clicar fora dela. Ela fecha pelo Esc, pelo botão ou pelo tempo de fechamento.
+- O dock não sabe em qual monitor cada janela está, então todos os docks mostram todas as janelas.
 - A bandeja de apps em segundo plano do Windows não existe; os ícones ficam na barra do GNOME (extensão AppIndicator).
-- O botão **Iniciar** abre a visão geral do GNOME e não sabe se ela já está aberta.
+- O botão **Iniciar** abre e fecha a visão geral do GNOME.
 - Não há "abrir como administrador".
 - Atalhos globais estão sujeitos às restrições do Wayland.
-- O atualizador e os scripts de release (`pnpm lancar`) seguem só o fluxo do Windows.
+- Sem atualização automática: o app avisa da versão nova e o pacote é baixado à mão.
+- Os pacotes da release saem do GitHub Actions (`.github/workflows/pacotes-linux.yml`), num Ubuntu 22.04, para abrirem também em sistemas mais antigos. O `pnpm lancar` continua gerando só os instaladores do Windows.
 - Sem a extensão Window Calls, apps nativos de Wayland não aparecem no dock.
 
 ## Como rodar
@@ -121,9 +139,11 @@ O Niko aceita uma só instância. Para reiniciar o app, rode `pkill -x niko` ant
 
 ```bash
 pnpm tauri build --bundles deb                     # Ubuntu e Debian
-pnpm tauri build --bundles rpm                     # Fedora, depende do pacote nodejs
-NO_STRIP=true pnpm tauri build --bundles appimage  # qualquer uma, exige Node no PATH
+pnpm tauri build --bundles rpm                     # Fedora
+NO_STRIP=true pnpm tauri build --bundles appimage  # qualquer uma
 ```
+
+O build copia o Node que estiver rodando para dentro do pacote (`src-tauri/recursos/node`), como no Windows. Use o Node 22 ou mais novo. O pacote só abre em sistemas com glibc igual ou mais nova que a da máquina que o gerou, por isso a release é gerada no Ubuntu 22.04.
 
 Para instalar:
 
@@ -132,7 +152,7 @@ sudo apt install ./src-tauri/target/release/bundle/deb/*.deb   # Ubuntu
 sudo dnf install ./src-tauri/target/release/bundle/rpm/*.rpm   # Fedora
 ```
 
-No Ubuntu, o `.deb` não exige o pacote `nodejs`, para não trazer o Node antigo do repositório: mantenha o Node 22 no PATH. As opções de pacote do Linux ficam em `src-tauri/tauri.linux.conf.json`, que o Tauri mescla sobre o `tauri.conf.json` só no Linux.
+As opções de pacote do Linux ficam em `src-tauri/tauri.linux.conf.json`, que o Tauri mescla sobre o `tauri.conf.json` só no Linux. Sem `--bundles`, o `pnpm tauri build` gera os três pacotes.
 
 ### Variáveis de ambiente
 
@@ -156,31 +176,35 @@ pnpm test        # testes isolados, em sequência
 
 ## Estrutura
 
-Arquivos adicionados pela adaptação:
-
 ```text
 servidor/
-  appsLinux.ts             catálogo de apps (.desktop) e ícones
-  controleRapidoLinux.ts   áudio, tema, energia, ferramentas e lançador de apps
-  janelasLinux.ts          janelas abertas (Window Calls ou wmctrl)
-  ocrLinux.ts              OCR com Tesseract
-  sistemaLinux.ts          Wi-Fi, Bluetooth, bateria, brilho e informações do computador
+  plataforma/
+    tipos.ts          o contrato: tudo o que cada sistema precisa oferecer
+    index.ts          escolhe a implementação do sistema em que a ponte está rodando
+    windows/          PowerShell, Gerenciador de Credenciais, netsh, explorer
+    linux/            NetworkManager, PipeWire, MPRIS, Secret Service, .desktop, xdg-open
+  sistema.ts, controleRapido.ts, janelas.ts, midia.ts, ocr.ts, segredos.ts
+                      validação e cache, iguais para os dois sistemas
 src-tauri/
-  tauri.linux.conf.json    pacotes rpm e AppImage
-  src/
-    barra_linux.rs         substitui barra_windows.rs
-    janela_frente_linux.rs substitui janela_frente.rs
-    miniaturas_linux.rs    substitui miniaturas.rs
+  tauri.linux.conf.json   pacotes deb, rpm e AppImage, com o Node embutido
+  src/plataforma/
+    mod.rs            escolhe windows/ ou linux/ na compilação
+    windows/          barra de tarefas, janela da frente, miniaturas, teclado e foco
+    linux/            as mesmas funções, com o equivalente do Linux ou sem efeito
+.github/workflows/verificar.yml
+                      tipos, testes, Clippy e testes do Rust no Windows e no Ubuntu
+.github/workflows/pacotes-linux.yml
+                      gera os pacotes do Linux e anexa na release publicada
 ```
 
 ## Para quem for mexer no código
 
-- No `Cargo.toml`, o crate `windows` fica só em `[target.'cfg(windows)'.dependencies]`. Todo `use windows::...` precisa de `#[cfg(windows)]` e de uma versão para Linux ao lado.
-- Os módulos `barra_windows`, `janela_frente` e `miniaturas` são trocados por `*_linux.rs` com `#[path]`, mantendo a mesma interface.
-- No Linux, **não chame** `set_ignore_cursor_events` em janela escondida: o `tao` falha. Use `ignorar_cursor` em `lib.rs`.
-- Na ponte, desvie por `process.platform === "linux"` e mantenha o caminho do Windows intacto.
-- Imports relativos em `servidor/` terminam em `.ts`, exigência do carregador nativo do Vite.
-- O dock só filtra apps por monitor quando o sistema informa o monitor de cada janela (`Dock.tsx`); no Linux a lista aparece inteira.
+- Nada fora de `plataforma` fala direto com o sistema. Precisa de algo novo do Windows ou do Linux? Acrescente no contrato (`tipos.ts` na ponte, as funções de `plataforma/windows` e `plataforma/linux` no Rust) e implemente nos dois lados.
+- No `Cargo.toml`, o crate `windows` fica só em `[target.'cfg(windows)'.dependencies]` e só é usado dentro de `src/plataforma/windows`.
+- No Linux, `set_ignore_cursor_events` falha em janela escondida. Use `plataforma::ignorar_cursor`.
+- Imports relativos em `servidor/` terminam em `.ts`. Um teste confere isso, porque o `tsc` aceita sem a extensão e o Node não.
+- Os textos da interface que citam o sistema usam `SISTEMA`, `COFRE` e `OCR` em `src/textos/textos.ts`, que mudam conforme o `NO_LINUX` de `src/desktop/plataforma.ts`.
+- O dock só filtra apps por monitor quando o sistema informa o monitor de cada janela (`Dock.tsx`). No Linux a lista aparece inteira.
 
 ## Licença
 

@@ -1,20 +1,21 @@
-import { useCallback, useEffect, useRef, useState } from "react";
-import { Search, X, Activity, FolderOpen, SquareTerminal, Settings, AppWindow, Minus, MousePointer, SlidersHorizontal } from "lucide-react";
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
+import { Search, X, Activity, FolderOpen, SquareTerminal, Settings, AppWindow, Minus, MousePointer, SlidersHorizontal, Pin, PinOff, Plus, Maximize2 } from "lucide-react";
 import { MenuDock, type AlvoMenuDock, type ItemMenuDock } from "./MenuDock";
 import { executarNasJanelas } from "./acoesDoMenu";
+import { NO_LINUX } from "../../desktop/plataforma";
 import { NATIVO, ROTULO, usarAreaInterativa, usarCursorFora, usarAppsAbertos, agirNaJanela, alternarSistemaNativo, mostrarMiniaturas, ocultarBarraDoWindows, reservarEspacoDoDock, usarEstadoDaFrente, definirDocks, usarMonitores, ouvirEvento, devolverFoco, type AppAberto } from "../../desktop/desktop";
 import { BuscaApps } from "./BuscaApps";
 import { cadaDockMostraSeusApps, dockAtivoNoMonitor, meuMonitor, TODOS_OS_MONITORES } from "./monitores";
-import { agruparApps, nomeDoGrupo } from "./grupos";
+import { agruparApps, chaveDoApp, nomeDoGrupo, ordenarComFixados } from "./grupos";
 import { AnimatePresence, motion, useMotionValue, useSpring, useTransform, type MotionValue } from "motion/react";
-import { useConfig } from "../../estado/configuracoes";
+import { ESCALAS_DO_DOCK, LIMITE_DE_FIXADOS, useConfig, type AppFixado, type Configuracoes } from "../../estado/configuracoes";
 import { useInterface } from "../../estado/interface";
 import { useAgentes } from "../../estado/agentes";
 import { LogoNiko } from "../../componentes/LogoNiko";
 import { Marca } from "../../marcas/Marca";
 import { T } from "../../textos/textos";
 import { tocarSom } from "../../ponte/sons";
-import { ALTURA_DOCK, alguemCobre } from "../geometria";
+import { alguemCobre, alturaDoDock } from "../geometria";
 import { ICONE_ROTA } from "../sistema/rotas";
 import { COR_AGENTE } from "../../personagens/cores";
 import { atributosDoFundo, usarAparenciaDeBorda, variaveisDaBorda } from "../aparencia";
@@ -22,6 +23,23 @@ import { controle } from "../../ponte/ponteLocal";
 import { criarAlternadorDoIniciar } from "../ilha/barra/acoesDaBarra";
 import { useIlha } from "../../estado/ilha";
 import "./dock.css";
+
+const EscalaDoDock = createContext(1);
+const TAMANHO_DO_ITEM = 42;
+const TAMANHO_AMPLIADO = 54;
+
+function alterarDock(mudanca: (dock: Configuracoes["dock"]) => Partial<Configuracoes["dock"]>) {
+  const s = useConfig.getState();
+  s.definir({ dock: { ...s.dock, ...mudanca(s.dock) } });
+}
+
+function fixarApp(app: AppFixado) {
+  alterarDock((dock) => ({ fixados: [...dock.fixados.filter((f) => f.id !== app.id), app] }));
+}
+
+function desafixarApp(id: string) {
+  alterarDock((dock) => ({ fixados: dock.fixados.filter((f) => f.id !== id) }));
+}
 
 interface PropsItemDock {
   mouseX: MotionValue<number>;
@@ -43,12 +61,14 @@ interface PropsItemDock {
 
 function ItemDock({ mouseX, ampliar, rotulo, estado, aoClicar, children, alerta, semDica, aoEntrar, aoSair, aoPressionar, aoFocar, aoDesfocar, ocupado, aoMenu }: PropsItemDock) {
   const ref = useRef<HTMLButtonElement>(null);
+  const escala = useContext(EscalaDoDock);
   const distancia = useTransform(mouseX, (x) => {
     const r = ref.current?.getBoundingClientRect();
     if (!r || !Number.isFinite(x)) return 999;
     return x - (r.left + r.width / 2);
   });
-  const tamanhoAlvo = useTransform(distancia, [-120, 0, 120], ampliar ? [42, 54, 42] : [42, 42, 42]);
+  const normal = TAMANHO_DO_ITEM * escala;
+  const tamanhoAlvo = useTransform(distancia, [-120 * escala, 0, 120 * escala], [normal, ampliar ? TAMANHO_AMPLIADO * escala : normal, normal]);
   const tamanho = useSpring(tamanhoAlvo, { mass: 0.12, stiffness: 200, damping: 15 });
   return (
     <motion.button
@@ -170,13 +190,14 @@ function PreviaJanelas({ lista, esquerda, aoEntrar, aoSair, aoFocar, aoFechar }:
   );
 }
 
-function AppsDoWindows({ mouseX, ampliar, ativo, monitor, menuAberto, abrirMenu }: { mouseX: MotionValue<number>; ampliar: boolean; ativo: boolean; monitor?: string; menuAberto: boolean; abrirMenu: (e: React.MouseEvent<HTMLElement>, titulo: string, itens: ItemMenuDock[]) => void }) {
+function AppsDoWindows({ mouseX, ampliar, ativo, monitor, menuAberto, fixados, abrirMenu }: { mouseX: MotionValue<number>; ampliar: boolean; ativo: boolean; monitor?: string; menuAberto: boolean; fixados: AppFixado[]; abrirMenu: (e: React.MouseEvent<HTMLElement>, titulo: string, itens: ItemMenuDock[]) => void }) {
   const [todosOsApps, atualizar] = usarAppsAbertos(ativo);
   const apps = monitor && todosOsApps.some((a) => a.monitor !== undefined) ? todosOsApps.filter((a) => a.monitor === monitor) : todosOsApps;
   const [previa, setPrevia] = useState<{ chave: string; centro: number; esquerdaDock: number } | null>(null);
   const relogioAbrir = useRef<number | undefined>(undefined);
   const relogioFechar = useRef<number | undefined>(undefined);
   const grupos = agruparApps(apps);
+  const entradas = ordenarComFixados(grupos, fixados);
   const listaDaPrevia = previa && ativo && !menuAberto ? grupos.get(previa.chave) : undefined;
   usarMiniaturasDaPrevia(Boolean(listaDaPrevia?.length), previa?.chave ?? null);
 
@@ -210,7 +231,32 @@ function AppsDoWindows({ mouseX, ampliar, ativo, monitor, menuAberto, abrirMenu 
     else relogioAbrir.current = window.setTimeout(() => setPrevia(alvo), 350);
   };
 
-  if (grupos.size === 0) return null;
+  if (entradas.length === 0) return null;
+
+  const abrirFixado = (fixado: AppFixado) =>
+    controle
+      .abrirApp(fixado.id)
+      .catch(() => {
+        throw new Error(T.dock.menu.abrirFixadoFalhou(fixado.nome));
+      })
+      .finally(() => window.setTimeout(atualizar, 1200));
+
+  const itemDeFixar = (principal: AppAberto, nome: string): ItemMenuDock => ({
+    id: "fixar",
+    texto: T.dock.menu.fixar,
+    icone: Pin,
+    acao: async () => {
+      if (useConfig.getState().dock.fixados.length >= LIMITE_DE_FIXADOS) throw new Error(T.dock.menu.fixarLimite(LIMITE_DE_FIXADOS));
+      const achado = await controle.appDaJanela(principal.caminho, nome);
+      if (!achado.id) throw new Error(T.dock.menu.fixarSemApp(nome));
+      fixarApp({ id: achado.id, nome: achado.nome ?? nome, chave: chaveDoApp(principal), icone: principal.icone });
+    },
+  });
+
+  const itensDoFixado = (fixado: AppFixado): ItemMenuDock[] => [
+    { id: "novaJanela", texto: T.dock.menu.novaJanela, icone: Plus, acao: () => abrirFixado(fixado) },
+    { id: "desafixar", texto: T.dock.menu.desafixar, icone: PinOff, acao: () => desafixarApp(fixado.id) },
+  ];
 
   let esquerdaPrevia = 0;
   if (previa && listaDaPrevia) {
@@ -240,7 +286,30 @@ function AppsDoWindows({ mouseX, ampliar, ativo, monitor, menuAberto, abrirMenu 
         />
       )}
       <AnimatePresence initial={false}>
-        {[...grupos.entries()].map(([chave, lista]) => {
+        {entradas.map(({ chave, lista, fixado }) => {
+          if (lista.length === 0 && fixado) {
+            return (
+              <ItemDock
+                key={chave}
+                mouseX={mouseX}
+                ampliar={ampliar}
+                rotulo={fixado.nome}
+                aoMenu={(e) => {
+                  fecharPrevia();
+                  abrirMenu(e, fixado.nome, [
+                    { id: "abrir", texto: T.dock.menu.abrirApp, icone: AppWindow, acao: () => abrirFixado(fixado) },
+                    { id: "desafixar", texto: T.dock.menu.desafixar, icone: PinOff, acao: () => desafixarApp(fixado.id) },
+                  ]);
+                }}
+                aoClicar={() => {
+                  void tocarSom("blip");
+                  void abrirFixado(fixado).catch((erro: Error) => useIlha.getState().avisarFalha(erro.message));
+                }}
+              >
+                <span className="dock-icone">{fixado.icone ? <img src={fixado.icone} alt="" width={26} height={26} draggable={false} /> : fixado.nome.slice(0, 1).toUpperCase()}</span>
+              </ItemDock>
+            );
+          }
           const ativa = lista.find((j) => j.ativa);
           const principal = lista[0];
           const nome = nomeDoGrupo(principal);
@@ -264,11 +333,13 @@ function AppsDoWindows({ mouseX, ampliar, ativo, monitor, menuAberto, abrirMenu 
                   { id: "minimizar", texto: T.janela.minimizar, icone: Minus, desativado: j.minimizada, acao: agir("minimizar", [j]) },
                   { id: "fechar", texto: T.dock.fecharJanela, icone: X, perigo: true, acao: agir("fechar", [j]) },
                 ];
-                abrirMenu(e, nome, lista.length === 1 ? itensDaJanela(principal) : [
+                const doFixado = fixado ? itensDoFixado(fixado) : [itemDeFixar(principal, nome)];
+                abrirMenu(e, fixado?.nome ?? nome, lista.length === 1 ? [...itensDaJanela(principal), ...doFixado] : [
                   { id: "janelas", texto: `${T.dock.menu.janelas} (${lista.length})`, icone: AppWindow, itens: lista.map((j) => ({ id: j.id, texto: j.titulo || nome, marcado: j.ativa, itens: itensDaJanela(j) })) },
                   { id: "mostrarTodas", texto: T.dock.menu.mostrarTodas, icone: AppWindow, acao: agir("focar", lista) },
                   { id: "minimizarTodas", texto: T.dock.menu.minimizarTodas, icone: Minus, desativado: lista.every((j) => j.minimizada), acao: agir("minimizar", lista) },
                   { id: "fecharTodas", texto: T.dock.menu.fecharTodas, icone: X, perigo: true, confirmar: true, acao: agir("fechar", lista) },
+                  ...doFixado,
                 ]);
               }}
               aoClicar={() => {
@@ -292,6 +363,7 @@ function AppsDoWindows({ mouseX, ampliar, ativo, monitor, menuAberto, abrirMenu 
 
 export function Dock() {
   const cfg = useConfig((s) => s.dock);
+  const altura = alturaDoDock(cfg.escala);
   const aparencia = usarAparenciaDeBorda(cfg.fundo, cfg.opacidade);
   const nomesBarra = useConfig((s) => s.barraLateral);
   const aberto = useInterface((s) => s.sistemaAberto);
@@ -341,8 +413,9 @@ export function Dock() {
   const monitores = usarMonitores();
   const meu = meuMonitor(monitores, ROTULO);
   const ativoAqui = cfg.ativo && dockAtivoNoMonitor(escolhaDeMonitor, meu, monitores, ROTULO);
-  const monitorDosApps = cadaDockMostraSeusApps(escolhaDeMonitor, monitores) ? meu?.nome : undefined;
-  const frente = usarEstadoDaFrente(ativoAqui);
+  const monitorDosApps = cadaDockMostraSeusApps(escolhaDeMonitor, monitores, cfg.appsDeTodosOsMonitores) ? meu?.nome : undefined;
+  const esconderTelaCheia = useConfig((s) => s.esconderTelaCheia);
+  const frente = usarEstadoDaFrente(ativoAqui, { esconderTelaCheia, apps: "" });
   const principal = !NATIVO || ROTULO === "dock";
 
   useEffect(() => {
@@ -354,19 +427,19 @@ export function Dock() {
   }, [cfg.ativo, escolhaDeMonitor, principal]);
 
   useEffect(() => {
-    if (NATIVO) void reservarEspacoDoDock(ativoAqui && cfg.modo === "fixo");
-  }, [ativoAqui, cfg.modo]);
+    if (NATIVO) void reservarEspacoDoDock(ativoAqui && cfg.modo === "fixo", altura);
+  }, [ativoAqui, cfg.modo, altura]);
 
   useEffect(() => {
     if (cfg.modo === "fixo") return;
     const aoMover = (e: PointerEvent) => {
       const dentro = caixa.current?.contains(e.target as Node);
       const limite = window.innerHeight;
-      setPerto((p) => (dentro ? true : p ? e.clientY > limite - ALTURA_DOCK - 24 : e.clientY > limite - 6));
+      setPerto((p) => (dentro ? true : p ? e.clientY > limite - altura - 24 : e.clientY > limite - 6));
     };
     window.addEventListener("pointermove", aoMover, { passive: true });
     return () => window.removeEventListener("pointermove", aoMover);
-  }, [cfg.modo]);
+  }, [cfg.modo, altura]);
 
   useEffect(() => {
     if (frente.telaCheia) setPerto(false);
@@ -391,8 +464,8 @@ export function Dock() {
 
   if (!ativoAqui || frente.telaCheia) return null;
 
-  const largura = 70 + (Number(cfg.mostrarIniciar) + Number(cfg.mostrarBusca) + janelas.length + (aberto ? 1 : 0)) * 50;
-  const area = { x: (window.innerWidth - largura) / 2, y: window.innerHeight - ALTURA_DOCK, w: largura, h: ALTURA_DOCK };
+  const largura = (70 + (Number(cfg.mostrarIniciar) + Number(cfg.mostrarBusca) + janelas.length + (aberto ? 1 : 0)) * 50) * cfg.escala;
+  const area = { x: (window.innerWidth - largura) / 2, y: window.innerHeight - altura, w: largura, h: altura };
   const coberto = cfg.modo === "inteligente" && (NATIVO ? frente.cobre : alguemCobre(area));
   const escondido = (cfg.modo === "esconder" || coberto) && !perto && !buscaAberta && !menu;
   const sistemaNaFrente = aberto && !minimizado && zSistema === proximoZ - 1;
@@ -445,18 +518,24 @@ export function Dock() {
     })) },
     { id: "ampliar", texto: T.dock.menu.ampliar, icone: MousePointer, marcado: cfg.ampliar,
       acao: () => { const s = useConfig.getState(); s.definir({ dock: { ...s.dock, ampliar: !s.dock.ampliar } }); } },
+    ...(!NO_LINUX && monitores.length >= 2 && escolhaDeMonitor === TODOS_OS_MONITORES ? [{ id: "appsDeTodosOsMonitores", texto: T.dock.menu.appsDeTodosOsMonitores, icone: AppWindow, marcado: cfg.appsDeTodosOsMonitores,
+      acao: () => alterarDock((dock) => ({ appsDeTodosOsMonitores: !dock.appsDeTodosOsMonitores })) }] : []),
+    { id: "tamanho", texto: T.dock.menu.tamanho, icone: Maximize2, itens: ESCALAS_DO_DOCK.map((escala) => ({
+      id: String(escala), texto: T.dock.menu.tamanhoOpcao(escala), marcado: cfg.escala === escala,
+      acao: () => alterarDock(() => ({ escala })),
+    })) },
   ];
 
   return (
-    <>
+    <EscalaDoDock.Provider value={cfg.escala}>
       {escondido && <div className="dock-gatilho" onPointerEnter={() => setPerto(true)} />}
       <motion.div
         ref={caixa}
         className="dock"
         {...atributosDoFundo(aparencia)}
-        style={{ ...variaveisDaBorda(aparencia), height: ALTURA_DOCK, background: fundo }}
+        style={{ ...variaveisDaBorda(aparencia), height: altura, background: fundo, ["--dock-escala" as string]: cfg.escala }}
         initial={false}
-        animate={{ y: escondido ? ALTURA_DOCK + 8 : 0 }}
+        animate={{ y: escondido ? altura + 8 : 0 }}
         transition={{ type: "spring", visualDuration: 0.35, bounce: 0.15 }}
         onPointerMove={(e) => mouseX.set(e.clientX)}
         onContextMenu={(e) => {
@@ -489,7 +568,7 @@ export function Dock() {
         </ItemDock>}
         {buscaAberta && <BuscaApps aoFechar={fecharBusca} />}
         {NATIVO ? (
-          <AppsDoWindows mouseX={mouseX} ampliar={cfg.ampliar} ativo={!escondido} monitor={monitorDosApps} menuAberto={Boolean(menu)} abrirMenu={abrirMenu} />
+          <AppsDoWindows mouseX={mouseX} ampliar={cfg.ampliar} ativo={!escondido} monitor={monitorDosApps} menuAberto={Boolean(menu)} fixados={cfg.fixados} abrirMenu={abrirMenu} />
         ) : (
         <>
         {(aberto || janelas.length > 0) && <span className="dock-separador" />}
@@ -531,6 +610,6 @@ export function Dock() {
         </>
         )}
       </motion.div>
-    </>
+    </EscalaDoDock.Provider>
   );
 }

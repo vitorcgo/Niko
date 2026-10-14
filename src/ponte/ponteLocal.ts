@@ -225,6 +225,7 @@ export const controle = {
   apps: (forcar = false) => enviar<{ apps: AppInstalado[] | AppInstalado | null }>("/controle/apps", { forcar }).then((r) => comoLista(r.apps)),
   iconesDeApps: (ids: string[]) => enviar<{ icones: IconeDeApp[] | IconeDeApp | null }>("/controle/iconesApps", { ids }).then((r) => comoLista(r.icones)),
   abrirApp: (id: string, admin = false) => enviar("/controle/abrirApp", { id, admin }),
+  appDaJanela: (caminho: string | null, nome: string) => enviar<{ id: string | null; nome: string | null }>("/controle/appDaJanela", { caminho, nome }),
   comandoDoSistema: (comando: ComandoDoSistema) => enviar("/controle/comandoDoSistema", { comando }),
 };
 

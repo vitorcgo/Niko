@@ -1,11 +1,10 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { constants, createReadStream, createWriteStream, existsSync, mkdirSync, readdirSync, renameSync, rmSync, statSync, unlinkSync } from "node:fs";
-import { copyFile, mkdir, readdir, stat } from "node:fs/promises";
-import { execFile, spawn } from "node:child_process";
-import { homedir } from "node:os";
-import { dirname, extname, join, parse } from "node:path";
+import { copyFile, mkdir, readdir, stat, writeFile } from "node:fs/promises";
+import { extname, join, parse } from "node:path";
 import { randomUUID } from "node:crypto";
 import { pastaDados } from "./ia.ts";
+import { plataforma } from "./plataforma/index.ts";
 
 export const LIMITE_ARQUIVO = 300 * 1024 * 1024;
 
@@ -185,18 +184,6 @@ export function excluirArquivosDaMateria(banco: string, materia: string) {
   return { ok: true };
 }
 
-function pastaDownloads(): Promise<string> {
-  const reserva = join(homedir(), "Downloads");
-  if (process.platform !== "win32") return Promise.resolve(reserva);
-  return new Promise((resolver) => {
-    execFile("reg", ["query", "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\User Shell Folders", "/v", "{374DE290-123F-4565-9164-39C4925E467B}"], { windowsHide: true }, (erro, saida) => {
-      const valor = erro ? null : /REG_(?:EXPAND_)?SZ\s+(.+)$/m.exec(saida)?.[1]?.trim();
-      const expandido = valor?.replace(/%([^%]+)%/g, (_, v: string) => process.env[v] ?? `%${v}%`);
-      resolver(expandido && existsSync(expandido) ? expandido : reserva);
-    });
-  });
-}
-
 export async function copiarSemSubstituir(caminho: string, pasta: string, nome: string): Promise<string> {
   const { name, ext } = parse(nome);
   for (let i = 1; i < 1000; i++) {
@@ -211,36 +198,71 @@ export async function copiarSemSubstituir(caminho: string, pasta: string, nome: 
   throw new Error("sem_nome_disponivel");
 }
 
-function abrirNoWindows(argumentos: string[]) {
-  let programa: string;
-  let parametros: string[];
-  if (process.platform === "win32") {
-    programa = "explorer.exe";
-    parametros = argumentos;
-  } else if (process.platform === "linux") {
-    const alvo = argumentos[argumentos.length - 1];
-    programa = "xdg-open";
-    parametros = [argumentos[0] === "/select," ? dirname(alvo) : alvo];
-  } else {
-    return;
-  }
-  const filho = spawn(programa, parametros, { detached: true, stdio: "ignore", windowsHide: false });
-  filho.on("error", () => undefined);
-  filho.unref();
-}
-
 export async function baixarArquivo(banco: string, materia: string, id: string) {
   const { caminho, nome } = localizar(banco, materia, id);
-  const pasta = await pastaDownloads();
+  const pasta = await plataforma.pastaDeDownloads();
   await mkdir(pasta, { recursive: true });
   const destino = await copiarSemSubstituir(caminho, pasta, nome);
-  abrirNoWindows(["/select,", destino]);
+  plataforma.mostrarArquivoNaPasta(destino);
+  return { caminho: destino };
+}
+
+const EXPORTAVEIS = new Set([".json", ".csv", ".ics", ".md", ".niko-visual"]);
+const LIMITE_EXPORTACAO = 200 * 1024 * 1024;
+
+function lerConteudoDaExportacao(req: IncomingMessage): Promise<Buffer> {
+  if (Number(req.headers["content-length"] ?? 0) > LIMITE_EXPORTACAO) return Promise.reject(new Error("arquivo_grande"));
+  return new Promise((resolver, rejeitar) => {
+    const partes: Buffer[] = [];
+    let tamanho = 0;
+    req.on("data", (parte: Buffer) => {
+      tamanho += parte.length;
+      if (tamanho > LIMITE_EXPORTACAO) {
+        req.destroy();
+        rejeitar(new Error("arquivo_grande"));
+        return;
+      }
+      partes.push(parte);
+    });
+    req.on("end", () => (tamanho === 0 ? rejeitar(new Error("arquivo_vazio")) : resolver(Buffer.concat(partes))));
+    req.on("error", rejeitar);
+  });
+}
+
+export function nomeDeExportacaoValido(nome: unknown): string {
+  if (typeof nome !== "string") throw new Error("nome_invalido");
+  const limpo = nome.replace(/[<>:"/\\|?*\u0000-\u001f]/g, "").replace(/^\.+/, "").trim();
+  if (!limpo || limpo.length > 120 || !EXPORTAVEIS.has(extname(limpo).toLowerCase())) throw new Error("nome_invalido");
+  return limpo;
+}
+
+async function gravarSemSubstituir(pasta: string, nome: string, conteudo: Buffer): Promise<string> {
+  const { name, ext } = parse(nome);
+  for (let i = 1; i < 1000; i++) {
+    const destino = join(pasta, i === 1 ? nome : `${name} (${i})${ext}`);
+    try {
+      await writeFile(destino, conteudo, { flag: "wx" });
+      return destino;
+    } catch (erro) {
+      if ((erro as NodeJS.ErrnoException).code !== "EEXIST") throw erro;
+    }
+  }
+  throw new Error("sem_nome_disponivel");
+}
+
+export async function exportarParaDownloads(req: IncomingMessage, nomePedido: string, mostrar: boolean) {
+  const nome = nomeDeExportacaoValido(nomePedido);
+  const conteudo = await lerConteudoDaExportacao(req);
+  const pasta = await plataforma.pastaDeDownloads();
+  await mkdir(pasta, { recursive: true });
+  const destino = await gravarSemSubstituir(pasta, nome, conteudo);
+  if (mostrar) plataforma.mostrarArquivoNaPasta(destino);
   return { caminho: destino };
 }
 
 export function abrirArquivoNoPrograma(banco: string, materia: string, id: string) {
   const { caminho, nome } = localizar(banco, materia, id);
   extensaoPermitida(nome);
-  abrirNoWindows([caminho]);
+  plataforma.abrirArquivo(caminho);
   return { ok: true };
 }

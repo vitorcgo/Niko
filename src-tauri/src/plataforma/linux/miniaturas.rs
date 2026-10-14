@@ -12,7 +12,7 @@ pub struct Miniatura {
 }
 
 #[derive(Default)]
-pub struct Miniaturas;
+pub struct Miniaturas {}
 
 #[tauri::command]
 pub fn miniaturas_janelas(_window: WebviewWindow, _itens: Vec<Miniatura>, _estado: tauri::State<Miniaturas>) {}

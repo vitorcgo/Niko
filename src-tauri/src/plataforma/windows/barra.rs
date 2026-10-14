@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use std::path::PathBuf;
-use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU32, AtomicU64, Ordering};
 use std::sync::Mutex;
 use std::time::Duration;
 
@@ -144,7 +144,7 @@ struct ReservaDock {
 
 static RESERVADOS: Mutex<Option<HashMap<isize, ReservaDock>>> = Mutex::new(None);
 static ATUALIZANDO_RESERVA: AtomicBool = AtomicBool::new(false);
-const ALTURA_RESERVADA_DOCK: f64 = 62.0;
+static ALTURA_RESERVADA_DOCK: AtomicU32 = AtomicU32::new(62);
 const MENSAGEM_DA_RESERVA: u32 = WM_APP + 0x4e;
 const RECALCULAR_RESERVA: u32 = WM_APP + 0x4f;
 const SUBCLASSE_DA_RESERVA: usize = 0x4e494b4f;
@@ -255,7 +255,7 @@ fn atualizar_reserva(dock: &WebviewWindow, reservar: bool) {
             guarda.get_or_insert_with(HashMap::new).insert(chave, ReservaDock { app: dock.app_handle().clone(), rotulo: dock.label().to_string(), retangulo: None });
         }
     }
-    let altura = (ALTURA_RESERVADA_DOCK * monitor.scale_factor()).round() as i32;
+    let altura = (f64::from(ALTURA_RESERVADA_DOCK.load(Ordering::SeqCst)) * monitor.scale_factor()).round() as i32;
     let posicao = monitor.position();
     let tamanho = monitor.size();
     let base = posicao.y + tamanho.height as i32;
@@ -310,7 +310,10 @@ mod testes_da_reserva {
     }
 }
 #[tauri::command]
-pub fn reservar_dock(window: WebviewWindow, reservar: bool) {
+pub fn reservar_dock(window: WebviewWindow, reservar: bool, altura: Option<f64>) {
+    if let Some(altura) = altura.filter(|a| a.is_finite()) {
+        ALTURA_RESERVADA_DOCK.store(altura.round().clamp(40.0, 90.0) as u32, Ordering::SeqCst);
+    }
     reservar_espaco_do_dock(&window, reservar);
 }
 

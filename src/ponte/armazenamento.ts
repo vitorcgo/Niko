@@ -69,9 +69,15 @@ function avisarOutrasJanelas(chave: string, valor: string | null) {
   }, 120);
 }
 
+const ORIGEM_DA_PONTE = "ponte";
+const TEMPO_PARA_A_PONTE_ALCANCAR_MS = 5000;
+const recebidosDeOutraJanela = new Map<string, number>();
+
 function receberDeFora(m: unknown) {
   if (!objeto(m) || m.banco !== bancoDeTeste || typeof m.origem !== "string" || typeof m.chave !== "string" || !/^niko:[a-z0-9_-]{1,60}$/.test(m.chave) || (m.valor !== null && (typeof m.valor !== "string" || m.valor.length > 20_000_000))) return;
   if (m.origem === ORIGEM || pendentes.has(m.chave) || emEnvio.has(m.chave)) return;
+  if (m.origem === ORIGEM_DA_PONTE && Date.now() - (recebidosDeOutraJanela.get(m.chave) ?? 0) < TEMPO_PARA_A_PONTE_ALCANCAR_MS) return;
+  if (m.origem !== ORIGEM_DA_PONTE) recebidosDeOutraJanela.set(m.chave, Date.now());
   const atual = cache.get(m.chave) ?? null;
   if (atual === m.valor) return;
   if (m.valor === null) cache.delete(m.chave);
@@ -87,7 +93,7 @@ async function recarregarDaPonte() {
     if (!r.ok) return;
     const resposta: unknown = await r.json();
     if (!objeto(resposta) || !objeto(resposta.dados)) return;
-    for (const [k, v] of Object.entries(resposta.dados)) receberDeFora({ origem: "ponte", banco: bancoDeTeste, chave: k, valor: v });
+    for (const [k, v] of Object.entries(resposta.dados)) receberDeFora({ origem: ORIGEM_DA_PONTE, banco: bancoDeTeste, chave: k, valor: v });
   } catch {
     return;
   }

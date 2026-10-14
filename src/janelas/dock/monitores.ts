@@ -14,6 +14,6 @@ export function dockAtivoNoMonitor(escolha: string, meu: MonitorDoNiko | undefin
   return meu.principal;
 }
 
-export function cadaDockMostraSeusApps(escolha: string, lista: MonitorDoNiko[]): boolean {
-  return lista.length >= 2 && escolha === TODOS_OS_MONITORES;
+export function cadaDockMostraSeusApps(escolha: string, lista: MonitorDoNiko[], appsDeTodosOsMonitores = false): boolean {
+  return lista.length >= 2 && escolha === TODOS_OS_MONITORES && !appsDeTodosOsMonitores;
 }

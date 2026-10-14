@@ -1,4 +1,6 @@
-export const ACOES_GLOBAIS = ["captura", "lupa", "sistema", "pomodoro", "midia", "privacidade", "naoPerturbe", "pedido", "proximaAba", "terminal"] as const;
+import { TECLA_SUPER } from "../desktop/plataforma";
+
+export const ACOES_GLOBAIS =["captura", "lupa", "sistema", "pomodoro", "midia", "privacidade", "naoPerturbe", "pedido", "proximaAba", "terminal"] as const;
 
 export type AcaoGlobal = (typeof ACOES_GLOBAIS)[number];
 
@@ -20,7 +22,7 @@ export const ATALHOS_PADRAO: Record<AcaoGlobal, string> = {
 const MODIFICADORES = ["ctrl", "alt", "shift", "super"] as const;
 type Modificador = (typeof MODIFICADORES)[number];
 
-const NOME_DO_MODIFICADOR: Record<Modificador, string> = { ctrl: "Ctrl", alt: "Alt", shift: "Shift", super: "Win" };
+const NOME_DO_MODIFICADOR: Record<Modificador, string> = { ctrl: "Ctrl", alt: "Alt", shift: "Shift", super: TECLA_SUPER };
 
 const NOME_DA_TECLA: Record<string, string> = {
   Space: "Espaço",

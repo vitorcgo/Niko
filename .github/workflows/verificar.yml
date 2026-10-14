@@ -1,0 +1,67 @@
+name: Verificar
+
+on:
+  push:
+    branches: [main, linux]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verificar:
+    name: ${{ matrix.nome }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - nome: Windows
+            sistema: windows-latest
+          - nome: Linux
+            sistema: ubuntu-22.04
+    runs-on: ${{ matrix.sistema }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Bibliotecas do Tauri no Linux
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.20.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Tipos
+        run: pnpm verificar
+
+      - name: Testes
+        run: pnpm test
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - name: Rust
+        shell: bash
+        working-directory: src-tauri
+        run: |
+          mkdir -p ../dist recursos
+          touch recursos/ponte.mjs recursos/node.exe recursos/node
+          cargo clippy --all-targets -- -D warnings
+          cargo test

@@ -19,7 +19,8 @@ import { T } from "../../textos/textos";
 import { formatarDinheiro, lerValorEmCentavos, centavosParaCampo, converter, emReais, formatarCotacao, temCotacao, MOEDAS, SIMBOLO_DA_MOEDA, type Cotacoes } from "../../utilitarios/dinheiro";
 import { usarCotacoes } from "./usarCotacoes";
 import { dataValida, formatar, hojeISO, paraISO, deISO, formatarData, horarioRelativo } from "../../utilitarios/datas";
-import { baixarArquivo, contem, lerArquivoTexto, normalizarTexto, somar } from "../../utilitarios/basicos";
+import { contem, lerArquivoTexto, normalizarTexto, somar } from "../../utilitarios/basicos";
+import { exportarArquivo } from "../../ponte/exportacao";
 import { detectarAssinaturas, assinaturasComValorNovo, lerCsv, lerOfx } from "../../utilitarios/assinaturas";
 import { tocarSom } from "../../ponte/sons";
 import { EVENTO_NOVO } from "../../janelas/area-de-trabalho/usarAtalhos";
@@ -168,7 +169,7 @@ function exportarTransacoes(fin: ReturnType<typeof useFinancas.getState>) {
     .slice()
     .sort((a, b) => a.data.localeCompare(b.data))
     .map((t) => [t.data, T.financas.tipos[t.tipo], `"${t.descricao.replace(/"/g, "'")}"`, nomeCategoria(t.categoriaId, fin.categorias), fin.contas.find((c) => c.id === t.contaId)?.nome ?? "", centavosParaCampo(t.tipo === "despesa" ? -t.valor : t.valor)].join(";"));
-  baixarArquivo(`niko-transacoes-${hojeISO()}.csv`, [cabecalho, ...linhas].join("\n"), "text/csv");
+  void exportarArquivo(`niko-transacoes-${hojeISO()}.csv`, [cabecalho, ...linhas].join("\n"), { tipo: "text/csv" });
 }
 
 function proximaOcorrencia(r: Pick<Recorrente, "dia" | "frequencia" | "mesAnual">, hoje: Date) {

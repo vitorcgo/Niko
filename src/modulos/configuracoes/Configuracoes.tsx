@@ -9,17 +9,19 @@ import {
 import { CabecalhoAba } from "../../componentes/CabecalhoAba";
 import { Botao, Campo, Modal, Segmentado, AvisoFaixa, LinhaAlternador, Alternador, ConfirmarModal } from "../../componentes/basicos";
 import { Personagem } from "../../personagens/Personagem";
-import { useConfig, BARRA_PADRAO, CATEGORIAS_DE_AVISO, type ModoBorda, type Paleta, type Tema, type RepousoIlha, type AbaIlha, CONFIG_PADRAO } from "../../estado/configuracoes";
+import { useConfig, BARRA_PADRAO, CATEGORIAS_DE_AVISO, ESCALAS_DO_DOCK, type ModoBorda, type Paleta, type Tema, type RepousoIlha, type AbaIlha, CONFIG_PADRAO } from "../../estado/configuracoes";
 import { useAgentes, AGENTES } from "../../estado/agentes";
 import { useComunicacao } from "../../estado/comunicacao";
 import { useInterface } from "../../estado/interface";
 import { usePomodoro } from "../../estado/pomodoro";
 import { T } from "../../textos/textos";
 import { contraste, hexValido, FUNDO_DESTAQUE } from "../../utilitarios/cores";
-import { baixarArquivo, lerArquivoTexto, normalizarTexto } from "../../utilitarios/basicos";
+import { lerArquivoTexto, normalizarTexto } from "../../utilitarios/basicos";
+import { exportarArquivo } from "../../ponte/exportacao";
+import { NO_LINUX } from "../../desktop/plataforma";
 import { abaLigada, rotaLigada } from "../../utilitarios/funcoes";
 import { hojeISO } from "../../utilitarios/datas";
-import { validarBackup } from "../../utilitarios/backupValido";
+import { lerBackup } from "../../utilitarios/backupValido";
 import { listarChaves, lerChave, gravarChave, salvarAgora, modoArmazenamento, zerarTudo, tamanhoGuardado, PREFIXO } from "../../ponte/armazenamento";
 import { TODOS_OS_SONS, tocarSom, type CategoriaSom } from "../../ponte/sons";
 import { DESTAQUE_SISTEMA } from "../../janelas/area-de-trabalho/usarTema";
@@ -123,6 +125,7 @@ function validarVisual(dados: unknown): Partial<ReturnType<typeof useConfig.getS
       fechamentoSeg: typeof i.fechamentoSeg === "number" && Number.isFinite(i.fechamentoSeg) && (i.fechamentoSeg === -1 || i.fechamentoSeg >= 0 && i.fechamentoSeg <= 300) ? i.fechamentoSeg : 15,
       abrirHover: i.abrirHover === true,
       laterais: i.laterais !== false,
+      midiaNaCompacta: i.midiaNaCompacta !== false,
     };
   }
   if (v.dock && typeof v.dock === "object") {
@@ -135,6 +138,8 @@ function validarVisual(dados: unknown): Partial<ReturnType<typeof useConfig.getS
       modo: ["fixo", "esconder", "inteligente"].includes(k.modo as string) ? (k.modo as ModoBorda) : "inteligente",
       fundo: fundoValido(k.fundo) ? k.fundo : CONFIG_PADRAO.dock.fundo,
       opacidade: opacidadeValida(k.opacidade) ? k.opacidade : 1,
+      appsDeTodosOsMonitores: k.appsDeTodosOsMonitores === true,
+      escala: ESCALAS_DO_DOCK.includes(k.escala as (typeof ESCALAS_DO_DOCK)[number]) ? (k.escala as number) : CONFIG_PADRAO.dock.escala,
     };
   }
   return saida as Partial<ReturnType<typeof useConfig.getState>>;
@@ -143,28 +148,49 @@ function validarVisual(dados: unknown): Partial<ReturnType<typeof useConfig.getS
 
 function SecaoDados() {
   const avisar = useInterface((s) => s.avisar);
-  const [previa, setPrevia] = useState<{ dados: Record<string, string>; resumo: string[] } | null>(null);
+  const [previa, setPrevia] = useState<{ dados: Record<string, string>; resumo: string[]; ignoradas: string[] } | null>(null);
   const [erro, setErro] = useState("");
   const [apagar, setApagar] = useState(false);
   const [confirmacao, setConfirmacao] = useState("");
   const [apagarChaves, setApagarChaves] = useState(false);
   const [zerando, setZerando] = useState(false);
+  const [restaurando, setRestaurando] = useState(false);
   const comBanco = modoArmazenamento() === "banco";
 
-  const exportar = (nome = `niko-backup-${hojeISO()}.json`) => {
+  const exportar = async (nome = `niko-backup-${hojeISO()}.json`, automatico = false) => {
+    await salvarAgora().catch(() => undefined);
     const dados: Record<string, string> = {};
     for (const k of listarChaves()) {
       const v = lerChave(k);
       if (v != null) dados[k] = v;
     }
-    baixarArquivo(nome, JSON.stringify({ tipo: "niko-backup", versao: 1, criadoEm: new Date().toISOString(), dados }, null, 1));
+    return exportarArquivo(nome, JSON.stringify({ tipo: "niko-backup", versao: 1, criadoEm: new Date().toISOString(), dados }, null, 1), { mostrarNaPasta: !automatico });
+  };
+
+  const restaurar = async (dados: Record<string, string>) => {
+    if (restaurando) return;
+    setRestaurando(true);
+    if (!(await exportar(`niko-antes-de-restaurar-${hojeISO()}.json`, true))) {
+      setRestaurando(false);
+      avisar(T.configuracoes.semBackupNadaMudou);
+      return;
+    }
+    for (const [k, v] of Object.entries(dados)) gravarChave(k, v);
+    try {
+      await salvarAgora();
+      avisar(T.configuracoes.restaurado);
+      window.setTimeout(() => window.location.reload(), 400);
+    } catch {
+      setRestaurando(false);
+      avisar(T.configuracoes.restaurarFalhou);
+    }
   };
 
   const ler = async (arquivo: File) => {
     setPrevia(null);
     try {
       const texto = await lerArquivoTexto(arquivo, 20 * 1024 * 1024);
-      const dados = validarBackup(JSON.parse(texto));
+      const { dados, ignoradas } = lerBackup(JSON.parse(texto));
       const resumo: string[] = [];
       for (const [k, v] of Object.entries(dados)) {
         const nome = k.replace(PREFIXO, "");
@@ -173,7 +199,7 @@ function SecaoDados() {
         resumo.push(`${nome}${contagens.length ? ` (${contagens.slice(0, 4).join(", ")})` : ""}`);
       }
       if (Object.keys(dados).length === 0) throw new Error("vazio");
-      setPrevia({ dados, resumo });
+      setPrevia({ dados, resumo, ignoradas });
       setErro("");
     } catch (e) {
       setErro((e as Error).message === "arquivo_grande" ? T.validacao.arquivoGrande : T.validacao.arquivoInvalido);
@@ -202,7 +228,7 @@ function SecaoDados() {
         </Botao>
       </LinhaAjuste>
       <LinhaAjuste rotulo={T.configuracoes.backup} dica={T.configuracoes.backupDica}>
-        <Botao icone={<Download size={13} />} onClick={() => exportar()}>{T.geral.exportar}</Botao>
+        <Botao icone={<Download size={13} />} onClick={() => void exportar()}>{T.geral.exportar}</Botao>
       </LinhaAjuste>
       <LinhaAjuste rotulo={T.configuracoes.restaurar} dica={erro ? <span className="ajuste-dica-erro" role="alert">{erro}</span> : undefined}>
         <label className="botao botao-secundario" style={{ cursor: "pointer" }}>
@@ -221,20 +247,11 @@ function SecaoDados() {
         {previa && (
           <div className="formulario">
             <AvisoFaixa tipo="alerta">{T.configuracoes.restaurarAviso}</AvisoFaixa>
+            {previa.ignoradas.length > 0 && <AvisoFaixa tipo="erro">{T.configuracoes.restaurarIgnoradas(previa.ignoradas.join(", "))}</AvisoFaixa>}
             <ul className="texto-2" style={{ paddingLeft: 16, fontSize: 12 }}>{previa.resumo.map((r) => <li key={r}>{r}</li>)}</ul>
             <div className="formulario-acoes">
               <Botao onClick={() => setPrevia(null)}>{T.geral.cancelar}</Botao>
-              <Botao
-                variante="primario"
-                onClick={() => {
-                  exportar(`niko-antes-de-restaurar-${hojeISO()}.json`);
-                  for (const [k, v] of Object.entries(previa.dados)) gravarChave(k, v);
-                  void salvarAgora().then(() => {
-                    avisar(T.configuracoes.restaurado);
-                    window.setTimeout(() => window.location.reload(), 400);
-                  }).catch(() => avisar(T.configuracoes.restaurarFalhou));
-                }}
-              >
+              <Botao variante="primario" disabled={restaurando} onClick={() => void restaurar(previa.dados)}>
                 {T.configuracoes.restaurar}
               </Botao>
             </div>
@@ -249,13 +266,19 @@ function SecaoDados() {
             e.preventDefault();
             if (confirmacao !== "APAGAR" || zerando) return;
             setZerando(true);
-            exportar(`niko-antes-de-zerar-${hojeISO()}.json`);
-            zerarTudo(apagarChaves)
-              .then(() => window.location.reload())
-              .catch(() => {
+            void exportar(`niko-antes-de-zerar-${hojeISO()}.json`, true).then((salvou) => {
+              if (!salvou) {
                 setZerando(false);
-                avisar(T.configuracoes.zerarFalhou);
-              });
+                avisar(T.configuracoes.semBackupNadaMudou);
+                return;
+              }
+              return zerarTudo(apagarChaves)
+                .then(() => window.location.reload())
+                .catch(() => {
+                  setZerando(false);
+                  avisar(T.configuracoes.zerarFalhou);
+                });
+            });
           }}
         >
           <AvisoFaixa tipo="erro">{T.configuracoes.apagarTudoAviso}</AvisoFaixa>
@@ -461,7 +484,7 @@ export default function Configuracoes() {
             icone={<Download size={13} />}
             onClick={() => {
               const visual = Object.fromEntries(CHAVES_VISUAL.map((k) => [k, cfg[k]]));
-              baixarArquivo(`visual-${hojeISO()}.niko-visual`, JSON.stringify({ tipo: "niko-visual", versao: 1, visual }, null, 2));
+              void exportarArquivo(`visual-${hojeISO()}.niko-visual`, JSON.stringify({ tipo: "niko-visual", versao: 1, visual }, null, 2));
             }}
           >
             {T.configuracoes.exportarVisual}
@@ -525,6 +548,7 @@ export default function Configuracoes() {
           </select>
         </LinhaAjuste>
         <AlternadorAjuste rotulo={T.configuracoes.abrirHover} ligado={cfg.ilha.abrirHover} aoMudar={(v) => cfg.definirIlha({ abrirHover: v })} />
+        <AlternadorAjuste rotulo={T.ilha.midiaNaCompacta} dica={T.ilha.midiaNaCompactaDica} ligado={cfg.ilha.midiaNaCompacta} aoMudar={(v) => cfg.definirIlha({ midiaNaCompacta: v })} />
         <AlternadorAjuste rotulo={T.configuracoes.lateraisIlha} dica={T.configuracoes.lateraisDica} ligado={cfg.ilha.laterais} aoMudar={(v) => cfg.definirIlha({ laterais: v })} />
         <LinhaAjuste rotulo={T.configuracoes.notificacoesIlha} dica={T.configuracoes.notificacoesDica[cfg.ilha.notificacoes]}>
           <Segmentado rotulo={T.configuracoes.notificacoesIlha} valor={cfg.ilha.notificacoes} aoMudar={(v) => cfg.definirIlha({ notificacoes: v })} opcoes={(["importantes", "todas", "nenhuma"] as const).map((v) => ({ valor: v, rotulo: T.configuracoes.notificacoesOpcoes[v] }))} />
@@ -559,6 +583,12 @@ export default function Configuracoes() {
           {segModo(cfg.dock.modo, (modo) => cfg.definir({ dock: { ...cfg.dock, modo } }))}
         </LinhaAjuste>
         <AlternadorAjuste rotulo={T.configuracoes.ampliarDock} ligado={cfg.dock.ampliar} aoMudar={(v) => cfg.definir({ dock: { ...cfg.dock, ampliar: v } })} />
+        {!NO_LINUX && <AlternadorAjuste rotulo={T.dock.menu.appsDeTodosOsMonitores} dica={T.dock.menu.appsDeTodosOsMonitoresDica} ligado={cfg.dock.appsDeTodosOsMonitores} aoMudar={(v) => cfg.definir({ dock: { ...cfg.dock, appsDeTodosOsMonitores: v } })} />}
+        <LinhaAjuste rotulo={T.dock.menu.tamanho} para="dk-tamanho">
+          <select id="dk-tamanho" className="seletor ajuste-valor" value={cfg.dock.escala} onChange={(e) => cfg.definir({ dock: { ...cfg.dock, escala: Number(e.target.value) } })}>
+            {ESCALAS_DO_DOCK.map((escala) => <option key={escala} value={escala}>{T.dock.menu.tamanhoOpcao(escala)}</option>)}
+          </select>
+        </LinhaAjuste>
         <SeletorDeFundo id="dk-fundo" fundo={cfg.dock.fundo} opacidade={cfg.dock.opacidade} aoMudar={(m) => cfg.definir({ dock: { ...cfg.dock, ...m } })} />
         <NotaAjuste>
           <AvisoFaixa>{T.configuracoes.appsWindowsDock}</AvisoFaixa>
@@ -657,10 +687,18 @@ export default function Configuracoes() {
         <NotaAjuste>
           <AvisoFaixa>{T.configuracoes.telaNavegador}</AvisoFaixa>
         </NotaAjuste>
-        <AlternadorAjuste rotulo={T.configuracoes.esconderTelaCheia} ligado={cfg.esconderTelaCheia} aoMudar={(v) => cfg.definir({ esconderTelaCheia: v })} />
-        <LinhaAjuste rotulo={T.configuracoes.appsEsconder} dica={T.configuracoes.appsDica} para="tc-apps" bloco>
-          <textarea id="tc-apps" className="area-texto ajuste-area" value={cfg.appsEsconder} maxLength={1000} onChange={(e) => cfg.definir({ appsEsconder: e.target.value })} />
-        </LinhaAjuste>
+        {NO_LINUX ? (
+          <NotaAjuste>
+            <AvisoFaixa tipo="alerta">{T.configuracoes.telaLinux}</AvisoFaixa>
+          </NotaAjuste>
+        ) : (
+          <>
+            <AlternadorAjuste rotulo={T.configuracoes.esconderTelaCheia} ligado={cfg.esconderTelaCheia} aoMudar={(v) => cfg.definir({ esconderTelaCheia: v })} />
+            <LinhaAjuste rotulo={T.configuracoes.appsEsconder} dica={T.configuracoes.appsDica} para="tc-apps" bloco>
+              <textarea id="tc-apps" className="area-texto ajuste-area" value={cfg.appsEsconder} maxLength={1000} onChange={(e) => cfg.definir({ appsEsconder: e.target.value })} />
+            </LinhaAjuste>
+          </>
+        )}
       </>
     ),
     atalhos: (

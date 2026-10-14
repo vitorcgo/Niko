@@ -4,14 +4,9 @@ use std::time::Duration;
 
 use serde::Serialize;
 use tauri::{AppHandle, Emitter, Manager, Monitor, PhysicalPosition, PhysicalSize, WebviewWindow};
-#[cfg(windows)]
-use windows::Win32::Foundation::{HWND, RECT};
-#[cfg(windows)]
-use windows::Win32::UI::WindowsAndMessaging::GetWindowRect;
-#[cfg(not(windows))]
-use crate::barra_windows::RECT;
 
-use crate::{barra_windows, criar_sobreposta, Estado, ALTURA_DOCK, ALTURA_ILHA};
+use crate::plataforma::{self, barra, RECT};
+use crate::{criar_sobreposta, Estado, ALTURA_DOCK, ALTURA_ILHA};
 
 pub const ROTULO_PRINCIPAL: &str = "dock";
 const ESCOLHA_TODOS: &str = "todos";
@@ -81,27 +76,17 @@ pub fn monitor_escolhido(escolha: &str, info: &MonitorDoNiko, lista: &[MonitorDo
 
 pub fn posicionar(janela: &WebviewWindow, monitor: &Monitor) -> bool {
     let escala = monitor.scale_factor();
-    let (posicao, tamanho) = if barra_windows::barra_oculta() {
+    let (posicao, tamanho) = if barra::barra_oculta() {
         (*monitor.position(), *monitor.size())
     } else {
         let area = monitor.work_area();
         (area.position, area.size)
     };
     let altura = (ALTURA_DOCK * escala).round() as i32;
-    let reserva = barra_windows::retangulo_reservado(janela, monitor);
-    let limites = barra_windows::retangulo_da_sobreposta(reserva.unwrap_or(RECT { left: posicao.x, top: posicao.y, right: posicao.x + tamanho.width as i32, bottom: posicao.y + tamanho.height as i32 }), altura);
-    #[cfg(windows)]
-    {
-        if let Ok(h) = janela.hwnd() {
-            let mut atual = RECT::default();
-            if unsafe { GetWindowRect(HWND(h.0), &mut atual) }.is_ok() && atual.left == limites.left && atual.top == limites.top && atual.right == limites.right && atual.bottom == limites.bottom { return false; }
-        }
-    }
-    #[cfg(not(windows))]
-    {
-        if let (Ok(p), Ok(t)) = (janela.outer_position(), janela.outer_size()) {
-            if p.x == limites.left && p.y == limites.top && t.width as i32 == limites.right - limites.left && t.height as i32 == altura { return false; }
-        }
+    let reserva = barra::retangulo_reservado(janela, monitor);
+    let limites = barra::retangulo_da_sobreposta(reserva.unwrap_or(RECT { left: posicao.x, top: posicao.y, right: posicao.x + tamanho.width as i32, bottom: posicao.y + tamanho.height as i32 }), altura);
+    if plataforma::retangulo_da_janela(janela).is_some_and(|atual| plataforma::mesmo_retangulo(atual, limites)) {
+        return false;
     }
     let destino = PhysicalPosition::new(limites.left, limites.top);
     let _ = janela.set_position(destino);
@@ -130,7 +115,8 @@ pub fn posicionar_ilha(app: &AppHandle) {
     let _ = janela.set_position(destino);
 }
 
-pub fn _reposicionar_todos(app: &AppHandle) {
+#[cfg_attr(not(windows), allow(dead_code))]
+pub fn reposicionar_todos(app: &AppHandle) {
     posicionar_ilha(app);
     posicionar_assistive(app);
     for (monitor, info) in monitores_ordenados(app) {
@@ -169,7 +155,7 @@ pub fn sincronizar(app: &AppHandle) {
         if rotulo == ROTULO_PRINCIPAL || !eh_dock(&rotulo) || desejados.contains(&rotulo) {
             continue;
         }
-        barra_windows::reservar_espaco_do_dock(&janela, false);
+        barra::reservar_espaco_do_dock(&janela, false);
         if let Ok(mut areas) = app.state::<Estado>().areas.lock() {
             areas.remove(&rotulo);
         }
@@ -184,7 +170,7 @@ pub fn sincronizar(app: &AppHandle) {
             Some(j) => j,
             None => match criar_sobreposta(app, &info.rotulo, 0.0, 0.0, 400.0, ALTURA_DOCK) {
                 Ok(j) => {
-                    crate::ignorar_cursor(&j, true);
+                    plataforma::ignorar_cursor(&j, true);
                     j
                 }
                 Err(_) => continue,

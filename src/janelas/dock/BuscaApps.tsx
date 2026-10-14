@@ -4,6 +4,7 @@ import {
   Activity, AppWindow, Bluetooth, Calculator, CircleDot, CornerDownLeft, FolderOpen, Globe, Monitor, Network, RefreshCw, Search, Settings, SlidersHorizontal, SquareTerminal, Volume2, Wifi, type LucideIcon,
 } from "lucide-react";
 import { NATIVO, abrirLink, agirNaJanela, devolverFoco, janelaAtual, usarAppsAbertos } from "../../desktop/desktop";
+import { NO_LINUX } from "../../desktop/plataforma";
 import { controle, type AppInstalado, type ComandoDoSistema } from "../../ponte/ponteLocal";
 import { useBuscaApps } from "../../estado/buscaApps";
 import { useConfig } from "../../estado/configuracoes";
@@ -402,7 +403,7 @@ export function BuscaApps({ aoFechar }: { aoFechar: () => void }) {
           <>
             <span><Tecla>↑</Tecla><Tecla>↓</Tecla> {B.atalhos.navegar}</span>
             <span><Tecla><CornerDownLeft size={11} /></Tecla> {B.atalhos.abrir}</span>
-            <span><Tecla>Ctrl</Tecla><Tecla>Shift</Tecla><Tecla><CornerDownLeft size={11} /></Tecla> {B.atalhos.admin}</span>
+            {!NO_LINUX && <span><Tecla>Ctrl</Tecla><Tecla>Shift</Tecla><Tecla><CornerDownLeft size={11} /></Tecla> {B.atalhos.admin}</span>}
           </>
         )}
       </div>

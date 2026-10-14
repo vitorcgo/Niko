@@ -1,4 +1,5 @@
 import { execFile } from "node:child_process";
+import type { ResultadoOcr } from "../tipos.ts";
 
 const TEMPO_LIMITE = 60_000;
 
@@ -24,7 +25,6 @@ function rodar(argumentos: string[], limiteMs: number): Promise<Resultado> {
 
 async function idiomasInstalados(): Promise<string[]> {
   const { saida, erros } = await rodar(["--list-langs"], 10_000);
-  // Versões antigas escrevem a lista em stderr; as novas, em stdout.
   return `${saida}\n${erros}`
     .split("\n")
     .map((linha) => linha.trim())
@@ -37,7 +37,7 @@ function idiomaPreferido(): string | null {
   return PREFERIDOS[prefixo] ?? null;
 }
 
-export async function ocrNoLinux(caminho: string): Promise<{ texto: string; idioma: string }> {
+export async function ocr(caminho: string): Promise<ResultadoOcr> {
   const instalados = await idiomasInstalados();
   const escolhidos = [idiomaPreferido(), "eng"].filter((i): i is string => i !== null && instalados.includes(i));
   const unicos = [...new Set(escolhidos)];

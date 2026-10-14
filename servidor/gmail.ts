@@ -1,7 +1,7 @@
 import { createServer } from "node:http";
 import { createHash, randomBytes } from "node:crypto";
-import { spawn } from "node:child_process";
 import type { AddressInfo } from "node:net";
+import { plataforma } from "./plataforma/index.ts";
 
 const BASE = "https://gmail.googleapis.com/gmail/v1/users/me";
 
@@ -13,16 +13,6 @@ export interface CredencialGmail {
 
 function base64url(b: Buffer): string {
   return b.toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
-}
-
-function abrirNoNavegador(url: string) {
-  if (process.platform !== "win32" && process.platform !== "linux") throw new Error("plataforma_nao_suportada");
-  const filho =
-    process.platform === "win32"
-      ? spawn("rundll32.exe", ["url.dll,FileProtocolHandler", url], { detached: true, stdio: "ignore", windowsHide: true })
-      : spawn("xdg-open", [url], { detached: true, stdio: "ignore" });
-  filho.on("error", () => undefined);
-  filho.unref();
 }
 
 export function lerCredencialGmail(texto: string): CredencialGmail {
@@ -73,7 +63,7 @@ export async function autorizarGoogle(clienteId: string, segredo: string, escopo
         state: estado,
       });
       try {
-        abrirNoNavegador(`https://accounts.google.com/o/oauth2/v2/auth?${parametros}`);
+        plataforma.abrirNoNavegador(`https://accounts.google.com/o/oauth2/v2/auth?${parametros}`);
       } catch (e) {
         clearTimeout(relogio);
         servidor.close();

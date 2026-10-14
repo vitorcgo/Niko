@@ -398,7 +398,7 @@ test("abrir arquivo do diff só aceita arquivo que existe dentro do projeto", ()
     mkdirSync(join(pasta, "src"));
     writeFileSync(join(pasta, "src", "a.ts"), "x");
     assert.equal(claude.arquivoDoProjeto(pasta, join(pasta, "src", "a.ts")), join(pasta, "src", "a.ts"));
-    assert.equal(claude.arquivoDoProjeto(pasta, "src\\a.ts"), join(pasta, "src", "a.ts"));
+    if (process.platform === "win32") assert.equal(claude.arquivoDoProjeto(pasta, "src\\a.ts"), join(pasta, "src", "a.ts"));
     for (const ruim of [join(pasta, "src", "nao.ts"), join(pasta, "src"), join(pasta, "..", "fora.ts"), "C:\\Windows\\win.ini", "", 5, "a\nb"]) {
       assert.throws(() => claude.arquivoDoProjeto(pasta, ruim), /arquivo_invalido/, String(ruim));
     }
@@ -546,4 +546,79 @@ test("reconexão recupera Stop perdido sem expor conteúdo nem inventar atividad
     const atual = useClaudeCode.getState().sessoes[sessao];
     assert.equal(atual.estado, "terminou"); assert.equal(atual.ferramentasUsadas, 1); assert.equal(atual.passos.length, 1);
   } finally { controle.abort(); useClaudeCode.setState(anterior); }
+});
+
+async function carregarPluginDoOpencode() {
+  const { pluginDoOpencode } = await vite.ssrLoadModule("/servidor/agentesDeCodigo.ts");
+  const arquivo = join(raizTemporaria, `niko-opencode-${Date.now()}-${Math.random().toString(16).slice(2)}.mjs`);
+  writeFileSync(arquivo, pluginDoOpencode("chave-teste"));
+  return (await import(`file:///${arquivo.replace(/\\/g, "/")}`)).default;
+}
+
+function capturarEnvios() {
+  const enviados = [];
+  const original = globalThis.fetch;
+  globalThis.fetch = async (_url, opcoes) => {
+    enviados.push({ cabecalhos: opcoes.headers, corpo: JSON.parse(opcoes.body) });
+    return new Response(null, { status: 204 });
+  };
+  return { enviados, restaurar: () => (globalThis.fetch = original) };
+}
+
+test("plugin do OpenCode carrega no formato da v2 com setup e eventos", async () => {
+  const plugin = await carregarPluginDoOpencode();
+  const { enviados, restaurar } = capturarEnvios();
+  try {
+    assert.equal(plugin.id, "niko");
+    const hooks = {};
+    const descartados = [];
+    let liberar;
+    const eventos = [{ type: "session.created", properties: { sessionID: "s1" } }, { type: "session.idle", properties: { sessionID: "s1" } }];
+    const ctx = {
+      location: { directory: "/projeto" },
+      event: {
+        subscribe: ({ signal }) => (async function* () {
+          for (const e of eventos) yield e;
+          await new Promise((r) => { liberar = r; signal.addEventListener("abort", r); });
+        })(),
+      },
+      session: { hook: async (nome, fn) => { hooks[`session.${nome}`] = fn; return { dispose: () => descartados.push(nome) }; } },
+      tool: { hook: async (nome, fn) => { hooks[`tool.${nome}`] = fn; return { dispose: () => descartados.push(nome) }; } },
+    };
+    const limpar = await plugin.setup(ctx);
+    await new Promise((r) => setImmediate(r));
+    hooks["session.prompt"]({ sessionID: "s1", prompt: { text: "oi" } });
+    hooks["tool.execute.before"]({ sessionID: "s1", tool: "read", input: { filePath: "a.ts" } });
+    await limpar();
+    liberar?.();
+    assert.deepEqual(enviados.map((e) => e.corpo.hook_event_name), ["SessionStart", "Stop", "UserPromptSubmit", "PreToolUse"]);
+    assert.ok(enviados.every((e) => e.corpo.cwd === "/projeto" && e.corpo.session_id === "s1" && e.cabecalhos["x-niko-gancho"] === "chave-teste"));
+    assert.equal(enviados[2].corpo.prompt, "oi");
+    assert.deepEqual(enviados[3].corpo.tool_input, { filePath: "a.ts" });
+    assert.deepEqual(descartados.sort(), ["execute.before", "prompt"]);
+  } finally {
+    restaurar();
+  }
+});
+
+test("plugin do OpenCode continua funcionando na v1 pelo server()", async () => {
+  const plugin = await carregarPluginDoOpencode();
+  const { enviados, restaurar } = capturarEnvios();
+  try {
+    const ganchos = await plugin.server({ directory: "/antigo" });
+    await ganchos.event({ event: { type: "permission.asked", properties: { sessionID: "s2" } } });
+    await ganchos["chat.message"]({ sessionID: "s2" }, { parts: [{ type: "text", text: "linha 1" }, { type: "text", text: "linha 2" }] });
+    await ganchos["tool.execute.before"]({ sessionID: "s2", tool: "bash" }, { args: { command: "ls" } });
+    assert.deepEqual(enviados.map((e) => e.corpo.hook_event_name), ["Notification", "UserPromptSubmit", "PreToolUse"]);
+    assert.equal(enviados[1].corpo.prompt, "linha 1\nlinha 2");
+    assert.ok(enviados.every((e) => e.corpo.cwd === "/antigo"));
+  } finally {
+    restaurar();
+  }
+});
+
+test("plugin do OpenCode não quebra o setup se um hook da v2 falhar", async () => {
+  const plugin = await carregarPluginDoOpencode();
+  const limpar = await plugin.setup({ location: { directory: "/p" }, session: { hook: async () => { throw new Error("mudou"); } } });
+  await limpar();
 });

@@ -15,6 +15,7 @@ pub struct EstadoDaFrente {
     tela_cheia: bool,
     maximizada: bool,
     frente: TipoDaFrente,
+    programa: String,
 }
 
 #[tauri::command]

@@ -21,6 +21,7 @@ interface EstadoRotina extends Instantaneo {
   criarTarefa: (dados: Partial<Tarefa> & { titulo: string }) => Tarefa;
   atualizarTarefa: (id: string, parcial: Partial<Tarefa>) => void;
   mudarStatus: (id: string, status: StatusTarefa) => void;
+  moverTarefas: (ids: string[], data: string) => number;
   excluirTarefa: (id: string) => Tarefa | undefined;
   restaurarTarefa: (tarefa: Tarefa) => void;
   criarHabito: (dados: Omit<Habito, "id" | "arquivado">) => void;
@@ -75,6 +76,12 @@ export const useRotina = create<EstadoRotina>()(
                 : t,
             ),
           })),
+        moverTarefas: (ids, data) => {
+          const alvo = new Set(ids);
+          const movidas = get().tarefas.filter((t) => alvo.has(t.id) && t.data !== data).length;
+          if (movidas > 0) comHistorico((s) => ({ tarefas: s.tarefas.map((t) => (alvo.has(t.id) ? { ...t, data } : t)) }));
+          return movidas;
+        },
         excluirTarefa: (id) => {
           const tarefa = get().tarefas.find((t) => t.id === id);
           comHistorico((s) => ({ tarefas: s.tarefas.filter((t) => t.id !== id) }));
@@ -124,6 +131,16 @@ export const useRotina = create<EstadoRotina>()(
 
 export function tarefasDoDia(tarefas: Tarefa[], data: string): Tarefa[] {
   return tarefas.filter((t) => t.data === data).sort((a, b) => (a.hora ?? "99").localeCompare(b.hora ?? "99") || a.ordem - b.ordem);
+}
+
+export function tarefaPendente(tarefa: Tarefa): boolean {
+  return tarefa.status === "a_fazer" || tarefa.status === "em_andamento" || tarefa.status === "em_aguardo";
+}
+
+export function pendentesAntesDe(tarefas: Tarefa[], data: string): Tarefa[] {
+  return tarefas
+    .filter((t) => t.data !== undefined && t.data < data && tarefaPendente(t))
+    .sort((a, b) => (b.data ?? "").localeCompare(a.data ?? "") || (a.hora ?? "99").localeCompare(b.hora ?? "99") || a.ordem - b.ordem);
 }
 
 export function habitoCumprido(habito: Habito, valor: number | undefined): boolean {

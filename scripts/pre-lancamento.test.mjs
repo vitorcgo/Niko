@@ -89,6 +89,19 @@ test("falha parcial nos ouvintes nativos desfaz inscrições antes de repetir in
   assert.equal(a.ouvintes.size, 3);
 });
 
+test("valor antigo da ponte não desfaz a mudança que acabou de chegar de outra janela", async () => {
+  const a = armazenamentoIsolado(true);
+  await a.api.iniciarArmazenamento();
+  a.ouvintes.get("niko-dados")({ payload: { origem: "janela-principal", banco: "", chave: "niko:configuracoes", valor: "ligado" } });
+  assert.equal(a.api.lerChave("niko:configuracoes"), "ligado");
+  a.contexto.fetch = async () => ({ ok: true, json: async () => ({ dados: { "niko:configuracoes": "desligado", "niko:outra": "da ponte" } }) });
+  a.janela.dispatchEvent(new Event("focus"));
+  await estabilizar();
+  await estabilizar();
+  assert.equal(a.api.lerChave("niko:configuracoes"), "ligado");
+  assert.equal(a.api.lerChave("niko:outra"), "da ponte");
+});
+
 test("salvar rejeita a falha e mantém alterações para uma tentativa posterior", async () => {
   const a = armazenamentoIsolado();
   await a.api.iniciarArmazenamento();
@@ -191,7 +204,7 @@ test("backup diário e manual respeitam o banco selecionado", () => {
 
 test("script temporário é revalidado e reparado depois de adulteração", () => {
   const pasta = fs.mkdtempSync(join(tmpdir(), "niko-script-teste-"));
-  const a = moduloIsolado("servidor/scriptsTemporarios.ts", { ...fs, createHash, randomBytes, join, tmpdir: () => pasta, process }, ["garantirScript"]);
+  const a = moduloIsolado("servidor/plataforma/windows/scriptsTemporarios.ts", { ...fs, createHash, randomBytes, join, tmpdir: () => pasta, process }, ["garantirScript"]);
   try {
     const caminho = a.garantirScript("niko-teste", "conteudo esperado");
     fs.writeFileSync(caminho, "adulterado");

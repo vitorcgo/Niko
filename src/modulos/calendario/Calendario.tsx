@@ -15,7 +15,8 @@ import { useInterface } from "../../estado/interface";
 import { T } from "../../textos/textos";
 import { dataValida, deISO, formatar, formatarData, hojeISO, horaValida, paraISO } from "../../utilitarios/datas";
 import { lerEventosIcs } from "../../utilitarios/calendarioIcs";
-import { baixarArquivo, lerArquivoTexto } from "../../utilitarios/basicos";
+import { lerArquivoTexto } from "../../utilitarios/basicos";
+import { exportarArquivo } from "../../ponte/exportacao";
 import { EVENTO_NOVO } from "../../janelas/area-de-trabalho/usarAtalhos";
 import type { Evento, Repeticao, Rota } from "../../tipos";
 import { marcarItemFeito } from "../../utilitarios/marcarFeito";
@@ -344,7 +345,7 @@ export default function Calendario() {
       const excecoes = e.repeticao !== "nenhuma" ? (e.excecoes ?? []).map((x) => (e.hora ? `EXDATE:${x.replace(/-/g, "")}T${e.hora.replace(":", "")}00` : `EXDATE;VALUE=DATE:${x.replace(/-/g, "")}`)) : [];
       return ["BEGIN:VEVENT", `UID:${e.id}@niko`, `DTSTAMP:${agoraIcs}`, inicio, `SUMMARY:${escaparIcs(e.titulo)}`, regra[e.repeticao], ...excecoes, "END:VEVENT"].filter(Boolean).join("\r\n");
     });
-    baixarArquivo("niko-calendario.ics", ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Niko//PT-BR", ...corpo, "END:VCALENDAR"].join("\r\n"), "text/calendar");
+    void exportarArquivo("niko-calendario.ics", ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Niko//PT-BR", ...corpo, "END:VCALENDAR"].join("\r\n"), { tipo: "text/calendar" });
   };
 
   const importarIcs = async (arquivo: File) => {

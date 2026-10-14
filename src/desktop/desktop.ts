@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { emitTo, listen } from "@tauri-apps/api/event";
 import type { Rota, ServicoId } from "../tipos";
 import { iniciarConsultaPeriodica } from "./consultaPeriodica";
@@ -169,8 +169,12 @@ function enviarPelaPonte(base: string, token: string | null) {
   };
 }
 
+export function paginaDoAppInstalado(endereco: { protocol: string; hostname: string }) {
+  return endereco.hostname === "tauri.localhost" || endereco.protocol === "tauri:";
+}
+
 export async function prepararPonte() {
-  if (NATIVO && window.location.hostname === "tauri.localhost") {
+  if (NATIVO && paginaDoAppInstalado(window.location)) {
     let limite = 0;
     try {
       const [token, porta] = await Promise.race([
@@ -250,11 +254,19 @@ export function usarAreaInterativa(seletores: string[]) {
 }
 
 export function usarCursorFora(fn: () => void) {
+  usarEventoDaJanela("niko://cursor-fora", fn);
+}
+
+export function usarCliqueFora(fn: () => void) {
+  usarEventoDaJanela("niko://clique-fora", fn);
+}
+
+function usarEventoDaJanela(evento: string, fn: () => void) {
   useEffect(() => {
     if (!NATIVO) return;
     let desligar: () => void = () => undefined;
     let ativo = true;
-    void ouvirEvento("niko://cursor-fora", fn, true).then((f) => {
+    void ouvirEvento(evento, fn, true).then((f) => {
       if (ativo) desligar = f;
       else f();
     });
@@ -262,8 +274,9 @@ export function usarCursorFora(fn: () => void) {
       ativo = false;
       desligar();
     };
-  }, [fn]);
+  }, [evento, fn]);
 }
+
 export interface AppAberto {
   id: string;
   pid: number;
@@ -357,8 +370,8 @@ export function ocultarBarraDoWindows(ocultar: boolean) {
   return invocar("barra_windows", { ocultarBarra: ocultar });
 }
 
-export function reservarEspacoDoDock(reservar: boolean) {
-  return invocar("reservar_dock", { reservar });
+export function reservarEspacoDoDock(reservar: boolean, altura: number) {
+  return invocar("reservar_dock", { reservar, altura });
 }
 
 export type TipoDaFrente = "area_de_trabalho" | "sobreposta" | "app";
@@ -371,6 +384,21 @@ export interface EstadoDaFrente {
 }
 
 const FRENTE_LIVRE: EstadoDaFrente = { cobre: false, telaCheia: false, maximizada: false, frente: "area_de_trabalho" };
+
+export interface RegrasDeSumir {
+  esconderTelaCheia: boolean;
+  apps: string;
+}
+
+function semExe(nome: string) {
+  return nome.trim().toLowerCase().replace(/\.exe$/, "");
+}
+
+export function deveSumirPelaFrente(telaCheia: boolean, programa: string, regras: RegrasDeSumir): boolean {
+  if (telaCheia && regras.esconderTelaCheia) return true;
+  const atual = semExe(programa);
+  return Boolean(atual) && regras.apps.split(/\r?\n/).some((linha) => semExe(linha) === atual);
+}
 
 export async function permitirNotificacoes(): Promise<boolean> {
   if (!NATIVO) return false;
@@ -403,18 +431,20 @@ export async function frenteEmTelaCheia(): Promise<boolean> {
   return Boolean(r?.telaCheia);
 }
 
-export function usarEstadoDaFrente(ativo: boolean): EstadoDaFrente {
+export function usarEstadoDaFrente(ativo: boolean, regras: RegrasDeSumir): EstadoDaFrente {
   const [estado, setEstado] = useState<EstadoDaFrente>(FRENTE_LIVRE);
+  const regrasAtuais = useRef(regras);
+  regrasAtuais.current = regras;
   useEffect(() => {
     if (!NATIVO || !ativo) {
       setEstado(FRENTE_LIVRE);
       return;
     }
     return iniciarConsultaPeriodica(async (sinal) => {
-      const r = await invocar<EstadoDaFrente>("frente_cobre_tela");
+      const r = await invocar<EstadoDaFrente & { programa?: unknown }>("frente_cobre_tela");
       if (sinal.aborted || !r) return;
       const cobre = Boolean(r?.cobre);
-      const telaCheia = Boolean(r?.telaCheia);
+      const telaCheia = deveSumirPelaFrente(Boolean(r?.telaCheia), typeof r.programa === "string" ? r.programa : "", regrasAtuais.current);
       const maximizada = Boolean(r?.maximizada);
       const frente: TipoDaFrente = r?.frente === "app" || r?.frente === "sobreposta" ? r.frente : "area_de_trabalho";
       setEstado((anterior) => (anterior.cobre === cobre && anterior.telaCheia === telaCheia && anterior.maximizada === maximizada && anterior.frente === frente ? anterior : { cobre, telaCheia, maximizada, frente }));

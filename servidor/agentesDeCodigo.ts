@@ -5,6 +5,7 @@ import { dirname, join } from "node:path";
 import {
   CABECALHO_SEGREDO, estadoDaInstalacao, instalarGanchos, lembrarProcesso, lerCorpoJson, porta, processarEvento, removerGanchos, segredo, segredoConfere, type FerramentaDeCodigo,
 } from "./claude.ts";
+import { plataforma } from "./plataforma/index.ts";
 
 const PREFIXO_DA_ROTA = "/ponte/agentes/evento/";
 const TEMPO_DO_PEDIDO_S = 115;
@@ -40,7 +41,7 @@ function urlDoEvento(ferramenta: FerramentaDeCodigo, evento: string) {
 
 export function comandoDoGancho(ferramenta: FerramentaDeCodigo, evento: string, chave: string, decide = false) {
   const tempo = decide ? TEMPO_DO_PEDIDO_S : TEMPO_DO_CURL_RAPIDO_S;
-  return `curl.exe -s --connect-timeout ${TEMPO_PARA_CONECTAR_S} -m ${tempo} -X POST -H "content-type: application/json" -H "${CABECALHO_SEGREDO}: ${chave}" --data-binary "@-" "${urlDoEvento(ferramenta, evento)}"`;
+  return `${plataforma.programaCurl} -s --connect-timeout ${TEMPO_PARA_CONECTAR_S} -m ${tempo} -X POST -H "content-type: application/json" -H "${CABECALHO_SEGREDO}: ${chave}" --data-binary "@-" "${urlDoEvento(ferramenta, evento)}"`;
 }
 
 const EVENTOS_DO_COPILOT: Record<string, string> = {
@@ -350,26 +351,70 @@ function enviar(corpo) {
   }).catch(() => {});
 }
 
-export const NikoPlugin = async ({ directory }) => ({
-  event: async ({ event }) => {
-    const p = event.properties ?? {};
-    const sessao = p.sessionID ?? p.info?.id ?? "";
-    const base = { session_id: sessao, cwd: directory };
-    if (event.type === "session.created") enviar({ ...base, hook_event_name: "SessionStart" });
-    else if (event.type === "session.idle") enviar({ ...base, hook_event_name: "Stop" });
-    else if (event.type === "session.error") enviar({ ...base, hook_event_name: "StopFailure", error_message: String(p.error?.data?.message ?? p.error?.name ?? "") });
-    else if (event.type === "session.deleted") enviar({ ...base, hook_event_name: "SessionEnd" });
-    else if (event.type === "permission.asked" || event.type === "permission.updated") enviar({ ...base, hook_event_name: "Notification", notification_type: "agent_needs_input", message: "" });
-    else if (event.type === "permission.replied") enviar({ ...base, hook_event_name: "NikoPensando" });
+function sessaoDe(obj) {
+  return obj?.sessionID ?? obj?.sessionId ?? obj?.info?.id ?? obj?.session?.id ?? "";
+}
+
+function enviarEvento(event, cwd) {
+  const p = event?.properties ?? {};
+  const base = { session_id: sessaoDe(p), cwd };
+  if (event?.type === "session.created") enviar({ ...base, hook_event_name: "SessionStart" });
+  else if (event?.type === "session.idle") enviar({ ...base, hook_event_name: "Stop" });
+  else if (event?.type === "session.error") enviar({ ...base, hook_event_name: "StopFailure", error_message: String(p.error?.data?.message ?? p.error?.message ?? p.error?.name ?? "") });
+  else if (event?.type === "session.deleted") enviar({ ...base, hook_event_name: "SessionEnd" });
+  else if (event?.type === "permission.asked" || event?.type === "permission.updated") enviar({ ...base, hook_event_name: "Notification", notification_type: "agent_needs_input", message: "" });
+  else if (event?.type === "permission.replied") enviar({ ...base, hook_event_name: "NikoPensando" });
+}
+
+export default {
+  id: "niko",
+
+  async setup(ctx) {
+    const cwd = ctx.location?.directory ?? process.cwd();
+    const parar = new AbortController();
+    const registros = [];
+    if (ctx.event?.subscribe) {
+      void (async () => {
+        try {
+          for await (const event of ctx.event.subscribe({ signal: parar.signal })) enviarEvento(event, cwd);
+        } catch {}
+      })();
+    }
+    const registrar = async (criar) => {
+      try {
+        registros.push(await criar());
+      } catch {}
+    };
+    if (ctx.session?.hook) {
+      await registrar(() => ctx.session.hook("prompt", (event) => {
+        enviar({ session_id: sessaoDe(event), cwd, hook_event_name: "UserPromptSubmit", prompt: String(event.prompt?.text ?? "").slice(0, 2000) });
+      }));
+    }
+    if (ctx.tool?.hook) {
+      await registrar(() => ctx.tool.hook("execute.before", (event) => {
+        enviar({ session_id: sessaoDe(event), cwd, hook_event_name: "PreToolUse", tool_name: event.tool, tool_input: event.input ?? {} });
+      }));
+    }
+    return async () => {
+      parar.abort();
+      for (const registro of registros) await registro?.dispose?.();
+    };
   },
-  "chat.message": async (input, output) => {
-    const partes = Array.isArray(output?.parts) ? output.parts : [];
-    enviar({ session_id: input.sessionID, cwd: directory, hook_event_name: "UserPromptSubmit", prompt: partes.filter((x) => x.type === "text").map((x) => x.text).join("\\n").slice(0, 2000) });
+
+  async server(entrada) {
+    const cwd = entrada?.directory ?? process.cwd();
+    return {
+      event: async ({ event }) => enviarEvento(event, cwd),
+      "chat.message": async (input, output) => {
+        const partes = Array.isArray(output?.parts) ? output.parts : [];
+        enviar({ session_id: input.sessionID, cwd, hook_event_name: "UserPromptSubmit", prompt: partes.filter((x) => x.type === "text").map((x) => x.text).join("\\n").slice(0, 2000) });
+      },
+      "tool.execute.before": async (input, output) => {
+        enviar({ session_id: input.sessionID, cwd, hook_event_name: "PreToolUse", tool_name: input.tool, tool_input: output?.args ?? {} });
+      },
+    };
   },
-  "tool.execute.before": async (input, output) => {
-    enviar({ session_id: input.sessionID, cwd: directory, hook_event_name: "PreToolUse", tool_name: input.tool, tool_input: output?.args ?? {} });
-  },
-});
+};
 `;
 }
 
@@ -440,7 +485,8 @@ function estadoDe(id: FerramentaDeCodigo): EstadoDaFerramenta {
   const conteudo = lerTexto(caminho) ?? "";
   const temNiko = conteudo.includes(`${PREFIXO_DA_ROTA}${id}`);
   const usaCurl = !["opencode", "amp"].includes(id);
-  const atual = temNiko && conteudo.includes(segredo()) && conteudo.includes(`127.0.0.1:${porta()}`) && (!usaCurl || conteudo.includes("--connect-timeout"));
+  const formatoAtual = id !== "opencode" || conteudo.includes("async setup(ctx)");
+  const atual = temNiko && formatoAtual && conteudo.includes(segredo()) && conteudo.includes(`127.0.0.1:${porta()}`) && (!usaCurl || conteudo.includes("--connect-timeout"));
   let invalido = false;
   if (conteudo && caminho.endsWith(".json")) {
     try {

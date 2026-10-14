@@ -4,12 +4,13 @@
 
 # Niko
 
-**Seu sistema de vida para Windows.**
+**Seu sistema de vida para Windows e Linux.**
 
 Rotina, estudos, finanças, metas e os serviços que você acompanha, reunidos em um só lugar e cuidados por um time de agentes com personalidade própria.
 
 ![Windows 10 e 11](https://img.shields.io/badge/Windows-10%20%7C%2011-0b0d10?style=flat-square)
-![Versão](https://img.shields.io/badge/versão-0.2.2-0b0d10?style=flat-square)
+![Linux](https://img.shields.io/badge/Linux-Ubuntu%20%7C%20Fedora%20(GNOME)-0b0d10?style=flat-square)
+![Versão](https://img.shields.io/badge/versão-0.2.4-0b0d10?style=flat-square)
 ![Licença](https://img.shields.io/badge/licença-proprietária-b42318?style=flat-square)
 
 <br />
@@ -28,13 +29,21 @@ Este README descreve o código atual do repositório. Algumas mudanças podem ai
 
 ## Sobre
 
-O Niko é um aplicativo desktop que fica junto do Windows, e não dentro de uma aba do navegador. Ele aparece em três camadas:
+O Niko é um aplicativo desktop que fica junto do sistema, e não dentro de uma aba do navegador. Ele roda no Windows 10 e 11 e no Linux (Ubuntu e Fedora com GNOME). Este README descreve a versão do Windows; o que muda no Linux está no [README-linux](README-linux.md). Ele aparece em três camadas:
 
 | Camada | Onde fica | Para que serve |
 | ------ | --------- | -------------- |
 | **Ilha** | Topo da tela | Mídia tocando, pomodoro, tarefas do dia, captura rápida e avisos do time |
 | **Dock** | Base da tela | Iniciar do Windows, busca de aplicativos, janelas abertas, prévias e menus de contexto |
 | **Sistema** | Janela própria | Início, chat, agentes, finanças, estudos, metas, calendário e configurações |
+
+<p align="center">
+  <img src="docs/imagens/area-de-trabalho.png" alt="A ilha aberta na aba Hoje, no topo da área de trabalho, com o dock na base da tela" width="900" />
+</p>
+
+<p align="center">
+  <img src="docs/imagens/sistema-inicio.png" alt="Início do sistema com o time, as tarefas do dia, o pomodoro e as finanças do mês" width="900" />
+</p>
 
 Três princípios guiam o projeto:
 
@@ -56,6 +65,23 @@ Uma barra discreta no topo da tela, com três estados: escondida, compacta e exp
 - **Avisos:** os alertas do time.
 - **Time:** seleção de agente, identidade e guarda-roupa, com prévias dos acessórios e escolha de cor.
 - **Código:** acompanhamento das sessões de ferramentas de programação, com atividade, alterações e pedidos de aprovação nas ferramentas compatíveis.
+
+<table>
+  <tr>
+    <td width="50%"><img src="docs/imagens/ilha-hoje.png" alt="Aba Hoje da ilha com relógio, compromissos e calendário do mês" /></td>
+    <td width="50%"><img src="docs/imagens/ilha-time.png" alt="Aba Time da ilha com o guarda-roupa de acessórios do agente" /></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>Hoje: agenda, tarefas e hábitos</sub></td>
+    <td align="center"><sub>Time: identidade e guarda-roupa</sub></td>
+  </tr>
+  <tr>
+    <td colspan="2"><img src="docs/imagens/ilha-foco.png" alt="Aba Foco da ilha com o pomodoro" /></td>
+  </tr>
+  <tr>
+    <td colspan="2" align="center"><sub>Foco: pomodoro com etapas de foco e pausa</sub></td>
+  </tr>
+</table>
 
 A captura rápida permite registrar tarefa, gasto, link, nota ou lembrete sem abrir uma área completa.
 
@@ -111,6 +137,25 @@ Um botão flutuante opcional, desativado por padrão, para abrir os aplicativos 
 
 A janela principal recebeu uma atualização visual e paginação nas listas longas. Áreas e funções opcionais podem ser desativadas nas configurações.
 
+<table>
+  <tr>
+    <td width="50%"><img src="docs/imagens/sistema-journal.png" alt="Journal com tarefas do dia por período, humor e sono" /></td>
+    <td width="50%"><img src="docs/imagens/sistema-financas.png" alt="Finanças com saldo total, gastos por categoria e últimos seis meses" /></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>Journal</sub></td>
+    <td align="center"><sub>Finanças</sub></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="docs/imagens/sistema-estudos.png" alt="Estudos com áreas, matérias, revisões e próximas provas" /></td>
+    <td width="50%"><img src="docs/imagens/sistema-calendario.png" alt="Calendário do mês com eventos, tarefas, provas e lembretes" /></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>Estudos</sub></td>
+    <td align="center"><sub>Calendário</sub></td>
+  </tr>
+</table>
+
 ### Calendário e arquivos
 
 Eventos recorrentes podem ser editados ou excluídos somente em uma ocorrência ou em toda a série. Hábitos com horário aparecem no calendário e podem gerar lembretes enquanto não forem cumpridos.
@@ -141,12 +186,20 @@ As capacidades variam entre ferramentas e versões. Uma integração que acompan
 
 ### O time
 
-| Agente | Cuida de |
-| ------ | -------- |
-| **Organizador** | Rotina, tarefas, hábitos e agenda |
-| **Tutor** | Estudos, revisões e provas |
-| **Operador** | Finanças e serviços conectados |
-| **Java** | Código, repositórios e pull requests |
+| Agente | Cargo | Cuida de |
+| ------ | ----- | -------- |
+| **Rubi** | Gerente de projetos | Rotina, tarefas, hábitos, agenda e metas |
+| **Nanquim** | Professor | Estudos, revisões e provas |
+| **Sol** | Analista de operações | Finanças, orçamento e consumo de IA |
+| **Java** | Engenheiro de software | Código, repositórios, pull requests e conexões |
+
+<p align="center">
+  <img src="docs/imagens/sistema-escritorio.png" alt="Escritório Niko em 3D com os quatro agentes trabalhando e balões de pensamento" width="900" />
+</p>
+
+<p align="center">
+  <img src="docs/imagens/sistema-agentes.png" alt="Página Agentes para personalizar nome, cargo, cor e formato de cada integrante" width="900" />
+</p>
 
 Cada agente tem oito estados visíveis (ocioso, ouvindo, pensando, escrevendo, sucesso, alerta, erro e dormindo) e reage ao que está acontecendo de verdade no app.
 
@@ -202,15 +255,33 @@ Perguntas sobre Cloudflare e Supabase são encaminhadas ao Java. Menções expl�
 
 | Camada | Tecnologia |
 | ------ | ---------- |
-| Desktop | Tauri 2 e Rust, com APIs nativas do Windows |
+| Desktop | Tauri 2 e Rust, com APIs nativas do Windows e equivalentes do Linux |
 | Interface | React 19, TypeScript e Vite |
 | Animações | Motion e Three.js |
 | Estado | Zustand |
 | Ponte local | Node, empacotado junto com o app |
 
-## Download e avisos do Windows
+## Download
 
-Baixe o instalador somente pelas [releases oficiais deste repositório](https://github.com/vitorcgo/niko/releases). Este README descreve o código atual; confira as notas da release para saber quais recursos estão no instalador.
+Baixe somente pelas [releases oficiais deste repositório](https://github.com/vitorcgo/niko/releases). Este README descreve o código atual; confira as notas da release para saber quais recursos estão no instalador.
+
+| Sistema | Arquivo | Atualização |
+| ------- | ------- | ----------- |
+| **Windows 10 e 11** | `Niko_x.y.z_x64-setup.exe` | Automática, pelo próprio app |
+| **Ubuntu e Debian** | `Niko_x.y.z_amd64.deb` | Manual: baixe o pacote novo e instale por cima |
+| **Fedora** | `Niko-x.y.z-1.x86_64.rpm` | Manual |
+| **Outras distribuições** | `Niko_x.y.z_amd64.AppImage` | Manual |
+
+O `.msi` do Windows fica nas releases só para quem já instalou por ele.
+
+### Linux
+
+A versão para Linux foi feita para GNOME e está em teste. O Node já vem dentro do pacote. Alguns recursos do Windows ainda não existem no Linux, como as prévias das janelas no dock e a detecção de tela cheia, e outros dependem de programas do sistema, como `playerctl` para a mídia e `tesseract` para o OCR. A lista completa, com os comandos de instalação, está no [README-linux](README-linux.md).
+
+```bash
+sudo apt install ./Niko_*_amd64.deb     # Ubuntu e Debian
+sudo dnf install ./Niko-*.x86_64.rpm    # Fedora
+```
 
 ### Windows Defender e SmartScreen
 
@@ -226,6 +297,8 @@ Isso é diferente de uma **detecção de ameaça pelo Defender**. Não tratamos 
 - Node 22 ou mais novo e pnpm
 - Rust estável, para a versão desktop
 - WebView2, que já vem no Windows 11
+
+Para compilar e rodar no Linux, siga o [README-linux](README-linux.md).
 
 ### Interface no navegador
 

@@ -130,21 +130,34 @@ export function validarEstadoSalvo(nome: string, bruto: unknown): asserts bruto 
   }
 }
 
-export function validarBackup(bruto: unknown): Record<string, string> {
+function areaDoBackup(nome: string, valor: unknown): string {
+  exigir(typeof valor === "string");
+  const salvo: unknown = JSON.parse(valor);
+  validarEstadoSalvo(nome, salvo);
+  const permitidos = nome === "configuracoes" ? CONFIG_PADRAO : esquemas[nome];
+  const ignorarAte = corteDasAnalisesValido(salvo.state.ignorarAte);
+  const estado = nome === "escritorio-ias" ? { config: configuracaoEscritorioValida(salvo.state.config), registros: registrosValidos(salvo.state.registros).filter((r) => r.em > ignorarAte), ignorarAte } : Object.fromEntries(Object.entries(salvo.state).filter(([k]) => Object.hasOwn(permitidos, k)));
+  return JSON.stringify({ state: estado, ...(salvo.version !== undefined ? { version: salvo.version } : {}) });
+}
+
+export function lerBackup(bruto: unknown): { dados: Record<string, string>; ignoradas: string[] } {
   exigir(objeto(bruto) && bruto.tipo === "niko-backup" && bruto.versao === 1 && objeto(bruto.dados));
   const dados: Record<string, string> = {};
+  const ignoradas: string[] = [];
   for (const [chave, valor] of Object.entries(bruto.dados)) {
     if (!/^niko:[a-z0-9_-]{1,60}$/.test(chave)) continue;
     const nome = chave.slice(5);
     if (nome !== "configuracoes" && !Object.hasOwn(esquemas, nome)) continue;
-    exigir(typeof valor === "string");
-    const salvo: unknown = JSON.parse(valor);
-    validarEstadoSalvo(nome, salvo);
-    const permitidos = nome === "configuracoes" ? CONFIG_PADRAO : esquemas[nome];
-    const ignorarAte = corteDasAnalisesValido(salvo.state.ignorarAte);
-    const estado = nome === "escritorio-ias" ? { config: configuracaoEscritorioValida(salvo.state.config), registros: registrosValidos(salvo.state.registros).filter((r) => r.em > ignorarAte), ignorarAte } : Object.fromEntries(Object.entries(salvo.state).filter(([k]) => Object.hasOwn(permitidos, k)));
-    dados[chave] = JSON.stringify({ state: estado, ...(salvo.version !== undefined ? { version: salvo.version } : {}) });
+    try {
+      dados[chave] = areaDoBackup(nome, valor);
+    } catch {
+      ignoradas.push(nome);
+    }
   }
   exigir(Object.keys(dados).length > 0);
-  return dados;
+  return { dados, ignoradas };
+}
+
+export function validarBackup(bruto: unknown): Record<string, string> {
+  return lerBackup(bruto).dados;
 }

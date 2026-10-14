@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { addDays, addMonths, eachDayOfInterval, endOfMonth, endOfWeek, format, getDaysInMonth, isSameMonth, startOfMonth, startOfWeek } from "date-fns";
-import { ChevronLeft, ChevronRight, Plus, Undo2, Redo2, Printer, Check, Minus, Pencil, Archive, Flame, Timer, CircleCheck, Circle, CalendarClock, X, Pause, Trash2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, Undo2, Redo2, Printer, Check, Minus, Pencil, Archive, Flame, Timer, CircleCheck, Circle, CalendarClock, CalendarArrowDown, X, Pause, Trash2 } from "lucide-react";
 import { CabecalhoAba } from "../../componentes/CabecalhoAba";
 import { Cartao, Botao, Campo, Modal, Segmentado, Vazio } from "../../componentes/basicos";
 import { ICONE_STATUS, ORDEM_STATUS } from "../../componentes/ItemTarefa";
 import { Editor } from "../../componentes/Editor";
 import { BarrasVerticais } from "../../componentes/Graficos";
-import { useRotina, tarefasDoDia, habitoCumprido, DIA_VAZIO } from "../../estado/rotina";
+import { useRotina, tarefasDoDia, habitoCumprido, pendentesAntesDe, tarefaPendente, DIA_VAZIO } from "../../estado/rotina";
 import { usePomodoro } from "../../estado/pomodoro";
 import { useInterface } from "../../estado/interface";
 import { useConfig } from "../../estado/configuracoes";
@@ -112,6 +112,49 @@ function IconeDoMarcador({ status }: { status: StatusTarefa }) {
   return <Check />;
 }
 
+function trazerParaHoje(ids: string[]) {
+  const alvo = new Set(ids);
+  const datasOriginais = new Map<string, string[]>();
+  for (const t of useRotina.getState().tarefas) {
+    if (!alvo.has(t.id) || !t.data) continue;
+    datasOriginais.set(t.data, [...(datasOriginais.get(t.data) ?? []), t.id]);
+  }
+  const movidas = useRotina.getState().moverTarefas(ids, hojeISO());
+  if (movidas === 0) return;
+  useInterface.getState().avisar(T.journal.trazidas(movidas), () => {
+    for (const [data, deVolta] of datasOriginais) useRotina.getState().moverTarefas(deVolta, data);
+  });
+}
+
+function PendentesAnteriores({ hoje }: { hoje: string }) {
+  const tarefas = useRotina((s) => s.tarefas);
+  const pendentes = useMemo(() => pendentesAntesDe(tarefas, hoje), [tarefas, hoje]);
+  const [aberto, setAberto] = useState(false);
+  if (pendentes.length === 0) return null;
+  return (
+    <div className="jn-pendentes">
+      <div className="jn-pendentes-topo">
+        <CalendarClock size={14} className="jn-pendentes-icone" />
+        <span className="jn-pendentes-titulo">{T.journal.pendentes(pendentes.length)}</span>
+        <Botao pequeno variante="fantasma" aria-expanded={aberto} onClick={() => setAberto((v) => !v)}>{aberto ? T.journal.ocultarPendentes : T.journal.verPendentes}</Botao>
+        <Botao pequeno onClick={() => trazerParaHoje(pendentes.map((t) => t.id))}>{T.journal.trazerTodas}</Botao>
+      </div>
+      {aberto && (
+        <ul className="jn-pendentes-lista" aria-label={T.journal.pendentesLista}>
+          {pendentes.map((t) => (
+            <li key={t.id} className="jn-pendentes-item">
+              <span className="jn-pendentes-data" title={formatar(t.data as string, "EEEE, d 'de' MMMM")}>{formatar(t.data as string, "dd/MM")}</span>
+              <span className="jn-pendentes-nome cortar privado">{t.titulo}</span>
+              {t.hora && <span className="jn-tarefa-hora">{t.hora}</span>}
+              <Botao pequeno variante="fantasma" aria-label={T.journal.trazerTarefa(t.titulo)} onClick={() => trazerParaHoje([t.id])}>{T.journal.trazer}</Botao>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
 function TarefaDoDia({ tarefa }: { tarefa: Tarefa }) {
   const mudarStatus = useRotina((s) => s.mudarStatus);
   const atualizar = useRotina((s) => s.atualizarTarefa);
@@ -189,6 +232,23 @@ function TarefaDoDia({ tarefa }: { tarefa: Tarefa }) {
                 </button>
               );
             })}
+            {tarefa.data !== hojeISO() && tarefaPendente(tarefa) && (
+              <>
+                <div className="menu-separador" role="separator" />
+                <button
+                  type="button"
+                  role="menuitem"
+                  className="menu-item"
+                  onClick={() => {
+                    setMenu(false);
+                    trazerParaHoje([tarefa.id]);
+                  }}
+                >
+                  <CalendarArrowDown size={14} />
+                  {T.journal.trazerParaHoje}
+                </button>
+              </>
+            )}
           </div>
         )}
       </div>
@@ -559,6 +619,7 @@ export default function Journal() {
                   </div>
                   {erroTarefa && <span className="campo-erro">{erroTarefa}</span>}
                 </form>
+                {data === hoje && <PendentesAnteriores hoje={hoje} />}
                 {doDia.length === 0 && <p className="jn-sem-tarefas">{T.journal.semTarefas}</p>}
                 {semHora.length > 0 && (
                   <div className="jn-periodo">

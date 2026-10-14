@@ -1,5 +1,6 @@
 use tauri::{AppHandle, Monitor, WebviewWindow};
 
+#[allow(clippy::upper_case_acronyms)]
 #[derive(Clone, Copy, Default)]
 pub struct RECT {
     pub left: i32,
@@ -25,7 +26,7 @@ pub fn retangulo_da_sobreposta(reserva: RECT, altura: i32) -> RECT {
 pub fn reservar_espaco_do_dock(_dock: &WebviewWindow, _reservar: bool) {}
 
 #[tauri::command]
-pub fn reservar_dock(_window: WebviewWindow, _reservar: bool) {}
+pub fn reservar_dock(_window: WebviewWindow, _reservar: bool, _altura: Option<f64>) {}
 
 #[tauri::command]
 pub fn barra_windows(_app: AppHandle, _ocultar_barra: bool) {}

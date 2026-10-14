@@ -413,6 +413,62 @@ test("datas de estudo e revisões rejeitam dados inválidos", () => {
   assert.equal(useEstudos.getState().paginas[0].conteudo, "Conteúdo válido");
 });
 
+test("apps fixados no dock são limpos e a escala cai na opção válida mais próxima", () => {
+  const icone = "data:image/png;base64,AAAA";
+  const c = configuracoesValidas({ dock: { escala: 0.74, fixados: [
+    { id: "Microsoft.VisualStudioCode", nome: "Visual Studio Code", chave: "c:\\code.exe", icone },
+    { id: "Microsoft.VisualStudioCode", nome: "Repetido", chave: "c:\\code.exe", icone },
+    { id: "sem-chave", nome: "Sem chave" },
+    { id: "ruim", nome: "Ruim\n", chave: "x" },
+    { id: "icone-estranho", nome: "App", chave: "c:\\app.exe", icone: "javascript:alert(1)" },
+    null,
+  ] } }, CONFIG_PADRAO);
+  assert.equal(c.dock.escala, 0.7);
+  assert.deepEqual(c.dock.fixados, [
+    { id: "Microsoft.VisualStudioCode", nome: "Visual Studio Code", chave: "c:\\code.exe", icone },
+    { id: "icone-estranho", nome: "App", chave: "c:\\app.exe", icone: null },
+  ]);
+  const antigos = configuracoesValidas({ dock: { ativo: true } }, CONFIG_PADRAO);
+  assert.equal(antigos.dock.escala, 1);
+  assert.deepEqual(antigos.dock.fixados, []);
+  const muitos = configuracoesValidas({ dock: { fixados: Array.from({ length: 40 }, (_, i) => ({ id: `a${i}`, nome: `App ${i}`, chave: `k${i}` })) } }, CONFIG_PADRAO);
+  assert.equal(muitos.dock.fixados.length, 20);
+});
+
+test("dock em vários monitores escolhe entre as janelas do próprio monitor e as de todos", async () => {
+  const { cadaDockMostraSeusApps } = await vite.ssrLoadModule("/src/janelas/dock/monitores.ts");
+  const dois = [{ nome: "A", rotulo: "dock", numero: 1, principal: true }, { nome: "B", rotulo: "dock-B", numero: 2, principal: false }];
+  assert.equal(cadaDockMostraSeusApps("todos", dois), true);
+  assert.equal(cadaDockMostraSeusApps("todos", dois, true), false);
+  assert.equal(cadaDockMostraSeusApps("A", dois), false);
+  assert.equal(cadaDockMostraSeusApps("todos", dois.slice(0, 1)), false);
+  assert.equal(configuracoesValidas({ dock: {} }, CONFIG_PADRAO).dock.appsDeTodosOsMonitores, false);
+});
+
+test("mídia na ilha fechada vem ligada em configurações antigas e respeita a escolha salva", () => {
+  assert.equal(configuracoesValidas({ ilha: { ativa: true } }, CONFIG_PADRAO).ilha.midiaNaCompacta, true);
+  assert.equal(configuracoesValidas({ ilha: { midiaNaCompacta: false } }, CONFIG_PADRAO).ilha.midiaNaCompacta, false);
+  assert.equal(configuracoesValidas({ ilha: { midiaNaCompacta: "não" } }, CONFIG_PADRAO).ilha.midiaNaCompacta, true);
+});
+
+test("dock mostra fixados primeiro, junta com as janelas abertas e mantém os outros apps depois", async () => {
+  const { agruparApps, ordenarComFixados } = await vite.ssrLoadModule("/src/janelas/dock/grupos.ts");
+  const janela = (id, caminho, grupo) => ({ id, pid: 1, titulo: id, minimizada: false, ativa: false, app: "x", nome: "x", caminho, icone: null, grupo });
+  const grupos = agruparApps([janela("1", "c:\\zen.exe"), janela("2", "c:\\chrome.exe", "Perfil 1"), janela("3", "c:\\chrome.exe", "Perfil 2"), janela("4", "c:\\code.exe")]);
+  const fixados = [
+    { id: "discord", nome: "Discord", chave: "c:\\discord.exe", icone: null },
+    { id: "chrome", nome: "Chrome", chave: "c:\\chrome.exe", icone: null },
+  ];
+  const entradas = ordenarComFixados(grupos, fixados);
+  assert.deepEqual(entradas.map((e) => [e.chave, e.lista.length, e.fixado?.id ?? null]), [
+    ["fixado:discord", 0, "discord"],
+    ["c:\\chrome.exe|Perfil 1", 1, "chrome"],
+    ["c:\\chrome.exe|Perfil 2", 1, null],
+    ["c:\\zen.exe", 1, null],
+    ["c:\\code.exe", 1, null],
+  ]);
+});
+
 test("botões opcionais do dock mantêm o padrão em configurações antigas e salvam escolhas independentes", async () => {
   const antigos = configuracoesValidas({ dock: { ativo: true } }, CONFIG_PADRAO);
   assert.equal(antigos.dock.mostrarIniciar, true);
@@ -487,6 +543,114 @@ test("backup rejeita referências inválidas e elimina campos que sobrescreveria
   assert.throws(() => validarBackup(backup("financas", { contas: [], transacoes: [{ ...transacao, id: "t", criadaEm: new Date().toISOString() }] })));
   const dados = validarBackup(backup("organizacao", { eventos: [], criarEvento: "quebrado" }));
   assert.equal(JSON.parse(dados["niko:organizacao"]).state.criarEvento, undefined);
+});
+
+test("Journal traz para hoje só as tarefas pendentes de dias anteriores", async () => {
+  const { useRotina, pendentesAntesDe } = await vite.ssrLoadModule("/src/estado/rotina.ts");
+  const base = { descricao: "", prioridade: "media", checklist: [], criadaEm: new Date().toISOString() };
+  const tarefas = [
+    { ...base, id: "a", titulo: "Ontem pendente", status: "a_fazer", data: "2026-10-13", ordem: 1 },
+    { ...base, id: "b", titulo: "Ontem feita", status: "concluida", data: "2026-10-13", ordem: 2 },
+    { ...base, id: "c", titulo: "Semana passada aguardando", status: "em_aguardo", data: "2026-10-06", hora: "09:00", ordem: 3 },
+    { ...base, id: "d", titulo: "Cancelada", status: "cancelada", data: "2026-10-10", ordem: 4 },
+    { ...base, id: "e", titulo: "Hoje", status: "a_fazer", data: "2026-10-14", ordem: 5 },
+    { ...base, id: "f", titulo: "Sem data", status: "a_fazer", ordem: 6 },
+  ];
+  assert.deepEqual(pendentesAntesDe(tarefas, "2026-10-14").map((t) => t.id), ["a", "c"]);
+  const anterior = useRotina.getState();
+  useRotina.setState({ tarefas, passado: [], futuro: [] });
+  try {
+    assert.equal(useRotina.getState().moverTarefas(["a", "c", "e"], "2026-10-14"), 2);
+    const porId = Object.fromEntries(useRotina.getState().tarefas.map((t) => [t.id, t]));
+    assert.equal(porId.a.data, "2026-10-14");
+    assert.equal(porId.c.data, "2026-10-14");
+    assert.equal(porId.c.hora, "09:00");
+    assert.equal(porId.b.data, "2026-10-13");
+    assert.equal(useRotina.getState().passado.length, 1);
+    useRotina.getState().desfazer();
+    assert.equal(useRotina.getState().tarefas.find((t) => t.id === "a").data, "2026-10-13");
+  } finally {
+    useRotina.setState(anterior);
+  }
+});
+
+test("ilha e dock somem em tela cheia só se a opção estiver ligada, e somem com os apps da lista", async () => {
+  const { deveSumirPelaFrente } = await vite.ssrLoadModule("/src/desktop/desktop.ts");
+  const regras = (esconderTelaCheia, apps = "") => ({ esconderTelaCheia, apps });
+  assert.equal(deveSumirPelaFrente(true, "chrome.exe", regras(true)), true);
+  assert.equal(deveSumirPelaFrente(true, "chrome.exe", regras(false)), false);
+  assert.equal(deveSumirPelaFrente(false, "obs64.exe", regras(false, "spotify.exe\r\nOBS64")), true);
+  assert.equal(deveSumirPelaFrente(false, "obs64.exe", regras(false, " obs64.exe \n")), true);
+  assert.equal(deveSumirPelaFrente(false, "obs.exe", regras(false, "obs64.exe")), false);
+  assert.equal(deveSumirPelaFrente(false, "", regras(false, "\n\n")), false);
+});
+
+test("no AppImage a status line do Claude usa uma cópia fixa do Node", async () => {
+  const { nodeDaStatus } = await vite.ssrLoadModule("/servidor/statusClaude.ts");
+  const { mkdtempSync, writeFileSync: gravar, readFileSync: ler, rmSync } = await import("node:fs");
+  const { tmpdir } = await import("node:os");
+  const { join: juntar } = await import("node:path");
+  const pasta = mkdtempSync(juntar(tmpdir(), "niko-status-"));
+  const montagem = juntar(pasta, "montagem-temporaria-node");
+  gravar(montagem, "node falso");
+  try {
+    assert.equal(nodeDaStatus("/usr/lib/Niko/recursos/node", undefined, pasta), "/usr/lib/Niko/recursos/node");
+    const fixa = nodeDaStatus(montagem, "/home/a/Niko.AppImage", juntar(pasta, "dados"));
+    assert.equal(fixa, juntar(pasta, "dados", "node-da-status"));
+    assert.equal(ler(fixa, "utf8"), "node falso");
+    assert.equal(nodeDaStatus(montagem, "/home/a/Niko.AppImage", juntar(pasta, "dados")), fixa);
+  } finally {
+    rmSync(pasta, { recursive: true, force: true });
+  }
+});
+
+test("o app instalado liga a ponte no Windows e no Linux, e o modo de desenvolvimento não", async () => {
+  const { paginaDoAppInstalado } = await vite.ssrLoadModule("/src/desktop/desktop.ts");
+  assert.equal(paginaDoAppInstalado(new URL("http://tauri.localhost/index.html")), true);
+  assert.equal(paginaDoAppInstalado(new URL("tauri://localhost/index.html")), true);
+  assert.equal(paginaDoAppInstalado(new URL("http://localhost:5420/")), false);
+});
+
+test("backup com uma área danificada restaura as outras e lista a danificada", async () => {
+  const { lerBackup } = await vite.ssrLoadModule("/src/utilitarios/backupValido.ts");
+  const misto = { tipo: "niko-backup", versao: 1, dados: { ...backup("financas", { transacoes: "erro" }).dados, ...backup("agentes", { atividades: [], alertas: [] }, 1).dados } };
+  const { dados, ignoradas } = lerBackup(misto);
+  assert.deepEqual(Object.keys(dados), ["niko:agentes"]);
+  assert.deepEqual(ignoradas, ["financas"]);
+});
+
+test("exportação só grava nomes simples com extensões conhecidas", async () => {
+  const { nomeDeExportacaoValido } = await vite.ssrLoadModule("/servidor/arquivos.ts");
+  assert.equal(nomeDeExportacaoValido("niko-backup-2026-10-14.json"), "niko-backup-2026-10-14.json");
+  assert.equal(nomeDeExportacaoValido("visual-2026-10-14.niko-visual"), "visual-2026-10-14.niko-visual");
+  assert.equal(nomeDeExportacaoValido("..\\..\\Windows\\backup.json"), "Windowsbackup.json");
+  for (const nome of ["programa.exe", "atalho.lnk", "", ".json", "a".repeat(130) + ".json", 42]) assert.throws(() => nomeDeExportacaoValido(nome), String(nome).slice(0, 20));
+});
+
+test("exportação grava o conteúdo cru sem substituir um arquivo de mesmo nome", async () => {
+  const { exportarParaDownloads } = await vite.ssrLoadModule("/servidor/arquivos.ts");
+  const { plataforma } = await vite.ssrLoadModule("/servidor/plataforma/index.ts");
+  const { mkdtempSync, readFileSync: ler, rmSync } = await import("node:fs");
+  const { tmpdir } = await import("node:os");
+  const { join: juntar } = await import("node:path");
+  const { Readable } = await import("node:stream");
+  const pasta = mkdtempSync(juntar(tmpdir(), "niko-exportar-"));
+  const original = { pastaDeDownloads: plataforma.pastaDeDownloads, mostrarArquivoNaPasta: plataforma.mostrarArquivoNaPasta };
+  const mostrados = [];
+  plataforma.pastaDeDownloads = async () => pasta;
+  plataforma.mostrarArquivoNaPasta = (c) => mostrados.push(c);
+  const pedido = (texto) => Object.assign(Readable.from([Buffer.from(texto)]), { headers: {} });
+  try {
+    const primeiro = await exportarParaDownloads(pedido('{"a":"ção"}'), "niko-backup.json", true);
+    const segundo = await exportarParaDownloads(pedido("outro"), "niko-backup.json", false);
+    assert.equal(ler(primeiro.caminho, "utf8"), '{"a":"ção"}');
+    assert.match(segundo.caminho, /niko-backup \(2\)\.json$/);
+    assert.deepEqual(mostrados, [primeiro.caminho]);
+    await assert.rejects(exportarParaDownloads(pedido(""), "vazio.json", false));
+  } finally {
+    Object.assign(plataforma, original);
+    rmSync(pasta, { recursive: true, force: true });
+  }
 });
 
 test("todas as coleções reais atuais podem ser exportadas e validadas", async () => {
