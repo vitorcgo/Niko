@@ -270,8 +270,20 @@ fn iniciar_ponte(app: &AppHandle, token: &str, reinicio: bool) {
         return;
     };
     let recursos = sem_prefixo(pasta.join("recursos"));
-    let node = plataforma::node_da_ponte(&recursos);
+    let node = if cfg!(windows) {
+        recursos.join("node.exe")
+    } else {
+        recursos.join("node")
+    };
+    if !node.exists() {
+        registrar(format!("Node embutido não encontrado: {}", node.display()));
+        return;
+    }
     let script = recursos.join("ponte.mjs");
+    if !script.exists() {
+        registrar(format!("Script da ponte não encontrado: {}", script.display()));
+        return;
+    }
     let saida_erro = dados.as_ref().and_then(|p| {
         let caminho = sem_prefixo(p.join("ponte.log"));
         if reinicio {

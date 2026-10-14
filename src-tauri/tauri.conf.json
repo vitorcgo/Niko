@@ -22,7 +22,9 @@
                    "active":  true,
                    "targets":  [
                                    "nsis",
-                                   "msi"
+                                   "msi",
+                                   "deb",
+                                   "rpm"
                                ],
                    "icon":  [
                                 "icons/32x32.png",
@@ -32,6 +34,7 @@
                             ],
                    "resources":  {
                                      "recursos/node.exe":  "recursos/node.exe",
+                                     "recursos/node": "recursos/node",
                                      "recursos/ponte.mjs":  "recursos/ponte.mjs"
                                  },
                    "publisher":  "vitorcgo",
