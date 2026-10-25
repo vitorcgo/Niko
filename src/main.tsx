@@ -76,7 +76,7 @@ async function iniciar() {
   }
   createRoot(raiz).render(
     <StrictMode>
-      <LimiteDeErro>
+      <LimiteDeErro recuperarSozinho={sobreposta}>
         <Raiz />
       </LimiteDeErro>
     </StrictMode>,

@@ -332,6 +332,7 @@ export function VisaoMidia() {
   const midia = useMidia();
   const dados = usarDadosDaMidia(true);
   const layout = useConfig((s) => s.ilha.layoutDaMidia);
+  const c1 = usarCorDaCapa(dados?.faixa ?? null);
   if (!dados) {
     return (
       <Cartao>
@@ -346,7 +347,6 @@ export function VisaoMidia() {
     );
   }
 
-  const c1 = usarCorDaCapa(dados.faixa);
   return (
     <Cartao veu={layout === "cartaz" ? undefined : c1}>
       <PlayerDaMidia

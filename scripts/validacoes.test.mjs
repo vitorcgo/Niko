@@ -862,6 +862,27 @@ test("componentes do easyui: escala, curva sem ultrapassar, busca, cartão do to
   assert.equal(series["7d"][5].valor, 80000);
 });
 
+test("aba mídia chama todos os hooks antes de sair sem faixa, para não quebrar ao pular a música", () => {
+  const fonte = readFileSync(new URL("../src/janelas/ilha/Visoes.tsx", import.meta.url), "utf8");
+  const inicio = fonte.indexOf("export function VisaoMidia()");
+  const corpo = fonte.slice(inicio, fonte.indexOf("\nexport function", inicio + 1));
+  const saida = corpo.indexOf("if (!dados)");
+  assert.ok(saida > 0);
+  assert.doesNotMatch(corpo.slice(saida), /\b(use|usar)[A-Z]\w*\(/);
+});
+
+test("ilha e dock se recuperam sozinhos de uma falha e só recarregam se ela se repetir", async () => {
+  const { proximaRecuperacao } = await vite.ssrLoadModule("/src/componentes/LimiteDeErro.tsx");
+  let r = proximaRecuperacao([], 100_000);
+  assert.equal(r.acao, "remontar");
+  r = proximaRecuperacao(r.falhas, 105_000);
+  assert.equal(r.acao, "remontar");
+  r = proximaRecuperacao(r.falhas, 110_000);
+  assert.equal(r.acao, "recarregar");
+  assert.equal(proximaRecuperacao([100_000, 105_000], 200_000).acao, "remontar");
+  assert.deepEqual(proximaRecuperacao([100_000, 105_000], 200_000).falhas, [200_000]);
+});
+
 test("cor da capa: pega o tom predominante e ignora preto, branco e transparente", async () => {
   const { corPredominante } = await vite.ssrLoadModule("/src/janelas/ilha/midia/corDaCapa.ts");
   const pixels = (lista) => new Uint8ClampedArray(lista.flat());
