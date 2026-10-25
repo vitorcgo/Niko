@@ -669,7 +669,7 @@ while ($true) {
         foreach ($id in @($pedido.ids)) { $lista += @{ id = [string]$id; icone = (IconeDoAppInstalado ([string]$id)) } }
         $r = @{ icones = $lista }
       }
-      'abrirApp' { AbrirApp ([string]$pedido.id) ($pedido.admin -eq $true); $r = @{ ok = $true } }
+      'abrirApp' { AbrirApp ([string]$pedido.app) ($pedido.admin -eq $true); $r = @{ ok = $true } }
       'appDaJanela' {
         $achado = AppDaJanela $pedido.caminho $pedido.nome
         $r = @{ app = $(if ($achado) { [string]$achado.id } else { $null }); nomeDoApp = $(if ($achado) { [string]$achado.nome } else { $null }) }
@@ -724,7 +724,7 @@ export const controle: Plataforma["controle"] = {
   encerrarDaBandeja: async (caminho) => pedir({ acao: "encerrarDaBandeja", caminho: exeDaBandeja(caminho) }),
   apps: (forcar) => pedir({ acao: "apps", forcar }, 40000),
   iconesDeApps: (ids) => pedir({ acao: "iconesApps", ids }, 30000),
-  abrirApp: (id, admin) => pedir({ acao: "abrirApp", id, admin }, 30000),
+  abrirApp: (app, admin) => pedir({ acao: "abrirApp", app, admin }, 30000),
   async appDaJanela(caminho, nome) {
     const r = await pedir<{ app?: unknown; nomeDoApp?: unknown }>({ acao: "appDaJanela", caminho, nome }, 40000);
     const id = typeof r.app === "string" && r.app ? r.app : null;

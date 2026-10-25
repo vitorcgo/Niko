@@ -66,6 +66,7 @@ export function criarProcessoPowerShell(prefixo: string, script: string, erroAoE
   };
 
   const pedir = (pedido: Record<string, unknown>, limiteMs = 15000): Promise<unknown> => {
+    if (Object.hasOwn(pedido, "id")) return Promise.reject(new Error("campo_id_reservado"));
     const p = iniciar();
     const id = ++contador;
     return new Promise((resolver, rejeitar) => {

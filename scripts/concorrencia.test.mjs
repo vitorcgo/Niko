@@ -70,6 +70,27 @@ test("saída e erro do PowerShell antigo não cancelam o processo novo", async (
   ponte.encerrar();
 });
 
+test("abrir app manda o identificador intacto e cada resposta volta para o pedido certo", async () => {
+  const { ponte, filhos } = processoSimulado();
+  const apps = ["Microsoft.WindowsCalculator_8wekyb3d8bbwe!App", "Microsoft.WindowsNotepad_8wekyb3d8bbwe!App", "C:\\Atalhos\\Jogo (x86).lnk"];
+  const respostas = apps.map((app) => ponte.pedir({ acao: "abrirApp", app, admin: false }));
+  const pedidos = filhos[0].pedidos;
+  assert.deepEqual(pedidos.map((p) => p.app), apps);
+  assert.ok(pedidos.every((p) => Number.isInteger(p.id)));
+  assert.equal(new Set(pedidos.map((p) => p.id)).size, apps.length);
+  for (const p of [...pedidos].reverse()) filhos[0].stdout.emit("line", JSON.stringify({ id: p.id, eco: p.app }));
+  assert.deepEqual((await Promise.all(respostas)).map((r) => r.eco), apps);
+  assert.equal(await ponte.pedir({ acao: "abrirApp", id: "colide" }).catch((e) => e.message), "campo_id_reservado");
+  ponte.encerrar();
+});
+
+test("PowerShell do controle lê o app do campo próprio, não do id de correlação", () => {
+  const fonte = readFileSync("servidor/plataforma/windows/controle.ts", "utf8");
+  assert.match(fonte, /'abrirApp' \{ AbrirApp \(\[string\]\$pedido\.app\)/);
+  assert.match(fonte, /abrirApp: \(app, admin\) => pedir\(\{ acao: "abrirApp", app, admin \}/);
+  assert.doesNotMatch(fonte, /pedir\(\{[^}]*\bid\b[,:} ]/);
+});
+
 test("encerrar o PowerShell rejeita pedidos imediatamente, mesmo sem evento exit", async () => {
   const { ponte, filhos, relogio } = processoSimulado();
   const a = ponte.pedir({}).catch((e) => e.message);
