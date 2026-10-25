@@ -1,12 +1,13 @@
 import { spawn } from "node:child_process";
 import type { Plataforma } from "../tipos.ts";
+import { AMBIENTE_DO_SISTEMA } from "./comum.ts";
 
 const PREFIXO = "Niko/";
 const TEMPO_LIMITE_MS = 20000;
 
 function secretTool(argumentos: string[], entrada = ""): Promise<{ codigo: number; saida: string }> {
   return new Promise((resolver, rejeitar) => {
-    const processo = spawn("secret-tool", argumentos, { stdio: ["pipe", "pipe", "ignore"] });
+    const processo = spawn("secret-tool", argumentos, { stdio: ["pipe", "pipe", "ignore"], env: AMBIENTE_DO_SISTEMA });
     let saida = "";
     const relogio = setTimeout(() => {
       processo.kill();

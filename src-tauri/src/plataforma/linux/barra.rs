@@ -1,5 +1,5 @@
 use std::path::PathBuf;
-use std::process::{Command, Stdio};
+use std::process::Stdio;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex;
 use std::time::Duration;
@@ -34,12 +34,12 @@ fn arquivo_recuperacao(app: &AppHandle) -> Option<PathBuf> {
 }
 
 fn saida_de(programa: &str, argumentos: &[&str]) -> Option<String> {
-    let saida = Command::new(programa).args(argumentos).stdin(Stdio::null()).stderr(Stdio::null()).output().ok()?;
+    let saida = super::comando_do_sistema(programa).args(argumentos).stdin(Stdio::null()).stderr(Stdio::null()).output().ok()?;
     saida.status.success().then(|| String::from_utf8_lossy(&saida.stdout).into_owned())
 }
 
 fn rodar(programa: &str, argumentos: &[&str]) -> bool {
-    Command::new(programa).args(argumentos).stdin(Stdio::null()).stdout(Stdio::null()).stderr(Stdio::null()).status().is_ok_and(|s| s.success())
+    super::comando_do_sistema(programa).args(argumentos).stdin(Stdio::null()).stdout(Stdio::null()).stderr(Stdio::null()).status().is_ok_and(|s| s.success())
 }
 
 fn docks_do_gnome_ligados() -> Vec<&'static str> {

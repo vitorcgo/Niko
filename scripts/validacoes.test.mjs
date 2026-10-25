@@ -883,6 +883,32 @@ test("ilha e dock se recuperam sozinhos de uma falha e só recarregam se ela se 
   assert.deepEqual(proximaRecuperacao([100_000, 105_000], 200_000).falhas, [200_000]);
 });
 
+test("programas abertos pelo Niko no AppImage não herdam as bibliotecas do pacote", async () => {
+  const { ambienteSemAppImage } = await vite.ssrLoadModule("/servidor/plataforma/linux/comum.ts");
+  const pasta = "/tmp/.mount_NikoAb12";
+  const limpo = ambienteSemAppImage({
+    APPDIR: pasta,
+    APPIMAGE: "/home/eu/Niko.AppImage",
+    ARGV0: "Niko.AppImage",
+    PATH: `${pasta}/usr/bin:/usr/local/bin:/usr/bin`,
+    LD_LIBRARY_PATH: `${pasta}/usr/lib:${pasta}/usr/lib/x86_64-linux-gnu`,
+    XDG_DATA_DIRS: `${pasta}/usr/share:/usr/local/share:/usr/share`,
+    GST_PLUGIN_SYSTEM_PATH_1_0: `${pasta}/usr/lib/gstreamer-1.0`,
+    HOME: "/home/eu",
+    DISPLAY: ":0",
+  });
+  assert.equal(limpo.PATH, "/usr/local/bin:/usr/bin");
+  assert.equal(limpo.XDG_DATA_DIRS, "/usr/local/share:/usr/share");
+  assert.equal(limpo.LD_LIBRARY_PATH, undefined);
+  assert.equal(limpo.GST_PLUGIN_SYSTEM_PATH_1_0, undefined);
+  assert.equal(limpo.APPDIR, undefined);
+  assert.equal(limpo.APPIMAGE, undefined);
+  assert.equal(limpo.HOME, "/home/eu");
+  assert.equal(limpo.DISPLAY, ":0");
+  const fora = { PATH: "/usr/bin", LD_LIBRARY_PATH: "/opt/lib" };
+  assert.deepEqual(ambienteSemAppImage(fora), fora);
+});
+
 test("lupa explica por que um app não abriu em vez de uma mensagem genérica", async () => {
   const { mensagemDeFalhaAoAbrir } = await vite.ssrLoadModule("/src/janelas/dock/BuscaApps.tsx");
   assert.match(mensagemDeFalhaAoAbrir(new Error("app_desconhecido"), "Calculadora", "x"), /Calculadora não foi encontrado/);

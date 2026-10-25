@@ -2,7 +2,7 @@
 // globais do plugin não funcionam com outro app na frente. Aqui eles viram atalhos personalizados do
 // próprio GNOME, que rodam `niko --acao <ação>`; a instância única repassa a ação ao Niko aberto.
 
-use std::process::{Command, Stdio};
+use std::process::Stdio;
 use std::sync::Mutex;
 
 const ESQUEMA: &str = "org.gnome.settings-daemon.plugins.media-keys";
@@ -19,7 +19,7 @@ fn no_gnome_wayland() -> bool {
 }
 
 fn gsettings(args: &[&str]) -> Option<String> {
-    let saida = Command::new("gsettings").args(args).stdin(Stdio::null()).stderr(Stdio::null()).output().ok()?;
+    let saida = super::comando_do_sistema("gsettings").args(args).stdin(Stdio::null()).stderr(Stdio::null()).output().ok()?;
     saida.status.success().then(|| String::from_utf8_lossy(&saida.stdout).trim().to_string())
 }
 

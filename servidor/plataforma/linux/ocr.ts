@@ -1,5 +1,6 @@
 import { execFile } from "node:child_process";
 import type { ResultadoOcr } from "../tipos.ts";
+import { AMBIENTE_DO_SISTEMA } from "./comum.ts";
 
 const TEMPO_LIMITE = 60_000;
 
@@ -13,7 +14,7 @@ interface Resultado {
 
 function rodar(argumentos: string[], limiteMs: number): Promise<Resultado> {
   return new Promise((resolver, rejeitar) => {
-    execFile("tesseract", argumentos, { timeout: limiteMs, encoding: "utf8", maxBuffer: 32 * 1024 * 1024 }, (erro, saida, erros) => {
+    execFile("tesseract", argumentos, { timeout: limiteMs, encoding: "utf8", maxBuffer: 32 * 1024 * 1024, env: AMBIENTE_DO_SISTEMA }, (erro, saida, erros) => {
       if (!erro) return resolver({ saida, erros });
       const e = erro as NodeJS.ErrnoException & { killed?: boolean };
       if (e.code === "ENOENT") return rejeitar(new Error("ocr_indisponivel"));

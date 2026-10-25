@@ -3,7 +3,26 @@ import { readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 
-const AMBIENTE = { ...process.env, LC_ALL: "C.UTF-8", LANG: "C.UTF-8" };
+const VARIAVEIS_DO_APPIMAGE = new Set(["APPDIR", "APPIMAGE", "ARGV0", "OWD"]);
+
+export function ambienteSemAppImage(base: NodeJS.ProcessEnv = process.env): NodeJS.ProcessEnv {
+  const pasta = base.APPDIR;
+  if (!pasta || !base.APPIMAGE) return { ...base };
+  const limpo: NodeJS.ProcessEnv = {};
+  for (const [chave, valor] of Object.entries(base)) {
+    if (valor === undefined || VARIAVEIS_DO_APPIMAGE.has(chave)) continue;
+    if (!valor.includes(pasta)) {
+      limpo[chave] = valor;
+      continue;
+    }
+    const partes = valor.split(":").filter((parte) => parte && !parte.startsWith(pasta));
+    if (partes.length) limpo[chave] = partes.join(":");
+  }
+  return limpo;
+}
+
+export const AMBIENTE_DO_SISTEMA = ambienteSemAppImage();
+const AMBIENTE = { ...AMBIENTE_DO_SISTEMA, LC_ALL: "C.UTF-8", LANG: "C.UTF-8" };
 const TAMANHO_MAXIMO_DO_ICONE = 300_000;
 
 export function rodar(programa: string, argumentos: string[], limiteMs = 8000, entrada?: string): Promise<string> {
@@ -38,7 +57,7 @@ export function lerArquivo(caminho: string): string | null {
 
 export function abrirDesacoplado(programa: string, argumentos: string[]): Promise<void> {
   return new Promise((resolver, rejeitar) => {
-    const filho = spawn(programa, argumentos, { detached: true, stdio: "ignore" });
+    const filho = spawn(programa, argumentos, { detached: true, stdio: "ignore", env: AMBIENTE_DO_SISTEMA });
     filho.on("error", rejeitar);
     filho.on("spawn", () => {
       filho.unref();
@@ -49,7 +68,7 @@ export function abrirDesacoplado(programa: string, argumentos: string[]): Promis
 
 export function lancar(programa: string, argumentos: string[], limiteMs = 15000): Promise<void> {
   return new Promise((resolver, rejeitar) => {
-    const filho = spawn(programa, argumentos, { detached: true, stdio: "ignore" });
+    const filho = spawn(programa, argumentos, { detached: true, stdio: "ignore", env: AMBIENTE_DO_SISTEMA });
     const relogio = setTimeout(() => rejeitar(new Error("tempo_esgotado")), limiteMs);
     filho.on("error", (erro) => {
       clearTimeout(relogio);

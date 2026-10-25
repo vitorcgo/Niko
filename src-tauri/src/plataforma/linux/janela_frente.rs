@@ -1,4 +1,4 @@
-use std::process::{Command, Stdio};
+use std::process::Stdio;
 use std::sync::Mutex;
 use std::time::{Duration, Instant};
 
@@ -83,7 +83,7 @@ fn janela_do_x11() -> Option<Janela> {
 }
 
 fn chamar_extensao(metodo: &str, id: Option<u64>) -> Option<serde_json::Value> {
-    let mut comando = Command::new("busctl");
+    let mut comando = super::comando_do_sistema("busctl");
     comando.args(["--user", "--json=short", "--timeout=1", "call", DESTINO_DA_EXTENSAO, CAMINHO_DA_EXTENSAO, INTERFACE_DA_EXTENSAO, metodo]);
     if let Some(id) = id {
         comando.args(["u", &id.to_string()]);

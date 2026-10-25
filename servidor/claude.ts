@@ -7,6 +7,7 @@ import { randomBytes, randomUUID, timingSafeEqual } from "node:crypto";
 import { pastaDados } from "./ia.ts";
 import { donoDaConexao, focarJanelaDoProcesso, processoEstaNaFrente } from "./controleRapido.ts";
 import { plataforma } from "./plataforma/index.ts";
+import { ambienteSemAppImage } from "./plataforma/linux/comum.ts";
 import { CAMINHO_DA_STATUS, anteriorDaStatus, caminhoDoScript, ehStatusDoNiko, garantirScript, receberStatus, statusDoNiko } from "./statusClaude.ts";
 import { metricasDaStatus, type MetricasDaSessao } from "../src/modulos/escritorio/metricasDaSessao.ts";
 import { estadoDoEvento } from "../src/utilitarios/estadoDoEvento.ts";
@@ -769,7 +770,7 @@ export function decidirPedido(corpo: Record<string, unknown>) {
 }
 
 function abrirDesacoplado(programa: string, argumentos: string[]) {
-  const ambiente = { ...process.env };
+  const ambiente = ambienteSemAppImage();
   delete ambiente.ELECTRON_RUN_AS_NODE;
   const filho = spawn(programa, argumentos, { detached: true, stdio: "ignore", windowsHide: false, env: ambiente });
   filho.on("error", () => undefined);

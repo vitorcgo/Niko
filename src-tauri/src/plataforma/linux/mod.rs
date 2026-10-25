@@ -45,8 +45,33 @@ pub fn preparar_ambiente() {
     }
 }
 
+pub(crate) fn comando_do_sistema(programa: &str) -> Command {
+    let mut comando = Command::new(programa);
+    let Some(pasta) = std::env::var("APPDIR").ok().filter(|p| !p.is_empty() && std::env::var_os("APPIMAGE").is_some()) else {
+        return comando;
+    };
+    for chave in ["APPDIR", "APPIMAGE", "ARGV0", "OWD"] {
+        comando.env_remove(chave);
+    }
+    for (chave, valor) in std::env::vars_os() {
+        let Some(texto) = valor.to_str() else {
+            continue;
+        };
+        if !texto.contains(pasta.as_str()) {
+            continue;
+        }
+        let partes: Vec<&str> = texto.split(':').filter(|parte| !parte.is_empty() && !parte.starts_with(pasta.as_str())).collect();
+        if partes.is_empty() {
+            comando.env_remove(&chave);
+        } else {
+            comando.env(&chave, partes.join(":"));
+        }
+    }
+    comando
+}
+
 pub fn tempo_ocioso_ms() -> u64 {
-    let Ok(saida) = Command::new("gdbus")
+    let Ok(saida) = comando_do_sistema("gdbus")
         .args(["call", "--session", "--dest", "org.gnome.Mutter.IdleMonitor", "--object-path", "/org/gnome/Mutter/IdleMonitor/Core", "--method", "org.gnome.Mutter.IdleMonitor.GetIdletime"])
         .stdin(Stdio::null())
         .stderr(Stdio::null())
@@ -91,7 +116,7 @@ pub fn digita_com_altgr(_atalho: &Shortcut) -> bool {
 }
 
 pub fn abrir_no_sistema(endereco: &str) -> Result<(), String> {
-    let mut filho = Command::new("xdg-open").arg(endereco).stdin(Stdio::null()).stdout(Stdio::null()).stderr(Stdio::null()).spawn().map_err(|_| "falha_ao_abrir".to_string())?;
+    let mut filho = comando_do_sistema("xdg-open").arg(endereco).stdin(Stdio::null()).stdout(Stdio::null()).stderr(Stdio::null()).spawn().map_err(|_| "falha_ao_abrir".to_string())?;
     std::thread::spawn(move || {
         let _ = filho.wait();
     });
