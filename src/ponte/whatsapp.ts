@@ -14,6 +14,7 @@ export interface MensagemWhatsapp {
   visualizacaoUnica?: boolean;
   encaminhada?: boolean;
   tamanho?: number;
+  local?: boolean;
 }
 
 export interface ConversaWhatsapp {
@@ -42,6 +43,7 @@ export interface EstadoWhatsapp {
   erro: string;
   filtros: { silenciarGrupos: boolean; lerAoAbrir: boolean; esconderArquivadas: boolean; esconderGrupos: boolean; mostrarFotos: boolean; ignoradas: string[] };
   conversas: ConversaWhatsapp[];
+  aberta?: ConversaWhatsapp | null;
   naoLidas: number;
   seq: number;
 }

@@ -49,6 +49,7 @@ import { alturaDasConexoes } from "./alturaDasConexoes";
 import { atrasoDeFechamento, editandoNaIlha } from "./fechamento";
 import { VisaoTime } from "./VisaoTime";
 import { VisaoWhatsapp, usarAvisosDoWhatsapp } from "./VisaoWhatsapp";
+import { useWhatsapp } from "../../estado/whatsapp";
 import "./ilha.css";
 
 const ICONE_ABA: Record<AbaIlha, LucideIcon> = {
@@ -94,7 +95,7 @@ function alturaDaVisao(visao: VisaoIlha, secaoHoje: SecaoHoje, alturaConexoes: n
   return visao === "hoje" ? ALTURA_DO_HOJE[secaoHoje] : ALTURA_ABA[visao];
 }
 
-const LARGURA_ABA: Partial<Record<VisaoIlha, number>> = { claude: 820, time: 780 };
+const LARGURA_ABA: Partial<Record<VisaoIlha, number>> = { claude: 820, time: 780, whatsapp: 760 };
 
 const ESCALA = { pequena: 0.85, media: 1, grande: 1.15 };
 
@@ -224,6 +225,7 @@ export function Ilha() {
   const desligadas = useConfig((s) => s.funcoesDesligadas);
   const comAvisos = agentes.alertas.length > 0 || (estado === "expandida" && aba === "avisos");
   const whatsappLigado = usarAvisosDoWhatsapp();
+  const naoLidasDoWhatsapp = useWhatsapp((s) => (s.estado?.vinculo === "conectado" ? s.estado.naoLidas : 0));
   const abas = cfg.ordemAbas.filter((a) => cfg.blocos[a] && (a !== "avisos" || comAvisos) && (a !== "whatsapp" || whatsappLigado) && abaLigada(a, desligadas));
   const capturaDisponivel = tiposDeCapturaLigados(desligadas).length > 0;
   const abaAtual: VisaoIlha = aba === "captura" && capturaDisponivel ? "captura" : abas.includes(aba as AbaIlha) ? aba : abas[0] ?? "hoje";
@@ -711,6 +713,7 @@ export function Ilha() {
                             {a === abaAtual && <span className="ilha-aba-nome">{T.ilha.abas[a]}</span>}
                             {a === "claude" && pedidosClaude.length > 0 && <span className="ilha-aba-selo">{pedidosClaude.length}</span>}
                             {a === "avisos" && naoVistos > 0 && <span className="ilha-aba-selo">{naoVistos}</span>}
+                            {a === "whatsapp" && naoLidasDoWhatsapp > 0 && <span key={naoLidasDoWhatsapp} className="ilha-aba-selo" data-whatsapp title={T.whatsapp.naoLidasNaIlha(naoLidasDoWhatsapp)}>{naoLidasDoWhatsapp > 99 ? "99+" : naoLidasDoWhatsapp}</span>}
                           </motion.button>
                         );
                       })}

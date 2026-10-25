@@ -1,15 +1,21 @@
-import { useEffect, useRef, useState } from "react";
-import { ArrowLeft, AtSign, EyeOff, Forward, Paperclip, Play, Send, Settings2 } from "lucide-react";
+import { Fragment, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { format, isToday, isYesterday } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import {
+  ArrowLeft, AtSign, BellDot, Check, CircleAlert, Clock, Contact, EyeOff, FileText, Forward, Image, MapPin, MessagesSquare, Mic, Paperclip, Play, RotateCw, Search, Send, Settings2, Sticker, Users, Video, X,
+  type LucideIcon,
+} from "lucide-react";
 import { T } from "../../textos/textos";
 import { useWhatsapp } from "../../estado/whatsapp";
 import { avisoLigado, useIlha } from "../../estado/ilha";
 import { useConfig } from "../../estado/configuracoes";
 import { useInterface } from "../../estado/interface";
 import { tocarSom } from "../../ponte/sons";
-import { corDoNome, iniciaisDoNome, whatsappPonte, type ConversaWhatsapp, type MensagemWhatsapp, type NovidadeWhatsapp } from "../../ponte/whatsapp";
+import { corDoNome, iniciaisDoNome, numeroDoJid, whatsappPonte, type ConversaWhatsapp, type MensagemWhatsapp, type NovidadeWhatsapp } from "../../ponte/whatsapp";
 import { horarioRelativo } from "../../utilitarios/datas";
 import { formatarTamanho } from "../../utilitarios/anexos";
 import { mensagemDoWhatsapp } from "../../modulos/conexoes/ConexaoWhatsapp";
+import { filtrarConversas, type FiltroDaLista } from "../../utilitarios/conversasWhatsapp";
 
 const W = T.whatsapp;
 const NOVIDADES_MS = 4000;
@@ -63,13 +69,32 @@ export function usarAvisosDoWhatsapp(): boolean {
   return ligado;
 }
 
-function Avatar({ nome, foto, tamanho = 30 }: { nome: string; foto?: string | null; tamanho?: number }) {
-  if (foto) return <img className="whatsapp-avatar whatsapp-avatar-foto" src={foto} alt="" width={tamanho} height={tamanho} />;
-  return (
-    <span className="whatsapp-avatar" style={{ width: tamanho, height: tamanho, background: corDoNome(nome) }} aria-hidden="true">
+function Avatar({ nome, foto, tamanho = 30, grupo }: { nome: string; foto?: string | null; tamanho?: number; grupo?: boolean }) {
+  const imagem = foto ? (
+    <img className="whatsapp-avatar whatsapp-avatar-foto" src={foto} alt="" width={tamanho} height={tamanho} />
+  ) : (
+    <span className="whatsapp-avatar" style={{ width: tamanho, height: tamanho, background: corDoNome(nome), fontSize: Math.round(tamanho * 0.36) }} aria-hidden="true">
       {iniciaisDoNome(nome)}
     </span>
   );
+  if (!grupo) return imagem;
+  return (
+    <span className="whatsapp-avatar-caixa">
+      {imagem}
+      <span className="whatsapp-avatar-grupo" title={W.grupo}><Users size={9} strokeWidth={2.5} /></span>
+    </span>
+  );
+}
+
+const ICONE_DA_MIDIA: Record<string, LucideIcon> = { imagem: Image, video: Video, audio: Mic, documento: FileText, figurinha: Sticker, localizacao: MapPin, contato: Contact, outra: Paperclip };
+
+const horaDaMensagem = (iso: string) => format(new Date(iso), "HH:mm");
+
+function diaDaMensagem(iso: string): string {
+  const data = new Date(iso);
+  if (isToday(data)) return W.hoje;
+  if (isYesterday(data)) return W.ontem;
+  return format(data, "d 'de' MMMM", { locale: ptBR });
 }
 
 function rotuloDaMidia(m: MensagemWhatsapp): string {
@@ -124,11 +149,28 @@ function MidiaDaMensagem({ jid, m }: { jid: string; m: MensagemWhatsapp }) {
   return <img className="whatsapp-imagem" data-tipo={m.midia} src={url} alt={tipo} />;
 }
 
-function previa(m: MensagemWhatsapp | undefined): string {
-  if (!m) return "";
-  const midia = m.midia !== "nenhuma" ? rotuloDaMidia(m) : "";
-  const corpo = [midia, m.texto].filter(Boolean).join(" . ");
-  return m.minha ? `${W.voce}: ${corpo}` : corpo;
+function Previa({ m }: { m: MensagemWhatsapp | undefined }) {
+  if (!m) return null;
+  const Icone = m.midia !== "nenhuma" ? ICONE_DA_MIDIA[m.midia] ?? Paperclip : null;
+  const corpo = m.texto || (m.midia !== "nenhuma" ? rotuloDaMidia(m) : "");
+  return (
+    <span className="whatsapp-item-previa privado">
+      {m.minha && <Check size={12} className="whatsapp-previa-check" aria-label={W.voce} />}
+      {Icone && <Icone size={12} className="whatsapp-previa-icone" aria-hidden="true" />}
+      <span className="cortar">{corpo}</span>
+    </span>
+  );
+}
+
+interface Pendente {
+  chave: string;
+  texto: string;
+  estado: "enviando" | "falhou";
+  erro?: string;
+}
+
+function assinaturaDaConversa(c: ConversaWhatsapp): string {
+  return `${c.foto ?? ""}|${c.mensagens.map((m) => `${m.id}:${m.data}`).join(",")}`;
 }
 
 function Conversa({ conversa, aoVoltar, aoAtualizar }: { conversa: ConversaWhatsapp; aoVoltar: () => void; aoAtualizar: (c: ConversaWhatsapp) => void }) {
@@ -136,8 +178,51 @@ function Conversa({ conversa, aoVoltar, aoAtualizar }: { conversa: ConversaWhats
   const [enviando, setEnviando] = useState(false);
   const [erro, setErro] = useState("");
   const [arquivo, setArquivo] = useState<File | null>(null);
+  const [pendentes, setPendentes] = useState<Pendente[]>([]);
   const lista = useRef<HTMLDivElement>(null);
   const seletor = useRef<HTMLInputElement>(null);
+  const campo = useRef<HTMLTextAreaElement>(null);
+  const fila = useRef<Pendente[]>([]);
+  const jaVistas = useRef(new Set(conversa.mensagens.map((m) => m.id)));
+  const recemEnviados = useRef(new Set<string>());
+  const [voando, setVoando] = useState(0);
+  const processando = useRef(false);
+  const montada = useRef(true);
+  const atualizar = useRef(aoAtualizar);
+  atualizar.current = aoAtualizar;
+
+  useEffect(() => {
+    montada.current = true;
+    campo.current?.focus();
+    return () => {
+      montada.current = false;
+    };
+  }, []);
+
+  const processarFila = async () => {
+    if (processando.current) return;
+    processando.current = true;
+    while (fila.current.length) {
+      const p = fila.current[0];
+      try {
+        const atualizada = await whatsappPonte.enviar(conversa.id, p.texto);
+        if (atualizada && montada.current) atualizar.current(atualizada);
+        recemEnviados.current.add(p.texto);
+        setPendentes((l) => l.filter((x) => x.chave !== p.chave));
+        void tocarSom("send", "interface");
+      } catch (e) {
+        setPendentes((l) => l.map((x) => (x.chave === p.chave ? { ...x, estado: "falhou", erro: mensagemDoWhatsapp(e) } : x)));
+        void tocarSom("error", "avisos");
+      }
+      fila.current.shift();
+    }
+    processando.current = false;
+  };
+
+  const enfileirar = (p: Pendente) => {
+    fila.current.push(p);
+    void processarFila();
+  };
 
   const escolherArquivo = (f: File | undefined) => {
     if (!f) return;
@@ -171,37 +256,48 @@ function Conversa({ conversa, aoVoltar, aoAtualizar }: { conversa: ConversaWhats
   useEffect(() => {
     const el = lista.current;
     if (el) el.scrollTop = el.scrollHeight;
-  }, [ultimaMensagem]);
+  }, [ultimaMensagem, pendentes.length]);
 
-  const enviar = async () => {
-    const limpo = texto.trim();
-    if (!limpo || enviando) return;
-    setEnviando(true);
-    setErro("");
-    try {
-      const atualizada = await whatsappPonte.enviar(conversa.id, limpo);
-      if (atualizada) aoAtualizar(atualizada);
-      setTexto("");
-      void tocarSom("send", "interface");
-    } catch (e) {
-      setErro(mensagemDoWhatsapp(e));
-      void tocarSom("error", "avisos");
-    } finally {
-      setEnviando(false);
+  useEffect(() => {
+    for (const m of conversa.mensagens) {
+      jaVistas.current.add(m.id);
+      if (m.minha) recemEnviados.current.delete(m.texto);
     }
+  }, [conversa.mensagens]);
+
+  const enviar = () => {
+    const limpo = texto.trim();
+    if (!limpo) return;
+    setErro("");
+    setVoando((v) => v + 1);
+    const p: Pendente = { chave: `${Date.now()}-${Math.random().toString(36).slice(2)}`, texto: limpo, estado: "enviando" };
+    setPendentes((l) => [...l, p]);
+    setTexto("");
+    enfileirar(p);
   };
+
+  const tentarDeNovo = (p: Pendente) => {
+    const novo: Pendente = { ...p, estado: "enviando", erro: undefined };
+    setPendentes((l) => l.map((x) => (x.chave === p.chave ? novo : x)));
+    enfileirar(novo);
+  };
+
+  const subtitulo = conversa.grupo ? W.grupo : numeroDoJid(conversa.id);
 
   return (
     <div className="ilha-chat whatsapp-conversa">
       <div className="linha-entre whatsapp-topo">
         <button type="button" className="ilha-botao ilha-botao-icone" aria-label={W.voltar} title={W.voltar} onClick={aoVoltar}><ArrowLeft size={14} /></button>
-        <Avatar nome={conversa.nome} foto={conversa.foto} tamanho={24} />
-        <span className="ilha-titulo cortar privado" style={{ flex: 1 }}>{conversa.nome}</span>
+        <Avatar nome={conversa.nome} foto={conversa.foto} tamanho={30} grupo={conversa.grupo} />
+        <span className="coluna whatsapp-topo-textos">
+          <span className="ilha-titulo cortar privado">{conversa.nome}</span>
+          <span className="whatsapp-topo-sub cortar privado">{conversa.grupo && <Users size={10} />}{subtitulo}</span>
+        </span>
         <button
           type="button"
           className="ilha-botao ilha-botao-icone"
           aria-label={W.ignorar}
-          title={W.ignorar}
+          title={`${W.ignorar}. ${W.ignorarDica}`}
           onClick={() => {
             void whatsappPonte.ignorar(conversa.id, true).then((e) => useWhatsapp.getState().definir(e));
             aoVoltar();
@@ -211,13 +307,37 @@ function Conversa({ conversa, aoVoltar, aoAtualizar }: { conversa: ConversaWhats
         </button>
       </div>
       <div ref={lista} className="ilha-chat-lista whatsapp-mensagens">
-        {conversa.mensagens.map((m) => (
-          <div key={m.id} className="whatsapp-mensagem" data-minha={m.minha ? "sim" : "nao"} data-mencao={m.mencionaMe || undefined}>
-            {conversa.grupo && !m.minha && m.nomeRemetente && <span className="whatsapp-remetente privado" style={{ color: corDoNome(m.nomeRemetente) }}>{m.nomeRemetente}</span>}
-            {m.encaminhada && <span className="whatsapp-encaminhada"><Forward size={10} /> {W.encaminhada}</span>}
-            {m.midia !== "nenhuma" && <MidiaDaMensagem jid={conversa.id} m={m} />}
-            {m.texto && <span className="whatsapp-texto privado">{m.texto}</span>}
-            <span className="whatsapp-hora">{horarioRelativo(m.data)}</span>
+        {conversa.mensagens.map((m, i) => {
+          const dia = diaDaMensagem(m.data);
+          const novoDia = i === 0 || diaDaMensagem(conversa.mensagens[i - 1].data) !== dia;
+          return (
+            <Fragment key={m.id}>
+              {novoDia && <span className="whatsapp-dia">{dia}</span>}
+              <div className="whatsapp-mensagem" data-minha={m.minha ? "sim" : "nao"} data-mencao={m.mencionaMe || undefined} data-nova={(!jaVistas.current.has(m.id) && !(m.minha && recemEnviados.current.has(m.texto))) || undefined}>
+                {conversa.grupo && !m.minha && m.nomeRemetente && <span className="whatsapp-remetente privado" style={{ color: corDoNome(m.nomeRemetente) }}>{m.nomeRemetente}</span>}
+                {m.encaminhada && <span className="whatsapp-encaminhada"><Forward size={10} /> {W.encaminhada}</span>}
+                {m.midia !== "nenhuma" && <MidiaDaMensagem jid={conversa.id} m={m} />}
+                {m.texto && <span className="whatsapp-texto privado">{m.texto}</span>}
+                <span className="whatsapp-hora" title={new Date(m.data).toLocaleString("pt-BR")}>
+                  {horaDaMensagem(m.data)}
+                  {m.minha && <Check size={11} aria-label={W.enviada} />}
+                </span>
+              </div>
+            </Fragment>
+          );
+        })}
+        {pendentes.map((p) => (
+          <div key={p.chave} className="whatsapp-mensagem" data-minha="sim" data-pendente={p.estado}>
+            <span className="whatsapp-texto privado">{p.texto}</span>
+            {p.estado === "falhou" ? (
+              <span className="whatsapp-falhou" role="status">
+                <CircleAlert size={11} /> {p.erro || W.naoEnviou}
+                <button type="button" onClick={() => tentarDeNovo(p)}><RotateCw size={10} /> {W.tentarDeNovo}</button>
+                <button type="button" aria-label={W.descartar} title={W.descartar} onClick={() => setPendentes((l) => l.filter((x) => x.chave !== p.chave))}><X size={10} /></button>
+              </span>
+            ) : (
+              <span className="whatsapp-hora"><Clock size={11} aria-label={W.enviandoMensagem} /></span>
+            )}
           </div>
         ))}
       </div>
@@ -237,6 +357,7 @@ function Conversa({ conversa, aoVoltar, aoAtualizar }: { conversa: ConversaWhats
         <button type="button" className="ilha-botao ilha-botao-icone" aria-label={W.anexar} title={W.anexar} disabled={enviando} onClick={() => seletor.current?.click()}><Paperclip size={13} /></button>
         <div className="ilha-campo" style={{ flex: 1 }}>
           <textarea
+            ref={campo}
             className="whatsapp-resposta"
             rows={Math.min(4, texto.split("\n").length)}
             value={texto}
@@ -247,7 +368,7 @@ function Conversa({ conversa, aoVoltar, aoAtualizar }: { conversa: ConversaWhats
             onKeyDown={(e) => {
               if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
                 e.preventDefault();
-                void enviar();
+                enviar();
               } else if (e.key === "Escape") {
                 e.preventDefault();
                 e.stopPropagation();
@@ -256,7 +377,7 @@ function Conversa({ conversa, aoVoltar, aoAtualizar }: { conversa: ConversaWhats
             }}
           />
         </div>
-        <button type="button" className="ilha-botao ilha-botao-icone" aria-label={W.enviar} title={W.enviar} disabled={!texto.trim() || enviando} onClick={() => void enviar()}><Send size={13} /></button>
+        <button type="button" className="ilha-botao ilha-botao-icone whatsapp-enviar" aria-label={W.enviar} title={W.enviar} disabled={!texto.trim()} onClick={enviar}><Send key={voando} size={13} data-voou={voando > 0 || undefined} /></button>
       </div>
     </div>
   );
@@ -266,8 +387,10 @@ export function VisaoWhatsapp() {
   const estado = useWhatsapp((s) => s.estado);
   const carregar = useWhatsapp((s) => s.carregar);
   const irPara = useInterface((s) => s.irPara);
+  const pedidoEm = useWhatsapp((s) => s.pedidoEm);
   const [aberta, setAberta] = useState<ConversaWhatsapp | null>(null);
   const abertaRef = useRef<string | null>(null);
+  const aplicadaEm = useRef(0);
 
   useEffect(() => {
     void carregar();
@@ -279,17 +402,21 @@ export function VisaoWhatsapp() {
   }, [carregar]);
 
   useEffect(() => {
-    if (!aberta) return;
-    const atual = estado?.conversas.find((c) => c.id === aberta.id);
-    const ultimaId = (c: ConversaWhatsapp) => c.mensagens[c.mensagens.length - 1]?.id;
-    if (atual && (ultimaId(atual) !== ultimaId(aberta) || atual.mensagens.length !== aberta.mensagens.length || atual.foto !== aberta.foto)) setAberta(atual);
-  }, [estado, aberta]);
+    if (!aberta || pedidoEm <= aplicadaEm.current) return;
+    const atual = estado?.aberta?.id === aberta.id ? estado.aberta : estado?.conversas.find((c) => c.id === aberta.id);
+    if (atual && assinaturaDaConversa(atual) !== assinaturaDaConversa(aberta)) setAberta(atual);
+  }, [estado, pedidoEm, aberta]);
+
+  const atualizarAberta = (c: ConversaWhatsapp) => {
+    aplicadaEm.current = Date.now();
+    setAberta(c);
+  };
 
   const abrir = async (c: ConversaWhatsapp) => {
     abertaRef.current = c.id;
     setAberta(c);
     const completa = await whatsappPonte.abrir(c.id).catch(() => null);
-    if (completa && abertaRef.current === c.id) setAberta(completa);
+    if (completa && abertaRef.current === c.id) atualizarAberta(completa);
     void carregar();
   };
 
@@ -308,31 +435,80 @@ export function VisaoWhatsapp() {
     );
   }
 
-  if (aberta) return <Conversa conversa={aberta} aoVoltar={voltar} aoAtualizar={setAberta} />;
+  if (aberta) return <Conversa key={aberta.id} conversa={aberta} aoVoltar={voltar} aoAtualizar={atualizarAberta} />;
+
+  return <ListaDeConversas conversas={estado.conversas} naoLidas={estado.naoLidas} aoAbrir={(c) => void abrir(c)} aoOpcoes={() => irPara("conexoes", { servico: "whatsapp" })} />;
+}
+
+const FILTROS: { id: FiltroDaLista; icone: LucideIcon }[] = [
+  { id: "todas", icone: MessagesSquare },
+  { id: "naoLidas", icone: BellDot },
+  { id: "grupos", icone: Users },
+];
+
+function ListaDeConversas({ conversas, naoLidas, aoAbrir, aoOpcoes }: { conversas: ConversaWhatsapp[]; naoLidas: number; aoAbrir: (c: ConversaWhatsapp) => void; aoOpcoes: () => void }) {
+  const [filtro, setFiltro] = useState<FiltroDaLista>("todas");
+  const [busca, setBusca] = useState("");
+  const visiveis = useMemo(() => filtrarConversas(conversas, filtro, busca), [conversas, filtro, busca]);
+  const contagem: Record<FiltroDaLista, ReactNode> = {
+    todas: null,
+    naoLidas: naoLidas > 0 ? <span className="ilha-chip-numero numero">{naoLidas}</span> : null,
+    grupos: null,
+  };
 
   return (
-    <div className="ilha-chat whatsapp-lista">
-      {estado.conversas.length === 0 && <span className="ilha-sub">{W.semConversas}</span>}
-      {estado.conversas.map((c) => {
-        const ultima = c.mensagens[c.mensagens.length - 1];
-        const mencao = c.grupo && c.mensagens.some((m) => m.mencionaMe && !m.minha);
-        return (
-          <button key={c.id} type="button" className="whatsapp-item" data-nao-lida={c.naoLidas > 0 || undefined} onClick={() => void abrir(c)}>
-            <Avatar nome={c.nome} foto={c.foto} />
-            <span className="whatsapp-item-textos">
-              <span className="whatsapp-item-nome cortar privado">{c.nome}</span>
-              <span className="whatsapp-item-previa cortar privado">{previa(ultima)}</span>
-            </span>
-            <span className="whatsapp-item-lado">
-              <span className="ilha-mini numero">{horarioRelativo(c.ultimaAtividade)}</span>
-              <span className="linha" style={{ gap: 4 }}>
-                {mencao && <span className="whatsapp-mencao" title={W.mencao}><AtSign size={10} /></span>}
-                {c.naoLidas > 0 && <span className="whatsapp-nao-lidas numero">{c.naoLidas}</span>}
-              </span>
-            </span>
-          </button>
-        );
-      })}
+    <div className="whatsapp-painel">
+      <div className="whatsapp-barra">
+        <label className="ilha-campo whatsapp-busca">
+          <Search size={13} aria-hidden="true" />
+          <input value={busca} placeholder={W.buscar} aria-label={W.buscar} maxLength={60} onChange={(e) => setBusca(e.target.value)} />
+          {busca && <button type="button" className="whatsapp-limpar" aria-label={T.geral.fechar} onClick={() => setBusca("")}><X size={12} /></button>}
+        </label>
+        <div className="ilha-chips" role="tablist" aria-label={W.aba}>
+          {FILTROS.map(({ id, icone: Icone }) => (
+            <button key={id} type="button" role="tab" className="ilha-chip" aria-pressed={filtro === id} aria-selected={filtro === id} onClick={() => setFiltro(id)}>
+              <Icone size={12} />
+              {W.filtrosDaLista[id]}
+              {contagem[id]}
+            </button>
+          ))}
+        </div>
+        <button type="button" className="ilha-botao ilha-botao-icone" aria-label={W.opcoes} title={W.opcoes} onClick={aoOpcoes}><Settings2 size={13} /></button>
+      </div>
+      <div className="ilha-chat whatsapp-lista">
+        {visiveis.length === 0 && <span className="ilha-sub whatsapp-vazio">{busca.trim() ? W.vazioDoFiltro.busca : W.vazioDoFiltro[filtro]}</span>}
+        {visiveis.map((c, indice) => {
+          const ultima = c.mensagens[c.mensagens.length - 1];
+          const mencao = c.grupo && c.mensagens.some((m) => m.mencionaMe && !m.minha);
+          return (
+            <div key={c.id} className="whatsapp-item-linha" style={{ ["--ordem" as string]: Math.min(indice, 8) }}>
+              <button type="button" className="whatsapp-item" data-nao-lida={c.naoLidas > 0 || undefined} onClick={() => aoAbrir(c)}>
+                <Avatar nome={c.nome} foto={c.foto} tamanho={36} grupo={c.grupo} />
+                <span className="whatsapp-item-textos">
+                  <span className="whatsapp-item-nome cortar privado">{c.nome}</span>
+                  <Previa m={ultima} />
+                </span>
+                <span className="whatsapp-item-lado">
+                  <span className="ilha-mini numero whatsapp-item-hora">{horarioRelativo(c.ultimaAtividade)}</span>
+                  <span className="linha" style={{ gap: 4 }}>
+                    {mencao && <span className="whatsapp-mencao" title={W.mencao}><AtSign size={10} /></span>}
+                    {c.naoLidas > 0 && <span key={c.naoLidas} className="whatsapp-nao-lidas numero">{c.naoLidas > 99 ? "99+" : c.naoLidas}</span>}
+                  </span>
+                </span>
+              </button>
+              <button
+                type="button"
+                className="whatsapp-item-esconder"
+                aria-label={`${W.ignorar}: ${c.nome}`}
+                title={`${W.ignorar}. ${W.ignorarDica}`}
+                onClick={() => void whatsappPonte.ignorar(c.id, true).then((e) => useWhatsapp.getState().definir(e))}
+              >
+                <EyeOff size={13} />
+              </button>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }

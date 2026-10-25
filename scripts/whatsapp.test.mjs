@@ -107,6 +107,65 @@ test("caixa do whatsapp silencia grupos sem menção, ignora conversas e limita 
   assert.equal(caixa.iniciais("+55 11"), "#");
 });
 
+test("status e canais do whatsapp não viram conversa", () => {
+  const c = new caixa.CaixaWhatsapp();
+  const filtros = { silenciarGrupos: true, ignoradas: [] };
+  const m = (id, conversa) => ({ id, conversa, remetente: "5511888880000@s.whatsapp.net", nomeRemetente: "Ana", texto: "foto", midia: "imagem", data: new Date().toISOString(), minha: false, mencionaMe: false });
+  assert.equal(c.adicionar(m("s1", "status@broadcast"), filtros), "ignorada");
+  assert.equal(c.adicionar(m("s2", "120363000000@newsletter"), filtros), "ignorada");
+  c.registrarConversa("status@broadcast", "Status", new Date().toISOString(), filtros);
+  assert.equal(c.visiveis(filtros).length, 0);
+  assert.equal(c.naoLidasVisiveis(filtros), 0);
+});
+
+test("mensagem enviada pega o horário do servidor e para de furar a ordem da conversa", () => {
+  const c = new caixa.CaixaWhatsapp();
+  const filtros = { silenciarGrupos: true, ignoradas: [] };
+  const jid = "5511888880000@s.whatsapp.net";
+  const m = (id, data, extra = {}) => ({ id, conversa: jid, remetente: jid, nomeRemetente: "Ana", texto: id, midia: "nenhuma", data, minha: false, mencionaMe: false, ...extra });
+  c.adicionar(m("antiga", "2026-10-25T12:00:00.000Z"), filtros, true);
+  c.adicionar(m("minha", "2026-10-25T12:05:00.000Z", { minha: true, local: true }), filtros);
+  c.adicionar(m("resposta", "2026-10-25T12:03:30.000Z"), filtros);
+  assert.deepEqual(c.conversas.get(jid).mensagens.map((x) => x.id), ["antiga", "resposta", "minha"]);
+  assert.equal(c.adicionar(m("minha", "2026-10-25T12:03:00.000Z", { minha: true }), filtros, true), "repetida");
+  const conversa = c.conversas.get(jid);
+  assert.deepEqual(conversa.mensagens.map((x) => x.id), ["antiga", "minha", "resposta"]);
+  assert.equal(conversa.mensagens[1].local, false);
+  assert.equal(conversa.ultimaAtividade, "2026-10-25T12:03:30.000Z");
+  c.adicionar(m("resposta", "2026-10-25T13:00:00.000Z"), filtros, true);
+  assert.equal(conversa.mensagens.at(-1).data, "2026-10-25T12:03:30.000Z");
+});
+
+test("lista do whatsapp na ilha filtra por não lidas, grupos e nome sem ligar para acento de caixa", async () => {
+  const { filtrarConversas } = await vite.ssrLoadModule("/src/utilitarios/conversasWhatsapp.ts");
+  const c = (id, nome, grupo, naoLidas) => ({ id, nome, grupo, naoLidas, mensagens: [], ultimaAtividade: "" });
+  const lista = [c("1", "Juliana", false, 1), c("2", "Família Silva", true, 3), c("3", "Marcos", false, 0)];
+  assert.deepEqual(filtrarConversas(lista, "naoLidas", "").map((x) => x.id), ["1", "2"]);
+  assert.deepEqual(filtrarConversas(lista, "grupos", "").map((x) => x.id), ["2"]);
+  assert.deepEqual(filtrarConversas(lista, "todas", "FAMÍ").map((x) => x.id), ["2"]);
+  assert.deepEqual(filtrarConversas(lista, "grupos", "marcos"), []);
+});
+
+test("consulta antiga do whatsapp que chega atrasada não apaga mensagem recém-enviada", async () => {
+  const { useWhatsapp } = await vite.ssrLoadModule("/src/estado/whatsapp.ts");
+  const { whatsappPonte } = await vite.ssrLoadModule("/src/ponte/whatsapp.ts");
+  const original = whatsappPonte.estado;
+  const respostas = [];
+  whatsappPonte.estado = () => new Promise((resolver) => respostas.push(resolver));
+  try {
+    const lenta = useWhatsapp.getState().carregar();
+    await new Promise((r) => setTimeout(r, 5));
+    const rapida = useWhatsapp.getState().carregar();
+    respostas[1]({ naoLidas: 2 });
+    await rapida;
+    respostas[0]({ naoLidas: 1 });
+    await lenta;
+    assert.equal(useWhatsapp.getState().estado.naoLidas, 2);
+  } finally {
+    whatsappPonte.estado = original;
+  }
+});
+
 test("webhook do whatsapp só aceita a assinatura certa e lê a mensagem", () => {
   const corpo = Buffer.from(JSON.stringify({ event: "message", device_id: "5511777770000@s.whatsapp.net", payload: { id: "ABC", chat_id: "1203@g.us", from: "5511888880000@s.whatsapp.net", from_name: "Bia", body: "@5511777770000 olha", timestamp: "2026-10-22T10:00:00Z", is_from_me: false, image: {} } }));
   const assinatura = `sha256=${createHmac("sha256", "segredo").update(corpo).digest("hex")}`;
