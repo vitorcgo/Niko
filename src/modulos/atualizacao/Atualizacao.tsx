@@ -9,6 +9,7 @@ import { Marca } from "../../marcas/Marca";
 import { useAtualizacao } from "../../estado/atualizacao";
 import { NATIVO } from "../../desktop/desktop";
 import { T } from "../../textos/textos";
+import { SeuNikoAteAgora } from "./SeuNikoAteAgora";
 
 const REPOSITORIO = "https://github.com/vitorcgo/niko";
 const VERSOES = `${REPOSITORIO}/releases`;
@@ -131,6 +132,7 @@ export default function Atualizacao() {
             </details>
           )}
           {versoes.slice(0, 1).map((v) => <GavetaDaVersao key={v.versao} versao={v} atual aberta={parametros.secao === "novidades"} />)}
+          <SeuNikoAteAgora />
           {versoes.length > 1 && (
             <details className="atualizacao-gaveta">
               <summary className="atualizacao-gaveta-botao">
