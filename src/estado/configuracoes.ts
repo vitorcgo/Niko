@@ -76,6 +76,7 @@ export const GRUPO_DA_ROTA: Record<Rota, "principal" | "organizacao" | "ferramen
   conquistas: "ferramentas",
   configuracoes: "ferramentas",
   agentes: "principal",
+  whatsapp: "principal",
 };
 
 export const BLOCOS_INICIO_PADRAO: { id: BlocoInicio; visivel: boolean }[] = [

@@ -2696,5 +2696,44 @@
 }
 
 .whatsapp-mensagem[data-minha="sim"] .whatsapp-hora svg {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.whatsapp-mensagem[data-minha="sim"] .whatsapp-hora svg[data-lida] {
   color: #53bdeb;
+}
+
+.whatsapp-previa-arquivo {
+  display: grid;
+  flex: none;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.whatsapp-previa-arquivo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.whatsapp-selo {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 100%;
+  overflow: hidden;
+  font-size: 10.5px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.whatsapp-selo[data-tipo="apagada"] {
+  color: #ff8a8a;
+}
+
+.whatsapp-selo[data-tipo="editada"] {
+  color: #d4a6e3;
 }

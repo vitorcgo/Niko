@@ -15,6 +15,46 @@ export interface MensagemWhatsapp {
   encaminhada?: boolean;
   tamanho?: number;
   local?: boolean;
+  apagada?: string;
+  editada?: string;
+  textoOriginal?: string;
+  reacoes?: ReacaoWhatsapp[];
+  entrega?: "entregue" | "lida";
+}
+
+export interface ReacaoWhatsapp {
+  de: string;
+  nome: string;
+  emoji: string;
+  minha: boolean;
+}
+
+export interface RastroWhatsapp {
+  tipo: "apagada" | "editada";
+  id: string;
+  conversa: string;
+  nomeDaConversa: string;
+  grupo: boolean;
+  remetente: string;
+  nomeRemetente: string;
+  texto: string;
+  textoNovo?: string;
+  midia: MidiaWhatsapp;
+  nomeDoArquivo?: string;
+  data: string;
+  quando: string;
+}
+
+export interface AgendadaWhatsapp {
+  id: string;
+  jid: string;
+  nome: string;
+  resumo: string;
+  tipo: string;
+  situacao: string;
+  quando: string;
+  proxima: string | null;
+  erro: string;
 }
 
 export interface ConversaWhatsapp {
@@ -46,6 +86,8 @@ export interface EstadoWhatsapp {
   aberta?: ConversaWhatsapp | null;
   naoLidas: number;
   seq: number;
+  digitando?: Record<string, { nome: string; audio: boolean }>;
+  rastros?: number;
 }
 
 export interface NovidadeWhatsapp {
@@ -97,6 +139,15 @@ export const whatsappPonte = {
   enviar: (jid: string, texto: string) => pedir<ConversaWhatsapp | null>("enviar", { jid, texto }),
   desconectar: () => pedir<EstadoWhatsapp>("desconectar", {}),
   esquecer: () => pedir<EstadoWhatsapp>("esquecer", {}),
+  historico: (jid: string, deslocamento: number, busca = "") =>
+    pedir<{ mensagens: MensagemWhatsapp[]; total: number | null; fim: boolean }>(`historico?${new URLSearchParams({ jid, deslocamento: String(deslocamento), busca })}`),
+  editar: (jid: string, id: string, texto: string) => pedir<MensagemWhatsapp | null>("editar", { jid, id, texto }),
+  apagar: (jid: string, id: string) => pedir<MensagemWhatsapp | null>("apagar", { jid, id }),
+  rastros: () => pedir<{ rastros: RastroWhatsapp[] }>("rastros"),
+  limparRastros: () => pedir<{ rastros: RastroWhatsapp[] }>("limpar-rastros", {}),
+  agendadas: () => pedir<{ agendadas: AgendadaWhatsapp[] }>("agendadas"),
+  agendar: (jid: string, texto: string, quando: string) => pedir<{ agendadas: AgendadaWhatsapp[] }>("agendar", { jid, texto, quando }),
+  cancelarAgendada: (id: string) => pedir<{ agendadas: AgendadaWhatsapp[] }>("cancelar-agendada", { id }),
 };
 
 export function numeroDoJid(jid: string | null): string {

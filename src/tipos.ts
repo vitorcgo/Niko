@@ -25,7 +25,8 @@ export type Rota =
   | "consumo"
   | "conquistas"
   | "configuracoes"
-  | "agentes";
+  | "agentes"
+  | "whatsapp";
 
 export type StatusTarefa = "a_fazer" | "em_andamento" | "concluida" | "reagendada" | "cancelada" | "em_aguardo";
 

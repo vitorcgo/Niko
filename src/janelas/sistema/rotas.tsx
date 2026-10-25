@@ -15,6 +15,7 @@ import {
   Trophy,
   Settings,
   Users,
+  MessageCircle,
   type LucideIcon,
 } from "lucide-react";
 import type { Rota } from "../../tipos";
@@ -35,6 +36,7 @@ export const ICONE_ROTA: Record<Rota, LucideIcon> = {
   conquistas: Trophy,
   configuracoes: Settings,
   agentes: Users,
+  whatsapp: MessageCircle,
 };
 
 export const PAGINA_ROTA: Record<Rota, React.LazyExoticComponent<() => React.JSX.Element>> = {
@@ -53,4 +55,5 @@ export const PAGINA_ROTA: Record<Rota, React.LazyExoticComponent<() => React.JSX
   conquistas: lazy(() => import("../../modulos/conquistas/Conquistas")),
   configuracoes: lazy(() => import("../../modulos/configuracoes/Configuracoes")),
   agentes: lazy(() => import("../../modulos/agentes/Agentes")),
+  whatsapp: lazy(() => import("../../modulos/whatsapp/Whatsapp")),
 };

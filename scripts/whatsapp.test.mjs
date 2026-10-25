@@ -72,7 +72,7 @@ test("gateway do whatsapp escolhe o build certo e só baixa do github", () => {
   assert.equal(ambiente.APP_HOST, "127.0.0.1");
   assert.equal(ambiente.APP_UI_ENABLED, "false");
   assert.equal(ambiente.WHATSAPP_AUTO_DOWNLOAD_MEDIA, "false");
-  assert.equal(ambiente.WHATSAPP_WEBHOOK_EVENTS, "message");
+  assert.deepEqual(ambiente.WHATSAPP_WEBHOOK_EVENTS.split(","), ["message", "message.revoked", "message.edited", "message.reaction", "message.ack", "chat_presence"]);
 });
 
 test("caixa do whatsapp silencia grupos sem menção, ignora conversas e limita envios", () => {
@@ -136,14 +136,23 @@ test("mensagem enviada pega o horário do servidor e para de furar a ordem da co
   assert.equal(conversa.mensagens.at(-1).data, "2026-10-25T12:03:30.000Z");
 });
 
-test("lista do whatsapp na ilha filtra por não lidas, grupos e nome sem ligar para acento de caixa", async () => {
-  const { filtrarConversas } = await vite.ssrLoadModule("/src/utilitarios/conversasWhatsapp.ts");
+test("lista do whatsapp deixa grupos só na aba de grupos e busca sem ligar para caixa", async () => {
+  const { filtrarConversas, naoLidasDasConversas } = await vite.ssrLoadModule("/src/utilitarios/conversasWhatsapp.ts");
   const c = (id, nome, grupo, naoLidas) => ({ id, nome, grupo, naoLidas, mensagens: [], ultimaAtividade: "" });
   const lista = [c("1", "Juliana", false, 1), c("2", "Família Silva", true, 3), c("3", "Marcos", false, 0)];
-  assert.deepEqual(filtrarConversas(lista, "naoLidas", "").map((x) => x.id), ["1", "2"]);
+  assert.deepEqual(filtrarConversas(lista, "todas", "").map((x) => x.id), ["1", "3"]);
+  assert.deepEqual(filtrarConversas(lista, "naoLidas", "").map((x) => x.id), ["1"]);
   assert.deepEqual(filtrarConversas(lista, "grupos", "").map((x) => x.id), ["2"]);
-  assert.deepEqual(filtrarConversas(lista, "todas", "FAMÍ").map((x) => x.id), ["2"]);
-  assert.deepEqual(filtrarConversas(lista, "grupos", "marcos"), []);
+  assert.deepEqual(filtrarConversas(lista, "grupos", "FAMÍ").map((x) => x.id), ["2"]);
+  assert.deepEqual(filtrarConversas(lista, "todas", "família"), []);
+  assert.equal(naoLidasDasConversas(lista), 1);
+});
+
+test("nomes dos grupos vêm da lista de grupos do gateway", async () => {
+  const whatsapp = await vite.ssrLoadModule("/servidor/whatsapp/whatsapp.ts");
+  const nomes = whatsapp.nomesDeGruposDoGateway({ results: { data: [{ JID: "120363@g.us", Name: " Família " }, { JID: "5511@s.whatsapp.net", Name: "Pessoa" }, { JID: "999@g.us", Name: "" }, null] } });
+  assert.deepEqual([...nomes], [["120363@g.us", "Família"]]);
+  assert.equal(whatsapp.nomesDeGruposDoGateway(null).size, 0);
 });
 
 test("consulta antiga do whatsapp que chega atrasada não apaga mensagem recém-enviada", async () => {
@@ -164,6 +173,87 @@ test("consulta antiga do whatsapp que chega atrasada não apaga mensagem recém-
   } finally {
     whatsappPonte.estado = original;
   }
+});
+
+test("eventos do webhook viram rastros de apagada e editada, reações e entrega", () => {
+  const c = new caixa.CaixaWhatsapp();
+  const filtros = { silenciarGrupos: true, ignoradas: [] };
+  const pessoa = "5511888880000@s.whatsapp.net";
+  const base = { conversa: pessoa, remetente: pessoa, nomeRemetente: "Ana", midia: "nenhuma", mencionaMe: false };
+  c.adicionar({ ...base, id: "a1", texto: "segredo", data: "2026-10-25T10:00:00.000Z", minha: false }, filtros);
+  c.adicionar({ ...base, id: "a2", texto: "oi", data: "2026-10-25T10:01:00.000Z", minha: false }, filtros);
+  c.adicionar({ ...base, id: "eu1", texto: "minha", data: "2026-10-25T10:02:00.000Z", minha: true }, filtros);
+
+  const apagada = caixa.eventoDoWebhook({ event: "message.revoked", payload: { id: "rv", chat_id: pessoa, revoked_message_id: "a1", timestamp: "2026-10-25T10:05:00Z" } });
+  assert.deepEqual(apagada, { tipo: "apagada", id: "a1", quando: "2026-10-25T10:05:00.000Z" });
+  const rastro = c.aplicarApagada(apagada.id, apagada.quando);
+  assert.equal(rastro.tipo, "apagada");
+  assert.equal(rastro.texto, "segredo");
+  assert.equal(rastro.nomeDaConversa, "Ana");
+  assert.equal(c.conversas.get(pessoa).mensagens.find((m) => m.id === "a1").apagada, "2026-10-25T10:05:00.000Z");
+  assert.equal(c.aplicarApagada("a1", apagada.quando), null);
+  assert.equal(c.aplicarApagada("desconhecida", apagada.quando), null);
+  assert.equal(c.aplicarApagada("eu1", apagada.quando), null);
+
+  const editada = caixa.eventoDoWebhook({ event: "message.edited", payload: { original_message_id: "a2", body: "olá", timestamp: "2026-10-25T10:06:00Z" } });
+  const rastroEditado = c.aplicarEdicao(editada.id, editada.texto, editada.quando);
+  assert.equal(rastroEditado.texto, "oi");
+  assert.equal(rastroEditado.textoNovo, "olá");
+  const a2 = c.mensagem("a2");
+  assert.equal(a2.texto, "olá");
+  assert.equal(a2.textoOriginal, "oi");
+  c.aplicarEdicao("a2", "olá de novo", "2026-10-25T10:07:00.000Z");
+  assert.equal(c.mensagem("a2").textoOriginal, "oi");
+
+  const reacao = caixa.eventoDoWebhook({ event: "message.reaction", payload: { reacted_message_id: "eu1", from: "5511888880000:2@s.whatsapp.net", sender_display_name: "Ana", reaction: "+1", is_from_me: false } });
+  assert.ok(c.aplicarReacao(reacao.id, reacao.reacao));
+  assert.equal(c.mensagem("eu1").reacoes[0].de, pessoa);
+  c.aplicarReacao("eu1", { ...reacao.reacao, emoji: "" });
+  assert.deepEqual(c.mensagem("eu1").reacoes, []);
+
+  const entregue = caixa.eventoDoWebhook({ event: "message.ack", payload: { ids: ["eu1", "a2"], receipt_type: "delivered" } });
+  c.aplicarEntrega(entregue.ids, entregue.estado);
+  assert.equal(c.mensagem("eu1").entrega, "entregue");
+  assert.equal(c.mensagem("a2").entrega, undefined);
+  c.aplicarEntrega(["eu1"], "lida");
+  c.aplicarEntrega(["eu1"], "entregue");
+  assert.equal(c.mensagem("eu1").entrega, "lida");
+
+  assert.deepEqual(caixa.eventoDoWebhook({ event: "chat_presence", payload: { chat_id: "1203@g.us", sender_display_name: "Bia", state: "composing", media: "audio" } }), { tipo: "digitando", conversa: "1203@g.us", nome: "Bia", audio: true, parou: false });
+  assert.equal(caixa.eventoDoWebhook({ event: "message.ack", payload: { ids: [], receipt_type: "read" } }), null);
+  assert.equal(caixa.eventoDoWebhook({ event: "outro", payload: {} }), null);
+});
+
+test("histórico do gateway traz reações e não perde o que o niko já sabe da mensagem", () => {
+  const c = new caixa.CaixaWhatsapp();
+  const pessoa = "5511888880000@s.whatsapp.net";
+  const [m] = caixa.mensagensDoGateway({ results: { data: [{ id: "h1", chat_jid: pessoa, content: "antiga", timestamp: "2026-10-01T10:00:00Z", is_from_me: false, reactions: [{ emoji: "ok", sender_jid: "5511777770000@s.whatsapp.net", is_from_me: true }] }] } });
+  assert.equal(m.reacoes[0].minha, true);
+  const guardada = c.conhecer(m);
+  c.aplicarEdicao("h1", "nova", "2026-10-02T10:00:00.000Z");
+  assert.equal(c.conhecer({ ...m, texto: "antiga" }).texto, "nova");
+  assert.equal(c.conhecer(m), guardada);
+});
+
+test("agendamento só aceita horário entre um minuto e um ano", async () => {
+  const whatsapp = await vite.ssrLoadModule("/servidor/whatsapp/whatsapp.ts");
+  const agora = Date.parse("2026-10-25T12:00:00.000Z");
+  assert.equal(whatsapp.quandoAgendavel("2026-10-25T13:00:00.000Z", agora), "2026-10-25T13:00:00.000Z");
+  assert.equal(whatsapp.quandoAgendavel("2026-10-25T12:00:30.000Z", agora), null);
+  assert.equal(whatsapp.quandoAgendavel("2028-01-01T00:00:00.000Z", agora), null);
+  assert.equal(whatsapp.quandoAgendavel("amanhã", agora), null);
+  assert.equal(whatsapp.quandoAgendavel(5, agora), null);
+});
+
+test("print colado ganha nome com data e arquivo com nome continua igual", async () => {
+  const anexos = await vite.ssrLoadModule("/src/utilitarios/anexos.ts");
+  const agora = new Date(2026, 9, 25, 14, 5, 9);
+  const [print] = anexos.arquivosColados({ files: [new File([new Uint8Array([1])], "image.png", { type: "image/png" })] }, agora);
+  assert.equal(print.name, "print-2026-10-25-140509.png");
+  assert.equal(print.type, "image/png");
+  const [foto] = anexos.arquivosColados({ files: [new File([new Uint8Array([1])], "ferias.jpg", { type: "image/jpeg" })] }, agora);
+  assert.equal(foto.name, "ferias.jpg");
+  assert.deepEqual(anexos.arquivosColados(null), []);
 });
 
 test("webhook do whatsapp só aceita a assinatura certa e lê a mensagem", () => {

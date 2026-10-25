@@ -159,7 +159,7 @@ export function ambienteDoGowa(o: OpcoesDoGowa, base: NodeJS.ProcessEnv = proces
     WHATSAPP_IGNORE_STATUS_MEDIA: "true",
     WHATSAPP_WEBHOOK: o.urlDoWebhook,
     WHATSAPP_WEBHOOK_SECRET: o.segredoDoWebhook,
-    WHATSAPP_WEBHOOK_EVENTS: "message",
+    WHATSAPP_WEBHOOK_EVENTS: "message,message.revoked,message.edited,message.reaction,message.ack,chat_presence",
   };
 }
 

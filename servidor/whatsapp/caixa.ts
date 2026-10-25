@@ -18,6 +18,34 @@ export interface MensagemWhatsapp {
   encaminhada?: boolean;
   tamanho?: number;
   local?: boolean;
+  apagada?: string;
+  editada?: string;
+  textoOriginal?: string;
+  reacoes?: ReacaoWhatsapp[];
+  entrega?: "entregue" | "lida";
+}
+
+export interface ReacaoWhatsapp {
+  de: string;
+  nome: string;
+  emoji: string;
+  minha: boolean;
+}
+
+export interface RastroWhatsapp {
+  tipo: "apagada" | "editada";
+  id: string;
+  conversa: string;
+  nomeDaConversa: string;
+  grupo: boolean;
+  remetente: string;
+  nomeRemetente: string;
+  texto: string;
+  textoNovo?: string;
+  midia: TipoDeMidia;
+  nomeDoArquivo?: string;
+  data: string;
+  quando: string;
 }
 
 export interface ConversaWhatsapp {
@@ -45,6 +73,7 @@ export type Resultado = "repetida" | "ignorada" | "silenciosa" | "avisar";
 
 const MENSAGENS_POR_CONVERSA = 20;
 const LIMITE_DE_IDS_VISTOS = 2000;
+const LIMITE_DE_LEMBRADAS = 3000;
 
 export function ehGrupo(jid: string): boolean {
   return jid.endsWith("@g.us");
@@ -89,11 +118,36 @@ export class CaixaWhatsapp {
   conversas = new Map<string, ConversaWhatsapp>();
   private vistas = new Set<string>();
   private ordemVista: string[] = [];
+  private lembradas = new Map<string, MensagemWhatsapp>();
+
+  mensagem(id: string): MensagemWhatsapp | undefined {
+    return this.lembradas.get(id);
+  }
+
+  conhecer(m: MensagemWhatsapp): MensagemWhatsapp {
+    const guardada = this.lembradas.get(m.id);
+    if (guardada) {
+      if (m.reacoes) guardada.reacoes = m.reacoes;
+      return guardada;
+    }
+    const nova = { ...m, conversa: jidNormalizado(m.conversa) };
+    this.lembrar(nova);
+    return nova;
+  }
+
+  private lembrar(m: MensagemWhatsapp) {
+    this.lembradas.delete(m.id);
+    this.lembradas.set(m.id, m);
+    if (this.lembradas.size <= LIMITE_DE_LEMBRADAS) return;
+    for (const antiga of [...this.lembradas.keys()].slice(0, LIMITE_DE_LEMBRADAS / 4)) this.lembradas.delete(antiga);
+  }
 
   adicionar(m: MensagemWhatsapp, filtros: FiltrosWhatsapp, historico = false, nome?: string): Resultado {
     const id = jidNormalizado(m.conversa);
     if (this.vistas.has(m.id)) {
       if (!m.local) this.confirmarHorario(id, m);
+      const guardada = this.lembradas.get(m.id);
+      if (guardada && m.reacoes) guardada.reacoes = m.reacoes;
       return "repetida";
     }
     if (filtros.ignoradas.includes(id) || !ehConversa(id)) return "ignorada";
@@ -108,7 +162,9 @@ export class CaixaWhatsapp {
     const nomeNovo = nome ?? m.nomeDaConversa;
     if (nomeNovo) conversa.nome = nomeNovo;
     else if (conversa.nome === numero && nomeDaPessoa) conversa.nome = nomeDaPessoa;
-    conversa.mensagens = [...conversa.mensagens, { ...m, conversa: id }].sort((a, b) => a.data.localeCompare(b.data)).slice(-MENSAGENS_POR_CONVERSA);
+    const nova = { ...m, conversa: id };
+    this.lembrar(nova);
+    conversa.mensagens = [...conversa.mensagens, nova].sort((a, b) => a.data.localeCompare(b.data)).slice(-MENSAGENS_POR_CONVERSA);
     if (m.data > conversa.ultimaAtividade) conversa.ultimaAtividade = m.data;
 
     let resultado: Resultado;
@@ -178,10 +234,62 @@ export class CaixaWhatsapp {
     if (c && nome) c.nome = nome;
   }
 
+  private rastroDe(m: MensagemWhatsapp, tipo: RastroWhatsapp["tipo"], quando: string, texto: string): RastroWhatsapp {
+    const conversa = this.conversas.get(m.conversa);
+    const grupo = ehGrupo(m.conversa);
+    return {
+      tipo,
+      id: m.id,
+      conversa: m.conversa,
+      nomeDaConversa: conversa?.nome ?? numeroParaExibir(m.conversa),
+      grupo,
+      remetente: m.remetente,
+      nomeRemetente: m.nomeRemetente || (!grupo && conversa ? conversa.nome : numeroParaExibir(m.remetente)),
+      texto,
+      midia: m.midia,
+      nomeDoArquivo: m.nomeDoArquivo,
+      data: m.data,
+      quando,
+    };
+  }
+
+  aplicarApagada(id: string, quando: string): RastroWhatsapp | null {
+    const m = this.lembradas.get(id);
+    if (!m || m.apagada) return null;
+    m.apagada = quando;
+    if (m.minha || (!m.texto && m.midia === "nenhuma")) return null;
+    return this.rastroDe(m, "apagada", quando, m.texto);
+  }
+
+  aplicarEdicao(id: string, texto: string, quando: string): RastroWhatsapp | null {
+    const m = this.lembradas.get(id);
+    if (!m || m.texto === texto) return null;
+    const anterior = m.texto;
+    m.textoOriginal ??= anterior;
+    m.texto = texto;
+    m.editada = quando;
+    return m.minha ? null : { ...this.rastroDe(m, "editada", quando, anterior), textoNovo: texto };
+  }
+
+  aplicarReacao(id: string, reacao: ReacaoWhatsapp): boolean {
+    const m = this.lembradas.get(id);
+    if (!m) return false;
+    m.reacoes = [...(m.reacoes ?? []).filter((r) => r.de !== reacao.de), ...(reacao.emoji ? [reacao] : [])];
+    return true;
+  }
+
+  aplicarEntrega(ids: string[], estado: "entregue" | "lida") {
+    for (const id of ids) {
+      const m = this.lembradas.get(id);
+      if (m?.minha && m.entrega !== "lida") m.entrega = estado;
+    }
+  }
+
   limpar() {
     this.conversas.clear();
     this.vistas.clear();
     this.ordemVista = [];
+    this.lembradas.clear();
   }
 }
 
@@ -269,6 +377,62 @@ export function mensagemDoWebhook(corpo: unknown, eu?: string | null): MensagemW
   };
 }
 
+export type EventoWhatsapp =
+  | { tipo: "mensagem"; mensagem: MensagemWhatsapp }
+  | { tipo: "apagada"; id: string; quando: string }
+  | { tipo: "editada"; id: string; texto: string; quando: string }
+  | { tipo: "reacao"; id: string; reacao: ReacaoWhatsapp }
+  | { tipo: "entrega"; ids: string[]; estado: "entregue" | "lida" }
+  | { tipo: "digitando"; conversa: string; nome: string; audio: boolean; parou: boolean };
+
+export function eventoDoWebhook(corpo: unknown, eu?: string | null): EventoWhatsapp | null {
+  if (!corpo || typeof corpo !== "object") return null;
+  const raiz = corpo as Record<string, unknown>;
+  const p = raiz.payload && typeof raiz.payload === "object" ? (raiz.payload as Record<string, unknown>) : null;
+  if (!p) return null;
+  switch (raiz.event) {
+    case "message": {
+      const mensagem = mensagemDoWebhook(corpo, eu);
+      return mensagem ? { tipo: "mensagem", mensagem } : null;
+    }
+    case "message.revoked": {
+      const id = texto(p.revoked_message_id);
+      return id ? { tipo: "apagada", id, quando: dataIso(p.timestamp) } : null;
+    }
+    case "message.edited": {
+      const id = texto(p.original_message_id);
+      return id && typeof p.body === "string" ? { tipo: "editada", id, texto: p.body, quando: dataIso(p.timestamp) } : null;
+    }
+    case "message.reaction": {
+      const id = texto(p.reacted_message_id);
+      const de = texto(p.from);
+      if (!id || !de) return null;
+      return { tipo: "reacao", id, reacao: { de: jidNormalizado(de), nome: texto(p.sender_display_name) ?? texto(p.from_name) ?? "", emoji: typeof p.reaction === "string" ? p.reaction.slice(0, 16) : "", minha: p.is_from_me === true } };
+    }
+    case "message.ack": {
+      const ids = Array.isArray(p.ids) ? p.ids.filter((i): i is string => typeof i === "string" && i.length > 0).slice(0, 200) : [];
+      const estado = p.receipt_type === "read" ? "lida" : p.receipt_type === "delivered" ? "entregue" : null;
+      return ids.length && estado ? { tipo: "entrega", ids, estado } : null;
+    }
+    case "chat_presence": {
+      const conversa = texto(p.chat_id);
+      if (!conversa) return null;
+      return { tipo: "digitando", conversa: jidNormalizado(conversa), nome: texto(p.sender_display_name) ?? "", audio: p.media === "audio", parou: p.state !== "composing" };
+    }
+    default:
+      return null;
+  }
+}
+
+function reacoesDoGateway(lista: unknown): ReacaoWhatsapp[] | undefined {
+  if (!Array.isArray(lista)) return undefined;
+  return lista.flatMap((r: Record<string, unknown>) => {
+    const de = texto(r?.sender_jid);
+    const emoji = texto(r?.emoji);
+    return de && emoji ? [{ de: jidNormalizado(de), nome: texto(r.sender_display_name) ?? "", emoji: emoji.slice(0, 16), minha: r.is_from_me === true }] : [];
+  });
+}
+
 function midiaGuardada(tipo: unknown): TipoDeMidia {
   switch (tipo) {
     case "image": return "imagem";
@@ -322,6 +486,7 @@ export function mensagensDoGateway(corpo: unknown, eu?: string | null): Mensagem
       mencionaMe: grupo && textoMencionaMe(corpoTexto, eu),
       nomeDaConversa: grupo ? nomeDaConversa : undefined,
       tamanho: typeof m.file_length === "number" ? m.file_length : undefined,
+      reacoes: reacoesDoGateway(m.reactions),
     }];
   });
 }

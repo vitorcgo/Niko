@@ -18,6 +18,7 @@ import { buscarNaWeb, lerPagina } from "./web.ts";
 import {
   CAMINHO_DO_WEBHOOK, abrirConversa, definirFiltrosDoWhatsapp, desconectarWhatsapp, enviarMensagem, esquecerWhatsapp, estadoDoWhatsapp, fecharConversa, ignorarConversa,
   enviarArquivoNoWhatsapp, iniciarWhatsapp, instalarWhatsapp, ligarWhatsapp, midiaDaMensagem, novidadesDoWhatsapp, receberWebhookDoWhatsapp,
+  agendarMensagem, apagarMensagem, cancelarAgendada, editarMensagem, historicoDaConversa, limparRastros, listarAgendadas, rastrosDoWhatsapp, encerrarWhatsapp,
 } from "./whatsapp/whatsapp.ts";
 import { ehRotaDeAgente, receberEventoDeAgente, estadoDosAgentes, instalarAgente, previaDoAgente, removerAgente } from "./agentesDeCodigo.ts";
 import { listarArquivos, receberArquivo, enviarConteudo, excluirArquivo, excluirArquivosDaMateria, baixarArquivo, abrirArquivoNoPrograma, exportarParaDownloads } from "./arquivos.ts";
@@ -150,6 +151,9 @@ export const rotas: Connect.NextHandleFunction = async (req, res, proximo) => {
         return res.end(midia.bytes);
       }
       if (acao === "enviar-arquivo" && req.method === "POST") return responder(res, 200, await enviarArquivoNoWhatsapp(req, url.searchParams));
+      if (acao === "historico" && req.method === "GET") return responder(res, 200, await historicoDaConversa(url.searchParams.get("jid"), url.searchParams.get("deslocamento"), url.searchParams.get("busca")));
+      if (acao === "rastros" && req.method === "GET") return responder(res, 200, rastrosDoWhatsapp());
+      if (acao === "agendadas" && req.method === "GET") return responder(res, 200, await listarAgendadas());
       if (req.method === "POST") {
         const corpo = await lerCorpo(req);
         if (acao === "instalar") return responder(res, 200, await instalarWhatsapp());
@@ -161,6 +165,11 @@ export const rotas: Connect.NextHandleFunction = async (req, res, proximo) => {
         if (acao === "enviar") return responder(res, 200, await enviarMensagem(corpo.jid, corpo.texto));
         if (acao === "desconectar") return responder(res, 200, await desconectarWhatsapp());
         if (acao === "esquecer") return responder(res, 200, await esquecerWhatsapp());
+        if (acao === "editar") return responder(res, 200, await editarMensagem(corpo.jid, corpo.id, corpo.texto));
+        if (acao === "apagar") return responder(res, 200, await apagarMensagem(corpo.jid, corpo.id));
+        if (acao === "limpar-rastros") return responder(res, 200, limparRastros());
+        if (acao === "agendar") return responder(res, 200, await agendarMensagem(corpo.jid, corpo.texto, corpo.quando));
+        if (acao === "cancelar-agendada") return responder(res, 200, await cancelarAgendada(corpo.id));
       }
     }
     if (caminho === "/web/buscar" && req.method === "POST") return responder(res, 200, await buscarNaWeb(String((await lerCorpo(req)).consulta ?? "")));
@@ -309,6 +318,7 @@ export function ponteLocal(): Plugin {
     configureServer(servidor) {
       process.env.NIKO_TOKEN ||= randomBytes(32).toString("hex");
       servidor.middlewares.use(rotas);
+      servidor.httpServer?.once("close", () => encerrarWhatsapp());
     },
     transformIndexHtml: {
       order: "pre",

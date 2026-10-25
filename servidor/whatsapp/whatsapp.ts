@@ -6,8 +6,8 @@ import { pastaDados } from "../ia.ts";
 import { lerSegredo, gravarSegredo, apagarSegredo } from "../segredos.ts";
 import { porta as portaDaPonte } from "../claude.ts";
 import {
-  CaixaWhatsapp, LimiteDeEnvios, caminhoDoQr, conversasDoGateway, dispositivoDoGateway, ehGrupo, jidNormalizado, mensagemDoWebhook,
-  mensagensDoGateway, numeroParaExibir, recusaDaResposta, webhookAutentico, type ConversaWhatsapp, type FiltrosWhatsapp, type MensagemWhatsapp, type SituacaoDoVinculo,
+  CaixaWhatsapp, LimiteDeEnvios, caminhoDoQr, conversasDoGateway, dispositivoDoGateway, ehGrupo, eventoDoWebhook, jidNormalizado,
+  mensagensDoGateway, numeroParaExibir, recusaDaResposta, webhookAutentico, type ConversaWhatsapp, type EventoWhatsapp, type FiltrosWhatsapp, type MensagemWhatsapp, type RastroWhatsapp, type SituacaoDoVinculo,
 } from "./caixa.ts";
 import { aguardarGowaParar, alvoDaPlataforma, gowaInstalado, gowaRodando, iniciarGowa, instalacao, instalarGowa, pararGowa, pastaDoWhatsapp, portaLivre } from "./gowa.ts";
 
@@ -84,6 +84,58 @@ const estado = {
 };
 const caixa = new CaixaWhatsapp();
 const envios = new LimiteDeEnvios();
+
+const LIMITE_DE_RASTROS = 300;
+const DIGITANDO_MS = 12_000;
+const arquivoDeRastros = () => join(pastaDados(), "whatsapp-rastros.json");
+let rastros: RastroWhatsapp[] | null = null;
+const digitando = new Map<string, { nome: string; audio: boolean; ate: number }>();
+
+function rastrosGuardados(): RastroWhatsapp[] {
+  if (rastros) return rastros;
+  try {
+    const lido = existsSync(arquivoDeRastros()) ? (JSON.parse(readFileSync(arquivoDeRastros(), "utf8")) as unknown) : [];
+    rastros = Array.isArray(lido) ? lido.filter((r): r is RastroWhatsapp => Boolean(r) && typeof r.id === "string" && typeof r.conversa === "string" && (r.tipo === "apagada" || r.tipo === "editada")).slice(0, LIMITE_DE_RASTROS) : [];
+  } catch {
+    rastros = [];
+  }
+  return rastros;
+}
+
+function salvarRastros(lista: RastroWhatsapp[]) {
+  rastros = lista.slice(0, LIMITE_DE_RASTROS);
+  mkdirSync(pastaDados(), { recursive: true });
+  const temporario = `${arquivoDeRastros()}.${process.pid}.tmp`;
+  writeFileSync(temporario, JSON.stringify(rastros), "utf8");
+  renameSync(temporario, arquivoDeRastros());
+}
+
+function guardarRastro(r: RastroWhatsapp | null) {
+  if (!r || estado.config.ignoradas.includes(r.conversa)) return;
+  salvarRastros([r, ...rastrosGuardados().filter((x) => !(x.id === r.id && x.tipo === r.tipo && x.quando === r.quando))]);
+}
+
+function aplicarEvento(e: EventoWhatsapp) {
+  if (e.tipo === "mensagem") {
+    digitando.delete(jidNormalizado(e.mensagem.conversa));
+    guardar([e.mensagem], true);
+  } else if (e.tipo === "apagada") guardarRastro(caixa.aplicarApagada(e.id, e.quando));
+  else if (e.tipo === "editada") guardarRastro(caixa.aplicarEdicao(e.id, e.texto, e.quando));
+  else if (e.tipo === "reacao") caixa.aplicarReacao(e.id, e.reacao);
+  else if (e.tipo === "entrega") caixa.aplicarEntrega(e.ids, e.estado);
+  else if (e.parou) digitando.delete(e.conversa);
+  else digitando.set(e.conversa, { nome: e.nome, audio: e.audio, ate: Date.now() + DIGITANDO_MS });
+}
+
+function quemDigita(): Record<string, { nome: string; audio: boolean }> {
+  const agora = Date.now();
+  const saida: Record<string, { nome: string; audio: boolean }> = {};
+  for (const [jid, d] of digitando) {
+    if (d.ate < agora) digitando.delete(jid);
+    else saida[jid] = { nome: d.nome, audio: d.audio };
+  }
+  return saida;
+}
 let relogio: ReturnType<typeof setInterval> | null = null;
 let ocupado = false;
 
@@ -138,7 +190,10 @@ function guardar(mensagens: MensagemWhatsapp[], avisar: boolean) {
       continue;
     }
     if (resultado === "avisar") anunciar(m);
-    if (ehGrupo(id) && caixa.conversas.get(id)?.nome === numeroParaExibir(id) && !estado.nomesPedidos.has(id)) void nomearGrupo(id);
+    if (!ehGrupo(id) || caixa.conversas.get(id)?.nome !== numeroParaExibir(id)) continue;
+    const conhecido = nomesDosGrupos.get(id);
+    if (conhecido) caixa.renomear(id, conhecido);
+    else if (!estado.nomesPedidos.has(id)) void nomearGrupo(id);
   }
 }
 
@@ -154,10 +209,45 @@ async function nomearGrupo(jid: string) {
   }
 }
 
+const NOMES_DOS_GRUPOS_MS = 15 * 60_000;
+const nomesDosGrupos = new Map<string, string>();
+let gruposLidosEm = 0;
+
+export function nomesDeGruposDoGateway(corpo: unknown): Map<string, string> {
+  const lista = ((corpo as Record<string, unknown> | null)?.results as Record<string, unknown> | undefined)?.data;
+  const nomes = new Map<string, string>();
+  if (!Array.isArray(lista)) return nomes;
+  for (const g of lista) {
+    const jid = typeof g?.JID === "string" ? g.JID : "";
+    const nome = typeof g?.Name === "string" ? g.Name.trim() : "";
+    if (jid.endsWith("@g.us") && nome) nomes.set(jidNormalizado(jid), nome.slice(0, 120));
+  }
+  return nomes;
+}
+
+function aplicarNomesDosGrupos() {
+  for (const [jid, nome] of nomesDosGrupos) {
+    const c = caixa.conversas.get(jid);
+    if (c && c.nome !== nome) caixa.renomear(jid, nome);
+  }
+}
+
+async function lerNomesDosGrupos() {
+  if (Date.now() - gruposLidosEm < NOMES_DOS_GRUPOS_MS) return aplicarNomesDosGrupos();
+  gruposLidosEm = Date.now();
+  try {
+    for (const [jid, nome] of nomesDeGruposDoGateway(await chamarComSucesso("GET", "/user/my/groups", { tempoMs: 20_000 }))) nomesDosGrupos.set(jid, nome);
+  } catch {
+    gruposLidosEm = Date.now() - NOMES_DOS_GRUPOS_MS + 60_000;
+  }
+  aplicarNomesDosGrupos();
+}
+
 async function carregarHistorico() {
   const conversas = conversasDoGateway(await chamarComSucesso("GET", "/chats", { query: { limit: "40" } }));
   if (conversas.length === 0) return;
   for (const c of conversas) caixa.registrarConversa(c.jid, c.nome, c.ultima, estado.config, c.arquivada);
+  await lerNomesDosGrupos();
   for (const c of [...conversas].sort((a, b) => b.ultima.localeCompare(a.ultima)).slice(0, 8)) {
     const corpo = await chamarComSucesso("GET", `/chat/${encodeURIComponent(c.jid)}/messages`, { query: { limit: "10" } }).catch(() => null);
     for (const m of mensagensDoGateway(corpo, estado.eu)) caixa.adicionar(m, estado.config, true, ehGrupo(c.jid) ? c.nome || undefined : undefined);
@@ -177,6 +267,7 @@ async function varrerSemWebhook() {
   estado.ultimaVarredura = Date.now();
   const conversas = conversasDoGateway(await chamarComSucesso("GET", "/chats", { query: { limit: "40" } }));
   for (const c of conversas) caixa.registrarConversa(c.jid, c.nome, c.ultima, estado.config, c.arquivada);
+  await lerNomesDosGrupos();
   for (const c of conversas.filter((x) => x.ultima > desde).slice(0, 8)) {
     const corpo = await chamarComSucesso("GET", `/chat/${encodeURIComponent(c.jid)}/messages`, { query: { limit: "10", start_time: desde } }).catch(() => null);
     guardar(mensagensDoGateway(corpo, estado.eu).sort((a, b) => a.data.localeCompare(b.data)), true);
@@ -435,6 +526,8 @@ export function estadoDoWhatsapp() {
     aberta: estado.conversaAberta && caixa.conversas.has(estado.conversaAberta) ? resumoDaConversa(caixa.conversas.get(estado.conversaAberta)!) : null,
     naoLidas: caixa.naoLidasVisiveis(filtros),
     seq: estado.seq,
+    digitando: quemDigita(),
+    rastros: rastrosGuardados().length,
   };
 }
 
@@ -547,6 +640,122 @@ function confirmarHorariosDepois(jid: string) {
   }, 1500));
 }
 
+const MENSAGENS_POR_PAGINA = 40;
+
+function conversaConhecida(jid: unknown): string {
+  if (typeof jid !== "string" || jid.length > 120 || !caixa.conversas.has(jidNormalizado(jid))) throw new Error("conversa_invalida");
+  return jidNormalizado(jid);
+}
+
+function idDeMensagem(id: unknown): string {
+  if (typeof id !== "string" || !/^[\w.:-]{1,128}$/.test(id)) throw new Error("pedido_invalido");
+  return id;
+}
+
+export async function historicoDaConversa(jid: unknown, deslocamento: unknown, busca: unknown) {
+  const id = conversaConhecida(jid);
+  const pular = Math.max(0, Math.min(10_000, Math.floor(Number(deslocamento) || 0)));
+  const termo = typeof busca === "string" ? busca.trim().slice(0, 80) : "";
+  const corpo = await chamarComSucesso("GET", `/chat/${encodeURIComponent(id)}/messages`, {
+    query: { limit: String(MENSAGENS_POR_PAGINA), offset: String(pular), ...(termo ? { search: termo } : {}) },
+  });
+  const paginacao = ((corpo as Record<string, unknown> | null)?.results as Record<string, unknown> | undefined)?.pagination as Record<string, unknown> | undefined;
+  const lidas = mensagensDoGateway(corpo, estado.eu);
+  const mensagens = lidas.map((m) => caixa.conhecer(m)).sort((a, b) => a.data.localeCompare(b.data));
+  return { mensagens, total: typeof paginacao?.total === "number" ? paginacao.total : null, fim: lidas.length < MENSAGENS_POR_PAGINA };
+}
+
+function minhaMensagem(jid: unknown, idBruto: unknown) {
+  const conversa = conversaConhecida(jid);
+  const id = idDeMensagem(idBruto);
+  const m = caixa.mensagem(id);
+  if (!m || m.conversa !== conversa) throw new Error("mensagem_sumiu");
+  if (!m.minha) throw new Error("mensagem_de_outra_pessoa");
+  if (m.apagada) throw new Error("mensagem_ja_apagada");
+  return { conversa, id, m };
+}
+
+export async function editarMensagem(jid: unknown, idBruto: unknown, texto: unknown) {
+  const { conversa, id } = minhaMensagem(jid, idBruto);
+  if (typeof texto !== "string") throw new Error("pedido_invalido");
+  const recusa = recusaDaResposta(texto, conversa, caixa);
+  if (recusa) throw new Error(`resposta_${recusa}`);
+  await chamarComSucesso("POST", `/message/${encodeURIComponent(id)}/update`, { json: { phone: conversa, message: texto.trim() } });
+  caixa.aplicarEdicao(id, texto.trim(), new Date().toISOString());
+  return caixa.mensagem(id) ?? null;
+}
+
+export async function apagarMensagem(jid: unknown, idBruto: unknown) {
+  const { conversa, id } = minhaMensagem(jid, idBruto);
+  await chamarComSucesso("POST", `/message/${encodeURIComponent(id)}/revoke`, { json: { phone: conversa } });
+  caixa.aplicarApagada(id, new Date().toISOString());
+  return caixa.mensagem(id) ?? null;
+}
+
+export function rastrosDoWhatsapp() {
+  return { rastros: rastrosGuardados() };
+}
+
+export function limparRastros() {
+  salvarRastros([]);
+  return { rastros: [] };
+}
+
+const ANTECEDENCIA_MINIMA_MS = 60_000;
+const ANTECEDENCIA_MAXIMA_MS = 365 * 24 * 3600_000;
+
+function fusoDoSistema(): string {
+  return Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+}
+
+export function quandoAgendavel(quando: unknown, agora = Date.now()): string | null {
+  if (typeof quando !== "string") return null;
+  const t = Date.parse(quando);
+  if (Number.isNaN(t) || t < agora + ANTECEDENCIA_MINIMA_MS || t > agora + ANTECEDENCIA_MAXIMA_MS) return null;
+  return new Date(t).toISOString();
+}
+
+function agendadaDoGateway(a: Record<string, unknown>) {
+  const telefone = typeof a.phone === "string" ? a.phone : "";
+  const jid = telefone.includes("@") ? jidNormalizado(telefone) : `${telefone.replace(/\D/g, "")}@s.whatsapp.net`;
+  const conversa = caixa.conversas.get(jid);
+  return {
+    id: String(a.id ?? ""),
+    jid,
+    nome: conversa?.nome ?? numeroParaExibir(jid),
+    resumo: typeof a.summary === "string" ? a.summary : "",
+    tipo: typeof a.message_type === "string" ? a.message_type : "text",
+    situacao: typeof a.status === "string" ? a.status : "active",
+    quando: typeof a.scheduled_at === "string" ? a.scheduled_at : "",
+    proxima: typeof a.next_run_at === "string" ? a.next_run_at : null,
+    erro: typeof a.last_error === "string" ? a.last_error : "",
+  };
+}
+
+export async function listarAgendadas() {
+  const corpo = await chamarComSucesso("GET", "/send/schedules", { query: { limit: "50" } });
+  const lista = ((corpo as Record<string, unknown> | null)?.results as Record<string, unknown> | undefined)?.data;
+  return { agendadas: Array.isArray(lista) ? lista.filter((a) => a && typeof a === "object" && a.id !== undefined).map(agendadaDoGateway) : [] };
+}
+
+export async function agendarMensagem(jid: unknown, texto: unknown, quandoBruto: unknown) {
+  const id = conversaConhecida(jid);
+  if (typeof texto !== "string") throw new Error("pedido_invalido");
+  const recusa = recusaDaResposta(texto, id, caixa);
+  if (recusa) throw new Error(`resposta_${recusa}`);
+  const quando = quandoAgendavel(quandoBruto);
+  if (!quando) throw new Error("agenda_horario_invalido");
+  if (!envios.permitir()) throw new Error("resposta_muitas");
+  await chamarComSucesso("POST", "/send/message", { json: { phone: id, message: texto.trim(), scheduled_at: quando, timezone: fusoDoSistema() } });
+  return listarAgendadas();
+}
+
+export async function cancelarAgendada(idBruto: unknown) {
+  if (typeof idBruto !== "string" || !/^[\w-]{1,80}$/.test(idBruto)) throw new Error("pedido_invalido");
+  await chamarComSucesso("POST", `/send/schedules/${encodeURIComponent(idBruto)}/cancel`);
+  return listarAgendadas();
+}
+
 const TAMANHO_MAXIMO_DO_ENVIO = 16 * 1024 * 1024;
 
 function lerBytes(req: IncomingMessage, limite: number): Promise<Buffer> {
@@ -618,6 +827,8 @@ export async function esquecerWhatsapp() {
   pararTudo(true);
   await aguardarGowaParar();
   for (const pasta of ["storages", "statics"]) rmSync(join(pastaDoWhatsapp(), pasta), { recursive: true, force: true });
+  rmSync(arquivoDeRastros(), { force: true });
+  rastros = [];
   await apagarSegredo("whatsapp-acesso").catch(() => undefined);
   await apagarSegredo("whatsapp-webhook").catch(() => undefined);
   estado.acesso = "";
@@ -657,9 +868,9 @@ export function receberWebhookDoWhatsapp(req: IncomingMessage, res: ServerRespon
     } catch {
       return;
     }
-    const mensagem = mensagemDoWebhook(lido, estado.eu);
-    if (!mensagem) return;
+    const evento = eventoDoWebhook(lido, estado.eu);
+    if (!evento) return;
     estado.ultimoWebhook = Date.now();
-    if (estado.historicoCarregado) guardar([mensagem], true);
+    if (evento.tipo !== "mensagem" || estado.historicoCarregado) aplicarEvento(evento);
   });
 }

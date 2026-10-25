@@ -1,8 +1,6 @@
 import { Fragment, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { format, isToday, isYesterday } from "date-fns";
-import { ptBR } from "date-fns/locale";
 import {
-  ArrowLeft, AtSign, BellDot, Check, CircleAlert, Clock, Contact, EyeOff, FileText, Forward, Image, MapPin, MessagesSquare, Mic, Paperclip, Play, RotateCw, Search, Send, Settings2, Sticker, Users, Video, X,
+  ArrowLeft, AtSign, BellDot, Check, CheckCheck, CircleAlert, Clock, EyeOff, Forward, MessagesSquare, Paperclip, PencilLine, RotateCw, Search, Send, Settings2, Trash2, Users, X,
   type LucideIcon,
 } from "lucide-react";
 import { T } from "../../textos/textos";
@@ -11,11 +9,12 @@ import { avisoLigado, useIlha } from "../../estado/ilha";
 import { useConfig } from "../../estado/configuracoes";
 import { useInterface } from "../../estado/interface";
 import { tocarSom } from "../../ponte/sons";
-import { corDoNome, iniciaisDoNome, numeroDoJid, whatsappPonte, type ConversaWhatsapp, type MensagemWhatsapp, type NovidadeWhatsapp } from "../../ponte/whatsapp";
+import { corDoNome, numeroDoJid, whatsappPonte, type ConversaWhatsapp, type NovidadeWhatsapp } from "../../ponte/whatsapp";
 import { horarioRelativo } from "../../utilitarios/datas";
-import { formatarTamanho } from "../../utilitarios/anexos";
+import { arquivosColados, formatarTamanho } from "../../utilitarios/anexos";
 import { mensagemDoWhatsapp } from "../../modulos/conexoes/ConexaoWhatsapp";
-import { filtrarConversas, type FiltroDaLista } from "../../utilitarios/conversasWhatsapp";
+import { Avatar, MidiaDaMensagem, Previa, PreviaDoArquivo, diaDaMensagem, horaDaMensagem } from "../../modulos/whatsapp/pecasDoWhatsapp";
+import { filtrarConversas, naoLidasDasConversas, type FiltroDaLista } from "../../utilitarios/conversasWhatsapp";
 
 const W = T.whatsapp;
 const NOVIDADES_MS = 4000;
@@ -69,99 +68,6 @@ export function usarAvisosDoWhatsapp(): boolean {
   return ligado;
 }
 
-function Avatar({ nome, foto, tamanho = 30, grupo }: { nome: string; foto?: string | null; tamanho?: number; grupo?: boolean }) {
-  const imagem = foto ? (
-    <img className="whatsapp-avatar whatsapp-avatar-foto" src={foto} alt="" width={tamanho} height={tamanho} />
-  ) : (
-    <span className="whatsapp-avatar" style={{ width: tamanho, height: tamanho, background: corDoNome(nome), fontSize: Math.round(tamanho * 0.36) }} aria-hidden="true">
-      {iniciaisDoNome(nome)}
-    </span>
-  );
-  if (!grupo) return imagem;
-  return (
-    <span className="whatsapp-avatar-caixa">
-      {imagem}
-      <span className="whatsapp-avatar-grupo" title={W.grupo}><Users size={9} strokeWidth={2.5} /></span>
-    </span>
-  );
-}
-
-const ICONE_DA_MIDIA: Record<string, LucideIcon> = { imagem: Image, video: Video, audio: Mic, documento: FileText, figurinha: Sticker, localizacao: MapPin, contato: Contact, outra: Paperclip };
-
-const horaDaMensagem = (iso: string) => format(new Date(iso), "HH:mm");
-
-function diaDaMensagem(iso: string): string {
-  const data = new Date(iso);
-  if (isToday(data)) return W.hoje;
-  if (isYesterday(data)) return W.ontem;
-  return format(data, "d 'de' MMMM", { locale: ptBR });
-}
-
-function rotuloDaMidia(m: MensagemWhatsapp): string {
-  const tipo = W.midias[m.midia] ?? W.midias.outra;
-  return m.midia === "documento" && m.nomeDoArquivo ? `${tipo}: ${m.nomeDoArquivo}` : tipo;
-}
-
-const MIDIAS_NA_HORA = new Set(["imagem", "figurinha"]);
-const MIDIAS_COM_CLIQUE = new Set(["video", "audio"]);
-
-function MidiaDaMensagem({ jid, m }: { jid: string; m: MensagemWhatsapp }) {
-  const tipo = W.midias[m.midia] ?? W.midias.outra;
-  const naHora = MIDIAS_NA_HORA.has(m.midia);
-  const [pedida, setPedida] = useState(naHora);
-  const [url, setUrl] = useState<string | null>(null);
-  const [falhou, setFalhou] = useState(false);
-
-  useEffect(() => {
-    if (!pedida || m.visualizacaoUnica) return;
-    let vivo = true;
-    let criada: string | null = null;
-    whatsappPonte
-      .midia(jid, m.id)
-      .then((u) => {
-        criada = u;
-        if (vivo) setUrl(u);
-        else URL.revokeObjectURL(u);
-      })
-      .catch(() => vivo && setFalhou(true));
-    return () => {
-      vivo = false;
-      if (criada) URL.revokeObjectURL(criada);
-    };
-  }, [pedida, jid, m.id, m.visualizacaoUnica]);
-
-  if (m.visualizacaoUnica) return <span className="whatsapp-midia"><EyeOff size={11} /> {W.visualizacaoUnica(tipo)}</span>;
-  if (!naHora && !MIDIAS_COM_CLIQUE.has(m.midia)) {
-    const tamanho = m.tamanho ? ` (${formatarTamanho(m.tamanho)})` : "";
-    return <span className="whatsapp-midia">{rotuloDaMidia(m)}{tamanho}</span>;
-  }
-  if (falhou) return <span className="whatsapp-midia">{W.midiaFalhou(tipo)}</span>;
-  if (!pedida) {
-    return (
-      <button type="button" className="whatsapp-carregar-midia" onClick={() => setPedida(true)}>
-        <Play size={11} /> {W.carregarMidia(tipo, m.tamanho ? formatarTamanho(m.tamanho) : "")}
-      </button>
-    );
-  }
-  if (!url) return <span className="whatsapp-midia-carregando" data-tipo={m.midia}>{W.carregandoMidia}</span>;
-  if (m.midia === "video") return <video className="whatsapp-video" src={url} controls autoPlay />;
-  if (m.midia === "audio") return <audio className="whatsapp-audio" src={url} controls autoPlay />;
-  return <img className="whatsapp-imagem" data-tipo={m.midia} src={url} alt={tipo} />;
-}
-
-function Previa({ m }: { m: MensagemWhatsapp | undefined }) {
-  if (!m) return null;
-  const Icone = m.midia !== "nenhuma" ? ICONE_DA_MIDIA[m.midia] ?? Paperclip : null;
-  const corpo = m.texto || (m.midia !== "nenhuma" ? rotuloDaMidia(m) : "");
-  return (
-    <span className="whatsapp-item-previa privado">
-      {m.minha && <Check size={12} className="whatsapp-previa-check" aria-label={W.voce} />}
-      {Icone && <Icone size={12} className="whatsapp-previa-icone" aria-hidden="true" />}
-      <span className="cortar">{corpo}</span>
-    </span>
-  );
-}
-
 interface Pendente {
   chave: string;
   texto: string;
@@ -170,7 +76,7 @@ interface Pendente {
 }
 
 function assinaturaDaConversa(c: ConversaWhatsapp): string {
-  return `${c.foto ?? ""}|${c.mensagens.map((m) => `${m.id}:${m.data}`).join(",")}`;
+  return `${c.foto ?? ""}|${c.mensagens.map((m) => `${m.id}:${m.data}:${m.apagada ?? ""}:${m.editada ?? ""}:${m.entrega ?? ""}:${m.reacoes?.length ?? 0}`).join(",")}`;
 }
 
 function Conversa({ conversa, aoVoltar, aoAtualizar }: { conversa: ConversaWhatsapp; aoVoltar: () => void; aoAtualizar: (c: ConversaWhatsapp) => void }) {
@@ -318,9 +224,11 @@ function Conversa({ conversa, aoVoltar, aoAtualizar }: { conversa: ConversaWhats
                 {m.encaminhada && <span className="whatsapp-encaminhada"><Forward size={10} /> {W.encaminhada}</span>}
                 {m.midia !== "nenhuma" && <MidiaDaMensagem jid={conversa.id} m={m} />}
                 {m.texto && <span className="whatsapp-texto privado">{m.texto}</span>}
+                {m.apagada && <span className="whatsapp-selo" data-tipo="apagada"><Trash2 size={10} /> {m.minha ? W.pagina.voceApagou : W.pagina.apagadaAs(horaDaMensagem(m.apagada))}</span>}
+                {m.editada && m.textoOriginal && <span className="whatsapp-selo privado" data-tipo="editada" title={m.textoOriginal}><PencilLine size={10} /> {W.pagina.editada}: {m.textoOriginal}</span>}
                 <span className="whatsapp-hora" title={new Date(m.data).toLocaleString("pt-BR")}>
                   {horaDaMensagem(m.data)}
-                  {m.minha && <Check size={11} aria-label={W.enviada} />}
+                  {m.minha && (m.entrega ? <CheckCheck size={12} data-lida={m.entrega === "lida" || undefined} aria-label={W.pagina.entrega[m.entrega]} /> : <Check size={11} aria-label={W.enviada} />)}
                 </span>
               </div>
             </Fragment>
@@ -344,6 +252,7 @@ function Conversa({ conversa, aoVoltar, aoAtualizar }: { conversa: ConversaWhats
       {erro && <span className="ilha-erro" role="status">{erro}</span>}
       {arquivo && (
         <div className="whatsapp-confirmar-arquivo" role="group">
+          <PreviaDoArquivo arquivo={arquivo} tamanho={42} />
           <span className="coluna" style={{ gap: 1, minWidth: 0, flex: 1 }}>
             <span className="cortar">{W.confirmarArquivo(arquivo.name, formatarTamanho(arquivo.size))}</span>
             <span className="ilha-mini">{W.legendaDoArquivo}</span>
@@ -365,6 +274,12 @@ function Conversa({ conversa, aoVoltar, aoAtualizar }: { conversa: ConversaWhats
             aria-label={W.responder}
             placeholder={W.responder}
             onChange={(e) => setTexto(e.target.value)}
+            onPaste={(e) => {
+              const [colado] = arquivosColados(e.clipboardData);
+              if (!colado) return;
+              e.preventDefault();
+              escolherArquivo(colado);
+            }}
             onKeyDown={(e) => {
               if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
                 e.preventDefault();
@@ -437,7 +352,7 @@ export function VisaoWhatsapp() {
 
   if (aberta) return <Conversa key={aberta.id} conversa={aberta} aoVoltar={voltar} aoAtualizar={atualizarAberta} />;
 
-  return <ListaDeConversas conversas={estado.conversas} naoLidas={estado.naoLidas} aoAbrir={(c) => void abrir(c)} aoOpcoes={() => irPara("conexoes", { servico: "whatsapp" })} />;
+  return <ListaDeConversas conversas={estado.conversas} naoLidas={naoLidasDasConversas(estado.conversas)} aoAbrir={(c) => void abrir(c)} aoOpcoes={() => irPara("conexoes", { servico: "whatsapp" })} />;
 }
 
 const FILTROS: { id: FiltroDaLista; icone: LucideIcon }[] = [

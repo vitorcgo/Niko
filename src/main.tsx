@@ -36,6 +36,7 @@ import "./estilos/telas/consumo.css";
 import "./estilos/telas/conquistas.css";
 import "./estilos/telas/configuracoes.css";
 import "./estilos/telas/busca.css";
+import "./estilos/telas/whatsapp.css";
 import { iniciarArmazenamento } from "./ponte/armazenamento";
 import { JANELA, NATIVO, prepararPonte, desviarLinksExternos, iniciarSinalDeVida } from "./desktop/desktop";
 import { T } from "./textos/textos";

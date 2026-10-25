@@ -784,7 +784,7 @@ export function Ilha() {
                         aria-label={T.ilha.abrirSistema}
                         data-dica={T.ilha.abrirSistema}
                         onClick={() => {
-                          const rota = { hoje: secaoHoje === "agenda" ? "calendario" : "journal", captura: "inicio", midia: "inicio", foco: "estudos", chat: "chat", conexoes: "conexoes", avisos: "inicio", claude: "configuracoes", time: "agentes", whatsapp: "conexoes" } as const;
+                          const rota = { hoje: secaoHoje === "agenda" ? "calendario" : "journal", captura: "inicio", midia: "inicio", foco: "estudos", chat: "chat", conexoes: "conexoes", avisos: "inicio", claude: "configuracoes", time: "agentes", whatsapp: "whatsapp" } as const;
                           irPara(rota[abaAtual]);
                           recolher();
                           void tocarSom("open");
