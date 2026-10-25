@@ -19,9 +19,8 @@ import { Marca } from "../../marcas/Marca";
 
 const WHATSAPP_NA_BARRA_MS = 20_000;
 
-function usarWhatsappNaBarra(): { conectado: boolean; naoLidas: number } {
-  const conectado = useWhatsapp((s) => Boolean(s.estado?.ligado && s.estado.vinculo === "conectado"));
-  const naoLidas = useWhatsapp((s) => s.estado?.naoLidas ?? 0);
+function usarWhatsappNaBarra(): { naoLidas: number } {
+  const naoLidas = useWhatsapp((s) => (s.estado?.ligado && s.estado.vinculo === "conectado" ? s.estado.naoLidas : 0));
   useEffect(() => {
     const ler = () => {
       if (document.visibilityState === "visible") void useWhatsapp.getState().carregar();
@@ -34,7 +33,7 @@ function usarWhatsappNaBarra(): { conectado: boolean; naoLidas: number } {
       document.removeEventListener("visibilitychange", ler);
     };
   }, []);
-  return { conectado, naoLidas };
+  return { naoLidas };
 }
 
 function useContadores(): Partial<Record<Rota, { n: number; alerta?: boolean }>> {
@@ -268,7 +267,7 @@ export function BarraLateral({ recolhida }: { recolhida: boolean }) {
                   <ChevronDown size={12} className="barra-rotulo-seta" />
                 </button>
               )}
-              {!fechado && itens.flatMap((i) => (i.rota === "conexoes" && (whatsapp.conectado || rota === "whatsapp") ? [item(i.rota, i.nome), itemDoWhatsapp()] : [item(i.rota, i.nome)]))}
+              {!fechado && itens.flatMap((i) => (i.rota === "conexoes" ? [item(i.rota, i.nome), itemDoWhatsapp()] : [item(i.rota, i.nome)]))}
             </div>
           );
         })}

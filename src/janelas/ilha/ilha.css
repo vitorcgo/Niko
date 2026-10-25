@@ -2703,6 +2703,71 @@
   color: #53bdeb;
 }
 
+.whatsapp-player {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  width: min(260px, 100%);
+}
+
+.whatsapp-player audio {
+  display: none;
+}
+
+.whatsapp-player-tocar {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #25d366;
+  color: #06301a;
+}
+
+.whatsapp-player[data-esperando] .whatsapp-player-tocar {
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.whatsapp-player-ondas {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 2px;
+  height: 24px;
+  min-width: 0;
+  cursor: pointer;
+}
+
+.whatsapp-player-ondas > span {
+  flex: 1;
+  min-width: 2px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.28);
+}
+
+.whatsapp-player-ondas > span[data-tocada] {
+  background: #25d366;
+}
+
+.whatsapp-player-tempo {
+  flex: none;
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.6);
+  font-variant-numeric: tabular-nums;
+}
+
+.whatsapp-player-velocidade {
+  flex: none;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 600;
+}
+
 .whatsapp-previa-arquivo {
   display: grid;
   flex: none;

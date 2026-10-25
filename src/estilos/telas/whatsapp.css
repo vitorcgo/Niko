@@ -49,11 +49,11 @@
   grid-template-columns: minmax(268px, 330px) minmax(0, 1fr);
 }
 
-.estilo-sistema .wpp-tela-carregando,
-.estilo-sistema .wpp-tela-desconectada {
+.estilo-sistema .wpp-tela.wpp-tela-carregando,
+.estilo-sistema .wpp-tela.wpp-tela-desconectada {
   display: grid;
   place-items: center;
-  grid-template-columns: 1fr;
+  grid-template-columns: minmax(0, 1fr);
   color: var(--texto-2);
 }
 
@@ -1310,9 +1310,95 @@
   border-radius: 10px;
 }
 
-.estilo-sistema .wpp-tela .whatsapp-audio {
-  width: min(300px, 100%);
+.estilo-sistema .wpp-tela .whatsapp-player {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: min(320px, 100%);
+  padding: 2px 0;
+}
+
+.estilo-sistema .wpp-tela .whatsapp-player audio {
+  display: none;
+}
+
+.estilo-sistema .wpp-tela .whatsapp-player-tocar {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 36px;
   height: 36px;
+  border-radius: 50%;
+  background: #25d366;
+  color: #06301a;
+  transition: transform 0.18s var(--curva-entrar), filter 0.15s;
+}
+
+.estilo-sistema .wpp-tela button.whatsapp-player-tocar:hover {
+  filter: brightness(1.08);
+  transform: scale(1.06);
+}
+
+.estilo-sistema .wpp-tela button.whatsapp-player-tocar:active {
+  transform: scale(0.92);
+}
+
+.estilo-sistema .wpp-tela .whatsapp-player[data-esperando] .whatsapp-player-tocar {
+  background: var(--superficie-2);
+  color: var(--texto-3);
+}
+
+.estilo-sistema .wpp-tela .whatsapp-player-ondas {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 2px;
+  height: 30px;
+  min-width: 0;
+  cursor: pointer;
+  border-radius: 6px;
+  outline-offset: 3px;
+}
+
+.estilo-sistema .wpp-tela .whatsapp-player-ondas > span {
+  flex: 1;
+  min-width: 2px;
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--texto) 26%, transparent);
+  transition: background 0.12s;
+}
+
+.estilo-sistema .wpp-tela .whatsapp-player-ondas > span[data-tocada] {
+  background: #25d366;
+}
+
+.estilo-sistema .wpp-tela .whatsapp-player[data-esperando] .whatsapp-player-ondas > span {
+  animation: wpp-pulsar 1.2s ease-in-out infinite;
+}
+
+.estilo-sistema .wpp-tela .whatsapp-player-tempo {
+  flex: none;
+  min-width: 36px;
+  font-family: var(--fonte-mono);
+  font-size: 11px;
+  color: var(--texto-2);
+  text-align: right;
+}
+
+.estilo-sistema .wpp-tela .whatsapp-player-velocidade {
+  flex: none;
+  min-width: 38px;
+  height: 24px;
+  padding: 0 7px;
+  border-radius: var(--raio-pilula);
+  background: var(--superficie-2);
+  color: var(--texto);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.estilo-sistema .wpp-tela .whatsapp-player-velocidade:hover {
+  background: var(--borda);
 }
 
 .estilo-sistema .wpp-imagem-ampliada {

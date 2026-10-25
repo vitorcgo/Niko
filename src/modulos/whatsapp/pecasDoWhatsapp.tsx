@@ -1,10 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { format, isToday, isYesterday } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Check, Contact, EyeOff, FileText, Image, MapPin, Mic, Paperclip, Play, Sticker, Users, Video, type LucideIcon } from "lucide-react";
 import { T } from "../../textos/textos";
 import { corDoNome, iniciaisDoNome, whatsappPonte, type MensagemWhatsapp } from "../../ponte/whatsapp";
 import { formatarTamanho } from "../../utilitarios/anexos";
+import { EsperaDoAudio, PlayerDeAudio } from "./PlayerDeAudio";
 
 const W = T.whatsapp;
 
@@ -44,12 +45,29 @@ export function rotuloDaMidia(m: Pick<MensagemWhatsapp, "midia" | "nomeDoArquivo
 const MIDIAS_NA_HORA = new Set(["imagem", "figurinha"]);
 const MIDIAS_COM_CLIQUE = new Set(["video", "audio"]);
 
+const AUDIO_AUTOMATICO = 2 * 1024 * 1024;
+
 export function MidiaDaMensagem({ jid, m, aoAmpliar }: { jid: string; m: MensagemWhatsapp; aoAmpliar?: (url: string) => void }) {
   const tipo = W.midias[m.midia] ?? W.midias.outra;
   const naHora = MIDIAS_NA_HORA.has(m.midia);
+  const audioAutomatico = m.midia === "audio" && !m.visualizacaoUnica && (m.tamanho ?? 0) <= AUDIO_AUTOMATICO;
   const [pedida, setPedida] = useState(naHora);
+  const [clicou, setClicou] = useState(false);
   const [url, setUrl] = useState<string | null>(null);
   const [falhou, setFalhou] = useState(false);
+  const espera = useRef<HTMLSpanElement>(null);
+
+  useEffect(() => {
+    const el = espera.current;
+    if (!audioAutomatico || pedida || !el) return;
+    const observador = new IntersectionObserver(([e]) => {
+      if (!e.isIntersecting) return;
+      setPedida(true);
+      observador.disconnect();
+    });
+    observador.observe(el);
+    return () => observador.disconnect();
+  }, [audioAutomatico, pedida]);
 
   useEffect(() => {
     if (!pedida || m.visualizacaoUnica) return;
@@ -75,16 +93,17 @@ export function MidiaDaMensagem({ jid, m, aoAmpliar }: { jid: string; m: Mensage
     return <span className="whatsapp-midia">{rotuloDaMidia(m)}{tamanho}</span>;
   }
   if (falhou) return <span className="whatsapp-midia">{W.midiaFalhou(tipo)}</span>;
+  if (m.midia === "audio" && (audioAutomatico || pedida) && !url) return <span ref={espera}><EsperaDoAudio carregando={pedida} /></span>;
   if (!pedida) {
     return (
-      <button type="button" className="whatsapp-carregar-midia" onClick={() => setPedida(true)}>
+      <button type="button" className="whatsapp-carregar-midia" onClick={() => { setClicou(true); setPedida(true); }}>
         <Play size={11} /> {W.carregarMidia(tipo, m.tamanho ? formatarTamanho(m.tamanho) : "")}
       </button>
     );
   }
   if (!url) return <span className="whatsapp-midia-carregando" data-tipo={m.midia}>{W.carregandoMidia}</span>;
   if (m.midia === "video") return <video className="whatsapp-video" src={url} controls autoPlay />;
-  if (m.midia === "audio") return <audio className="whatsapp-audio" src={url} controls autoPlay />;
+  if (m.midia === "audio") return <PlayerDeAudio url={url} autoTocar={clicou} />;
   const imagem = <img className="whatsapp-imagem" data-tipo={m.midia} src={url} alt={tipo} />;
   if (!aoAmpliar || m.midia !== "imagem") return imagem;
   return <button type="button" className="whatsapp-ampliar" aria-label={W.pagina.ampliar} onClick={() => aoAmpliar(url)}>{imagem}</button>;
