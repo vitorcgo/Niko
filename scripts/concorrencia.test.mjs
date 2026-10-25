@@ -417,6 +417,22 @@ test("script de sistema do Windows lê SSID e senha com acento sem corromper", {
   }
 });
 
+test("script de controle do Windows lê caminhos com acento sem corromper", { skip: process.platform !== "win32" }, async () => {
+  const script = scriptDoWindows("servidor/plataforma/windows/controle.ts", "controle");
+  const inicio = script.indexOf("Add-Type -AssemblyName System.Drawing");
+  assert.ok(inicio > 0);
+  const eco = `${script.slice(0, inicio)}$e = [Console]::In.ReadLine() | ConvertFrom-Json; [Console]::Out.WriteLine((@{ app = [string]$e.app } | ConvertTo-Json -Compress))`;
+  const pasta = await mkdtemp(join(tmpdir(), "niko-plataforma-"));
+  try {
+    const caminho = join(pasta, "controle.ps1");
+    await writeFile(caminho, eco, "utf8");
+    const entrada = { app: "C:\\Users\\João\\Área de Trabalho\\Ação.lnk" };
+    assert.deepEqual(JSON.parse(await rodarPowerShell(caminho, `${JSON.stringify(entrada)}\n`)), entrada);
+  } finally {
+    await rm(pasta, { recursive: true, force: true });
+  }
+});
+
 test("manifesto de testes exige todos os arquivos presentes no repositório", () => {
   assert.deepEqual(validarArquivosDeTeste(process.cwd()), arquivosDeTeste);
 });

@@ -316,6 +316,7 @@ public static class NikoControle {
 const SCRIPT = String.raw`
 $ErrorActionPreference = 'Stop'
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+[Console]::InputEncoding = [System.Text.Encoding]::UTF8
 Add-Type -AssemblyName System.Drawing
 Add-Type -ReferencedAssemblies System.Drawing -TypeDefinition @'
 ` + CODIGO + String.raw`
@@ -361,7 +362,11 @@ function Endpoint($fluxo) {
 function Audio {
   $sessoes = @()
   try {
-    foreach ($s in [NikoControle]::ListarSessoes()) {
+    $lista = @([NikoControle]::ListarSessoes())
+    $vivos = @{}
+    foreach ($s in $lista) { $vivos[[int]$s.Pid] = $true }
+    foreach ($pidAntigo in @($processos.Keys)) { if (-not $vivos.ContainsKey($pidAntigo)) { $processos.Remove($pidAntigo) } }
+    foreach ($s in $lista) {
       if ($s.Sistema) { $info = @{ nome = ''; caminho = $null } } else { $info = InfoDoProcesso ([int]$s.Pid) }
       $sessoes += @{ pid = $s.Pid; sistema = $s.Sistema; ativa = ($s.Estado -eq 1); volume = $s.Volume; mudo = $s.Mudo; nome = $info.nome; caminho = $info.caminho; icone = (IconeDoProcesso $info.caminho) }
     }
