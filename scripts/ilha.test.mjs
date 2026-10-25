@@ -1,7 +1,9 @@
 import test, { after } from "node:test";
 import assert from "node:assert/strict";
 import { criarServidorDeTeste as createServer } from "./vite-para-testes.mjs";
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
+import { join } from "node:path";
+import { parseAst } from "vite";
 
 globalThis.BroadcastChannel = undefined;
 globalThis.localStorage = { getItem: () => null, setItem: () => undefined };
@@ -266,4 +268,41 @@ test("detecção nativa do Iniciar compila e retorna um booleano sem abrir janel
   } finally {
     encerrarControle();
   }
+});
+
+function hooksDepoisDeRetorno(fonte, lang) {
+  const ehFuncao = (n) => ["FunctionDeclaration", "FunctionExpression", "ArrowFunctionExpression"].includes(n?.type);
+  const ehHook = (n) => n.type === "CallExpression" && n.callee.type === "Identifier" && /^(use|usar)[A-Z]/.test(n.callee.name);
+  const filhos = (n) => Object.values(n).flatMap((v) => (Array.isArray(v) ? v : [v])).filter((v) => v && typeof v.type === "string");
+  const problemas = [];
+  const analisar = (fn, nome) => {
+    if (fn.body?.type !== "BlockStatement" || !/^(use[A-Z]|usar[A-Z]|[A-Z])/.test(nome)) return;
+    let fimDoRetorno = Infinity;
+    const visitar = (n) => {
+      if (ehFuncao(n)) return;
+      if (n.type === "ReturnStatement") fimDoRetorno = Math.min(fimDoRetorno, n.end);
+      if (ehHook(n) && n.start > fimDoRetorno) problemas.push(`${nome}: ${n.callee.name}`);
+      filhos(n).forEach(visitar);
+    };
+    fn.body.body.forEach(visitar);
+  };
+  const percorrer = (n) => {
+    if (n.type === "FunctionDeclaration" && n.id) analisar(n, n.id.name);
+    if (n.type === "VariableDeclarator" && n.id.type === "Identifier" && n.init) {
+      let i = n.init;
+      while (i.type === "CallExpression" && i.arguments.length) i = i.arguments[0];
+      if (ehFuncao(i)) analisar(i, n.id.name);
+    }
+    filhos(n).forEach(percorrer);
+  };
+  percorrer(parseAst(fonte, { lang }));
+  return problemas;
+}
+
+test("nenhum componente ou hook chama hooks depois de um return antecipado", () => {
+  const raiz = new URL("../src/", import.meta.url);
+  const arquivos = readdirSync(raiz, { recursive: true }).filter((a) => /\.tsx?$/.test(a));
+  const problemas = arquivos.flatMap((a) => hooksDepoisDeRetorno(readFileSync(new URL(a.replaceAll("\\", "/"), raiz), "utf8"), a.endsWith("x") ? "tsx" : "ts").map((p) => `${join("src", a)} ${p}`));
+  assert.deepEqual(problemas, []);
+  assert.deepEqual(hooksDepoisDeRetorno("function A({ d }) { if (!d) return null; const c = usarCor(d); return c; }", "tsx"), ["A: usarCor"]);
 });
