@@ -248,9 +248,9 @@ export async function atualizarConexaoAgora(id: ServicoId, forcar = true) {
   try {
     const dados = await conexoesPonte.ler(id, forcar);
     com.atualizarConexao(id, { ultimaAtualizacao: new Date().toISOString(), resumo: resumoDe(id, dados), status: "conectado" });
-    if (id === "github") {
+    if (id === "github" || id === "gitlab" || id === "gitea") {
       const g = dados as DadosGithub;
-      guardarCommits(g.commitsPorDia ?? {});
+      if (id === "github") guardarCommits(g.commitsPorDia ?? {});
       if (g.actions.some((a) => a.status === "rodando") || g.prs.some((p) => p.ci === "rodando")) {
         proximaLeitura.set(id, Math.min(proximaLeitura.get(id) ?? Infinity, Date.now() + LEITURA_COM_CI_RODANDO_MS));
       }

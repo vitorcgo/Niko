@@ -6,7 +6,7 @@ import { gerarId } from "../utilitarios/basicos";
 import { conexaoEmTestes } from "../utilitarios/disponibilidadeConexoes";
 
 export const SERVICOS: ServicoId[] = [
-  "stripe", "github", "vercel", "google", "supabase", "cloudflare", "resend", "notion", "calcom", "n8n",
+  "stripe", "github", "gitlab", "gitea", "vercel", "google", "supabase", "cloudflare", "resend", "notion", "calcom", "n8n",
   "email", "calendario", "linear", "jira", "trello", "railway", "discord", "reddit", "strava", "cripto",
 ];
 
@@ -15,6 +15,8 @@ export type CategoriaServico = "pagamentos" | "codigo" | "deploy" | "produtivida
 export const CATEGORIA_SERVICO: Record<ServicoId, CategoriaServico> = {
   stripe: "pagamentos",
   github: "codigo",
+  gitlab: "codigo",
+  gitea: "codigo",
   vercel: "deploy",
   resend: "produtividade",
   notion: "produtividade",
@@ -38,6 +40,8 @@ export const CATEGORIA_SERVICO: Record<ServicoId, CategoriaServico> = {
 export const INTERVALO_PADRAO: Record<ServicoId, number> = {
   stripe: 60,
   github: 300,
+  gitlab: 300,
+  gitea: 300,
   vercel: 60,
   resend: 120,
   notion: 300,

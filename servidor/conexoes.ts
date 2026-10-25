@@ -7,10 +7,11 @@ import { lerContribuicoesGithub, lerCommitsGithub } from "./github.ts";
 import { exigirConexaoDisponivel } from "../src/utilitarios/disponibilidadeConexoes.ts";
 import { autorizarStrava, lerJson, lerCalendarios, lerDiscord, lerEmail, lerJira, lerLinear, lerRailway, lerReddit, lerStrava, lerTrello, urlPublicaSegura } from "./conexoesExtras.ts";
 import { configDaCripto, enderecoValido, lerCripto } from "./cripto.ts";
+import { credencialDaForja, lerGitea, lerGitlab } from "./forjas.ts";
 
 export const SERVICOS = [
   "stripe", "github", "vercel", "resend", "notion", "calcom", "n8n", "google", "supabase", "cloudflare",
-  "linear", "jira", "trello", "railway", "discord", "reddit", "strava", "email", "calendario", "cripto",
+  "linear", "jira", "trello", "railway", "discord", "reddit", "strava", "email", "calendario", "cripto", "gitlab", "gitea",
 ] as const;
 const SERVICOS_ANTIGOS_DO_GOOGLE = ["gmail", "agenda"];
 export type Servico = (typeof SERVICOS)[number];
@@ -339,6 +340,8 @@ const LEITORES: Record<Servico, Leitor> = {
   email: (chave) => lerEmail(chave),
   calendario: (chave) => lerCalendarios(chave),
   cripto: (chave) => lerCripto(chave),
+  gitlab: (chave) => lerGitlab(chave, pedir),
+  gitea: (chave) => lerGitea(chave, pedir),
 };
 
 const PRESETS_DE_EMAIL: Record<string, { servidor: string; porta: number }> = {
@@ -371,6 +374,9 @@ export async function credencialDoServico(servico: Servico, dados: Record<string
       if (!campo(dados.email, 200).includes("@") || token.length < 8) throw new Error("chave_invalida");
       return JSON.stringify({ site, email: campo(dados.email, 200), token });
     }
+    case "gitlab":
+    case "gitea":
+      return credencialDaForja(servico, segredoOuAnterior(campo(dados.site, 300), "site"), segredoOuAnterior(campo(dados.chave, 4000), "token"));
     case "trello": {
       const token = segredoOuAnterior(campo(dados.chave, 400), "token");
       if (!/^[0-9a-f]{32}$/i.test(campo(dados.chaveApi, 64)) || token.length < 20) throw new Error("chave_invalida");
@@ -496,6 +502,9 @@ export async function configPublica(servico: Servico): Promise<Record<string, un
   switch (servico) {
     case "jira":
       return { site: c.site, email: c.email, temToken: Boolean(c.token) };
+    case "gitlab":
+    case "gitea":
+      return { site: c.site, temToken: Boolean(c.token) };
     case "trello":
       return { chaveApi: c.chave, temToken: Boolean(c.token) };
     case "discord":

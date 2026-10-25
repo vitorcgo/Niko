@@ -88,12 +88,15 @@ export function montarResumo(servico: ServicoId, dados: DadosServico[ServicoId])
         linhas: d.cobrancas.slice(0, 6).map((c) => ({ chave: c.id, principal: c.cliente, secundario: c.metodo, estado: c.status, quando: c.data, valor: formatarDinheiro(c.valor) })),
       };
     }
-    case "github": {
+    case "github":
+    case "gitlab":
+    case "gitea": {
       const d = dados as DadosServico["github"];
       const contribuicoes = d.contribuicoes ? resumirContribuicoesGithub(d.contribuicoes).ultimos7dias : null;
       const falhas = d.actions.filter((a) => a.status === "falhou").length;
+      const simbolo = servico === "gitlab" ? "!" : "#";
       const linhas: Linha[] = [
-        ...d.prs.slice(0, 3).map((p) => ({ chave: `pr-${p.repo}-${p.numero}`, principal: `#${p.numero} ${p.titulo}`, secundario: p.repo, estado: p.tipo === "revisar" ? "revisar" : p.ci === "falhou" || p.ci === "rodando" ? p.ci : p.revisao, quando: p.data })),
+        ...d.prs.slice(0, 3).map((p) => ({ chave: `pr-${p.repo}-${p.numero}`, principal: `${simbolo}${p.numero} ${p.titulo}`, secundario: p.repo, estado: p.tipo === "revisar" ? "revisar" : p.ci === "falhou" || p.ci === "rodando" ? p.ci : p.revisao, quando: p.data })),
         ...d.actions.slice(0, 6 - Math.min(3, d.prs.length)).map((a) => ({ chave: `ac-${a.repo}-${a.workflow}-${a.data}`, principal: a.workflow, secundario: `${a.repo} . ${a.branch}`, estado: a.status, quando: a.data })),
       ];
       return {
@@ -103,7 +106,7 @@ export function montarResumo(servico: ServicoId, dados: DadosServico[ServicoId])
           { rotulo: M.falhasActions, valor: falhas, tom: falhas ? "erro" : "" },
           { rotulo: I.contribuicoes7d, valor: contribuicoes === null ? "-" : mil(contribuicoes) },
         ],
-        tituloDaLista: d.prs.length ? I.prsEActions : d.actions.length ? I.actionsRecentes : T.janelaConexao.abas.github.repositorios,
+        tituloDaLista: d.prs.length ? I.prsEActions : d.actions.length ? I.actionsRecentes : T.janelaConexao.abas[servico as "github" | "gitlab" | "gitea"].repositorios,
         linhas: linhas.length ? linhas : d.repositorios.slice(0, 6).map((r) => ({ chave: r.nome, principal: r.nome, secundario: r.linguagem, quando: r.atualizado })),
       };
     }
@@ -392,7 +395,7 @@ export function ConexaoNaIlha({ servico }: { servico: ServicoId }) {
           </div>
         ))}
       </div>
-      {servico === "github" && <ContribuicoesGithub calendario={(dados as DadosServico["github"]).contribuicoes} compacto />}
+      {(servico === "github" || servico === "gitlab" || servico === "gitea") && <ContribuicoesGithub calendario={(dados as DadosServico["github"]).contribuicoes} compacto />}
       {servico === "github" && <CommitsGithub commits={(dados as DadosServico["github"]).commits} compacto />}
       {resumo.aviso && (
         <div className="ilha-conexao-aviso cortar privado" data-tom={resumo.aviso.tom || undefined}>

@@ -252,6 +252,8 @@ export type DadosServico = {
   cloudflare: DadosCloudflare;
   stripe: DadosStripe;
   github: DadosGithub;
+  gitlab: DadosGithub;
+  gitea: DadosGithub;
   vercel: DadosVercel;
   resend: DadosResend;
   notion: DadosNotion;
@@ -291,7 +293,9 @@ export function resumoDe<S extends ServicoId>(servico: S, dados: DadosServico[S]
     case "stripe":
       return R.stripe((d as DadosStripe).cobrancas.filter((c) => c.status === "pago").length);
     case "github":
-      return R.github((d as DadosGithub).prs.length, (d as DadosGithub).actions.filter((a) => a.status === "falhou").length);
+    case "gitlab":
+    case "gitea":
+      return R[servico as "github" | "gitlab" | "gitea"]((d as DadosGithub).prs.length, (d as DadosGithub).actions.filter((a) => a.status === "falhou").length);
     case "vercel":
       return R.vercel((d as DadosVercel).deploys.filter((x) => x.estado === "pronto").length);
     case "resend":
@@ -371,14 +375,18 @@ export function ocorrenciasDe<S extends ServicoId>(servico: S, dados: DadosServi
   switch (servico) {
     case "stripe":
       return (d as DadosStripe).cobrancas.slice(0, 10).map((c) => ({ chave: c.id, texto: c.status === "falhou" ? O.cobrancaFalhou(nome, c.cliente) : O.cobrancaPaga(nome, c.cliente), tipo: c.status === "falhou" ? "falha" : "sucesso", data: c.data, aviso: "registro" }));
-    case "github": {
+    case "github":
+    case "gitlab":
+    case "gitea": {
       const g = d as DadosGithub;
       const agora = new Date().toISOString();
-      const actions: OcorrenciaConexao[] = g.actions.filter((a) => a.status !== "rodando").map((a) => ({ chave: `${a.repo}-${a.workflow}-${a.data}`, texto: a.status === "falhou" ? O.actionFalhou(a.repo, a.workflow) : O.actionOk(a.repo, a.workflow), tipo: a.status === "falhou" ? "falha" : "sucesso", data: a.data, aviso: "registro" }));
+      const pedido = (r: string, n: number) => O.pedidoDeMerge(servico, r, n);
+      const prefixo = servico === "github" ? "" : `${servico}-`;
+      const actions: OcorrenciaConexao[] = g.actions.filter((a) => a.status !== "rodando").map((a) => ({ chave: `${prefixo}${a.repo}-${a.workflow}-${a.data}`, texto: a.status === "falhou" ? O.actionFalhou(nome, a.repo, a.workflow) : O.actionOk(nome, a.repo, a.workflow), tipo: a.status === "falhou" ? "falha" : "sucesso", data: a.data, aviso: "registro" }));
       const ciDosPrs: OcorrenciaConexao[] = g.prs
         .filter((p) => p.tipo === "meu" && (p.ci === "falhou" || p.ci === "sucesso"))
-        .map((p) => ({ chave: `pr-ci-${p.repo}-${p.numero}-${p.ci}`, texto: p.ci === "falhou" ? O.prCiFalhou(p.repo, p.numero) : O.prCiOk(p.repo, p.numero), tipo: p.ci === "falhou" ? "falha" : "sucesso", data: agora, aviso: "importante" }));
-      const revisoes: OcorrenciaConexao[] = g.prs.filter((p) => p.tipo === "revisar").map((p) => ({ chave: `pr-revisar-${p.repo}-${p.numero}`, texto: O.revisaoPedida(p.autor, p.repo, p.numero), tipo: "sucesso", data: p.data, aviso: "importante" }));
+        .map((p) => ({ chave: `${prefixo}pr-ci-${p.repo}-${p.numero}-${p.ci}`, texto: p.ci === "falhou" ? O.prCiFalhou(nome, pedido(p.repo, p.numero)) : O.prCiOk(nome, pedido(p.repo, p.numero)), tipo: p.ci === "falhou" ? "falha" : "sucesso", data: agora, aviso: "importante" }));
+      const revisoes: OcorrenciaConexao[] = g.prs.filter((p) => p.tipo === "revisar").map((p) => ({ chave: `${prefixo}pr-revisar-${p.repo}-${p.numero}`, texto: O.revisaoPedida(nome, p.autor, pedido(p.repo, p.numero)), tipo: "sucesso", data: p.data, aviso: "importante" }));
       return [...actions, ...ciDosPrs, ...revisoes];
     }
     case "vercel":
@@ -469,6 +477,8 @@ export const LINKS_DO_GUIA: Record<ServicoId, (string | null)[]> = {
   email: [null, "https://myaccount.google.com/apppasswords", null, null, null],
   calendario: [null, "https://outlook.live.com/calendar/0/options/calendar/SharedCalendars", null, null],
   cripto: [null, null, null, null],
+  gitlab: ["https://gitlab.com/-/user_settings/personal_access_tokens", null, null],
+  gitea: [null, null, null],
 };
 
 export const PAINEL_OFICIAL: Record<ServicoId, string> = {
@@ -492,4 +502,12 @@ export const PAINEL_OFICIAL: Record<ServicoId, string> = {
   email: "https://mail.google.com",
   calendario: "https://outlook.live.com/calendar",
   cripto: "https://www.coinbase.com/explore",
+  gitlab: "https://gitlab.com/dashboard/merge_requests",
+  gitea: "https://gitea.com",
 };
+
+export const FORJAS = ["github", "gitlab", "gitea"] as const;
+
+export function ehForja(servico: ServicoId): servico is (typeof FORJAS)[number] {
+  return (FORJAS as readonly string[]).includes(servico);
+}

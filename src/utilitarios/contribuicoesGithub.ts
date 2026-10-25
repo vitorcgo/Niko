@@ -37,6 +37,20 @@ export function normalizarCalendarioGithub(resposta: unknown): CalendarioContrib
   return { total: calendario.totalContributions, dias };
 }
 
+export function calendarioDeContagens(porDia: Record<string, number>, hoje: string, totalDeDias = 365): CalendarioContribuicoesGithub {
+  const fim = Date.parse(`${hoje}T00:00:00Z`);
+  const dias = Array.from({ length: totalDeDias }, (_, i) => {
+    const data = new Date(fim - (totalDeDias - 1 - i) * DIA_MS).toISOString().slice(0, 10);
+    const quantidade = inteiro(porDia[data]) ? porDia[data] : 0;
+    return { data, quantidade, nivel: 0 };
+  });
+  const ativos = dias.map((d) => d.quantidade).filter((q) => q > 0).sort((a, b) => a - b);
+  const quartil = (p: number) => ativos[Math.floor(p * (ativos.length - 1))] ?? 0;
+  const limites = [quartil(0.25), quartil(0.5), quartil(0.75)];
+  for (const d of dias) d.nivel = d.quantidade === 0 ? 0 : 1 + limites.filter((l) => d.quantidade > l).length;
+  return { total: dias.reduce((soma, d) => soma + d.quantidade, 0), dias };
+}
+
 export function montarGradeGithub(calendario: CalendarioContribuicoesGithub) {
   const deslocamento = new Date(`${calendario.dias[0].data}T00:00:00Z`).getUTCDay();
   const celulas: (DiaContribuicaoGithub | null)[] = [...Array.from({ length: deslocamento }, () => null), ...calendario.dias];

@@ -398,7 +398,7 @@ export interface Memoria {
 
 export type ServicoId =
   | "stripe" | "github" | "vercel" | "resend" | "notion" | "calcom" | "n8n" | "google" | "supabase" | "cloudflare"
-  | "linear" | "jira" | "trello" | "railway" | "discord" | "reddit" | "strava" | "email" | "calendario" | "cripto";
+  | "linear" | "jira" | "trello" | "railway" | "discord" | "reddit" | "strava" | "email" | "calendario" | "cripto" | "gitlab" | "gitea";
 
 export type StatusConexao = "conectado" | "sem_chave" | "erro" | "pausado" | "sem_internet";
 

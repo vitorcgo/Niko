@@ -6,7 +6,7 @@ import { useComunicacao } from "../../estado/comunicacao";
 import { Marca } from "../../marcas/Marca";
 import { Botao, Vazio, AvisoFaixa, Alternador } from "../../componentes/basicos";
 import { T } from "../../textos/textos";
-import { conexoesPonte, PAINEL_OFICIAL, resumoDe, type DadosServico } from "../../ponte/conexoesReais";
+import { conexoesPonte, ehForja, PAINEL_OFICIAL, resumoDe, type DadosServico } from "../../ponte/conexoesReais";
 import { formatarDinheiro } from "../../utilitarios/dinheiro";
 import { formatar, horarioRelativo } from "../../utilitarios/datas";
 import { tocarSom } from "../../ponte/sons";
@@ -82,10 +82,10 @@ function ConteudoServico({ servico, aba, filtro, dados }: { servico: ServicoId; 
     );
   }
 
-  if (servico === "github") {
+  if (ehForja(servico)) {
     const d = dados as DadosServico["github"];
     if (aba === "contribuicoes") return <ContribuicoesGithub calendario={d.contribuicoes} />;
-    if (aba === "commits") return <CommitsGithub commits={d.commits} filtro={filtro} />;
+    if (aba === "commits" && servico === "github") return <CommitsGithub commits={d.commits} filtro={filtro} />;
     const acoes = (
       <Tabela filtro={filtro} linhas={d.actions} colunas={[
         { titulo: C.workflow, render: (l) => l.workflow, texto: (l) => l.workflow },
@@ -130,7 +130,7 @@ function ConteudoServico({ servico, aba, filtro, dados }: { servico: ServicoId; 
           <Metrica rotulo={M.repositorios} valor={d.repositorios.length} />
         </div>
         <ContribuicoesGithub calendario={d.contribuicoes} />
-        <CommitsGithub commits={d.commits} filtro={filtro} />
+        {servico === "github" && <CommitsGithub commits={d.commits} filtro={filtro} />}
         <h3 className="conexao-bloco-titulo">{T.janelaConexao.ultimas}</h3>
         {acoes}
       </div>
@@ -505,6 +505,16 @@ export function JanelaConexao({ janela }: { janela: EstadoJanela }) {
   useEffect(() => {
     if (!janela.minimizada) useComunicacao.getState().marcarFalhasVistas(janela.id);
   }, [janela.id, janela.minimizada]);
+  const [siteDaForja, setSiteDaForja] = useState("");
+  useEffect(() => {
+    if (janela.id !== "gitlab" && janela.id !== "gitea") return;
+    let vivo = true;
+    void conexoesPonte.config(janela.id).then((c) => vivo && typeof c.site === "string" && setSiteDaForja(c.site)).catch(() => undefined);
+    return () => {
+      vivo = false;
+    };
+  }, [janela.id, conexaoAtual?.chaveSalva]);
+  const painel = siteDaForja ? `${siteDaForja}${janela.id === "gitlab" ? "/dashboard/merge_requests" : "/pulls"}` : PAINEL_OFICIAL[janela.id];
   const aoMudarGeometria = useCallback((g: EstadoJanela["geometria"]) => atualizarJanela(janela.id, { geometria: g }), [atualizarJanela, janela.id]);
 
   if (!conexao || janela.minimizada) return null;
@@ -570,7 +580,7 @@ export function JanelaConexao({ janela }: { janela: EstadoJanela }) {
             >
               {T.janelaConexao.atualizar}
             </Botao>
-            <a className="botao botao-secundario" href={PAINEL_OFICIAL[janela.id]} target="_blank" rel="noopener noreferrer">
+            <a className="botao botao-secundario" href={painel} target="_blank" rel="noopener noreferrer">
               <ExternalLink size={13} />
               {T.janelaConexao.abrirPainel}
             </a>

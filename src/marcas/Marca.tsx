@@ -2,7 +2,7 @@ import {
   siStripe, siGithub, siVercel, siResend, siNotion, siCaldotcom, siN8n, siAnthropic, siOllama,
   siNvidia, siOpencode, siQwen, siGooglegemini, siOpenrouter, siMistralai, siHuggingface, siDeepseek, siLmstudio, siGmail, siGooglecalendar, siGoogle, siGoogledrive, siGoogletasks, siSupabase, siCloudflare, siClaudecode, siGithubcopilot, siKimi,
   siSpotify, siGooglechrome, siFirefoxbrowser, siZenbrowser, siYoutube, siYoutubemusic, siDeezer, siApplemusic, siTidal, siSoundcloud,
-  siLinear, siJira, siTrello, siRailway, siDiscord, siReddit, siStrava, siWhatsapp,
+  siLinear, siJira, siTrello, siRailway, siDiscord, siReddit, siStrava, siWhatsapp, siGitlab, siGitea,
 } from "simple-icons";
 import { Bitcoin, CalendarDays, Mail } from "lucide-react";
 import type { ServicoId } from "../tipos";
@@ -108,6 +108,8 @@ export const MARCAS: Record<Exclude<MarcaId, MarcaColorida | MarcaGenerica>, Ico
   soundcloud: siSoundcloud,
   linear: siLinear,
   jira: siJira,
+  gitlab: siGitlab,
+  gitea: siGitea,
   trello: siTrello,
   railway: siRailway,
   discord: siDiscord,

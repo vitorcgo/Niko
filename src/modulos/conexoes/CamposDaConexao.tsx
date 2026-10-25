@@ -5,7 +5,7 @@ import type { ServicoId } from "../../tipos";
 
 const F = T.conexoes.campos;
 
-export const SERVICOS_COM_CAMPOS: ServicoId[] = ["jira", "trello", "discord", "reddit", "strava", "email", "calendario", "cripto"];
+export const SERVICOS_COM_CAMPOS: ServicoId[] = ["jira", "trello", "discord", "reddit", "strava", "email", "calendario", "cripto", "gitlab", "gitea"];
 
 type Valores = Record<string, unknown>;
 
@@ -114,6 +114,14 @@ export function CamposDaConexao({ servico, salva, valores, mudar }: Props) {
           <CampoTexto id="cx-chave" rotulo={F.tokenApi} senha guardado={guardado} valor={valores.chave} mudar={(v) => mudar({ chave: v })} />
         </>
       );
+    case "gitlab":
+    case "gitea":
+      return (
+        <>
+          <CampoTexto id="cx-site" rotulo={F.siteForja} dica={servico === "gitlab" ? F.siteGitlabDica : F.siteGiteaDica} tipo="url" valor={valores.site} mudar={(v) => mudar({ site: v.trim() })} />
+          <CampoTexto id="cx-chave" rotulo={F.tokenDeAcesso} senha guardado={guardado} valor={valores.chave} mudar={(v) => mudar({ chave: v.trim() })} />
+        </>
+      );
     case "trello":
       return (
         <>
@@ -193,6 +201,9 @@ export function valoresIniciais(servico: ServicoId, salva: Valores): Valores {
   switch (servico) {
     case "jira":
       return { site: salva.site ?? "", email: salva.email ?? "" };
+    case "gitlab":
+    case "gitea":
+      return { site: salva.site ?? "" };
     case "trello":
       return { chaveApi: salva.chaveApi ?? "" };
     case "discord":

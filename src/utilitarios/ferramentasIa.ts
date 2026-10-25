@@ -183,7 +183,7 @@ async function lerArquivoDaMateria(a: Argumentos): Promise<ResultadoFerramenta> 
 }
 
 const SERVICOS_IA: ServicoId[] = ([
-  "stripe", "github", "vercel", "google", "supabase", "cloudflare", "resend", "notion", "calcom", "n8n",
+  "stripe", "github", "gitlab", "gitea", "vercel", "google", "supabase", "cloudflare", "resend", "notion", "calcom", "n8n",
   "linear", "jira", "trello", "railway", "discord", "reddit", "strava", "email", "calendario", "cripto",
 ] as ServicoId[]).filter((id) => !conexaoEmTestes(id));
 const SERVICOS_FINANCEIROS: ServicoId[] = ["stripe", "cripto"];
@@ -425,7 +425,7 @@ const FERRAMENTAS: FerramentaNiko[] = [
   {
     definicao: {
       nome: "ler_conexao",
-      descricao: "Dados reais e detalhados de uma conexão ligada: Stripe (cobranças, saldo), GitHub (PRs, issues, Actions), Vercel (deploys), Gmail (não lidos, importantes), Google Agenda (eventos de hoje e dos próximos 7 dias), Supabase (projetos, usuários, storage, logs), Cloudflare (domínios, DNS, Pages, Workers, métricas), Resend, Notion, Cal.com, n8n, Linear e Jira (issues atribuídas), Trello (cartões e prazos), Railway (deploys), Discord (menções), Reddit (mensagens), Strava (treinos), e-mail IMAP (caixa de entrada), agendas por link (eventos dos próximos 30 dias) e cripto (cotações e carteira).",
+      descricao: "Dados reais e detalhados de uma conexão ligada: Stripe (cobranças, saldo), GitHub (PRs, issues, Actions), GitLab e Gitea (merge requests ou PRs, issues, CI), Vercel (deploys), Gmail (não lidos, importantes), Google Agenda (eventos de hoje e dos próximos 7 dias), Supabase (projetos, usuários, storage, logs), Cloudflare (domínios, DNS, Pages, Workers, métricas), Resend, Notion, Cal.com, n8n, Linear e Jira (issues atribuídas), Trello (cartões e prazos), Railway (deploys), Discord (menções), Reddit (mensagens), Strava (treinos), e-mail IMAP (caixa de entrada), agendas por link (eventos dos próximos 30 dias) e cripto (cotações e carteira).",
       parametros: { type: "object", properties: { servico: { type: "string", enum: SERVICOS_IA } }, required: ["servico"] },
     },
     assincrona: async (a) => {
