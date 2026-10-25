@@ -11,6 +11,18 @@ const EXTENSOES_TEXTO = /\.(txt|md|markdown|csv|tsv|json|jsonc|xml|yaml|yml|toml
 const TIPOS_IMAGEM = /^image\/(png|jpeg|gif|webp)$/;
 const EXTENSOES_DOCUMENTO = new Set(["pdf", "docx", "pptx", "xlsx", "odt", "odp", "ods"]);
 
+function nomeDoPrint(arquivo: File, agora: Date): File {
+  if (arquivo.name && !/^image\.(png|jpe?g|gif|webp|bmp)$/i.test(arquivo.name)) return arquivo;
+  const z = (n: number) => String(n).padStart(2, "0");
+  const carimbo = `${agora.getFullYear()}-${z(agora.getMonth() + 1)}-${z(agora.getDate())}-${z(agora.getHours())}${z(agora.getMinutes())}${z(agora.getSeconds())}`;
+  const extensao = arquivo.type === "image/jpeg" ? "jpg" : arquivo.type.split("/")[1] || "png";
+  return new File([arquivo], `print-${carimbo}.${extensao}`, { type: arquivo.type, lastModified: agora.getTime() });
+}
+
+export function arquivosColados(dados: Pick<DataTransfer, "files"> | null, agora = new Date()): File[] {
+  return Array.from(dados?.files ?? []).map((a) => nomeDoPrint(a, agora));
+}
+
 export function ehDocumento(nome: string): boolean {
   return EXTENSOES_DOCUMENTO.has(extensaoDoNome(nome));
 }

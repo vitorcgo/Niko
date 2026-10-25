@@ -5,6 +5,7 @@ import { TextoRico } from "../../componentes/TextoRico";
 import { CartoesDaMensagem } from "../../componentes/CartaoAcao";
 import { EscolhaDoAgente } from "../../componentes/EscolhaDoAgente";
 import { AnexosDaMensagem, ChipsAnexos, ZonaDeSoltar, useAnexos, useArrastarArquivos } from "../../componentes/AnexosChat";
+import { arquivosColados } from "../../utilitarios/anexos";
 import { Personagem } from "../../personagens/Personagem";
 import { Botao } from "../../componentes/basicos";
 import { Marca, type MarcaId } from "../../marcas/Marca";
@@ -598,6 +599,12 @@ export default function Chat() {
                     setTexto(historicoEnvio[0]);
                   }
                   if (e.ctrlKey && e.key === ".") pararResposta();
+                }}
+                onPaste={(e) => {
+                  const colados = arquivosColados(e.clipboardData);
+                  if (!colados.length) return;
+                  e.preventDefault();
+                  anexos.adicionar(colados);
                 }}
               />
               <div className="chat-caixa-barra">

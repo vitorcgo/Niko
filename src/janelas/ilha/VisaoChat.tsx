@@ -9,6 +9,7 @@ import { TextoRico } from "../../componentes/TextoRico";
 import { CartoesDaMensagem } from "../../componentes/CartaoAcao";
 import { EscolhaDoAgente } from "../../componentes/EscolhaDoAgente";
 import { AnexosDaMensagem, ChipsAnexos, ZonaDeSoltar, useAnexos, useArrastarArquivos } from "../../componentes/AnexosChat";
+import { arquivosColados } from "../../utilitarios/anexos";
 import { T } from "../../textos/textos";
 import { useArquivosSoltos } from "../../estado/arquivosSoltos";
 import { IaConectada } from "./IaConectada";
@@ -125,6 +126,12 @@ export function VisaoChat() {
             onKeyDown={(e) => {
               if (e.key === "Enter") enviar();
               if (e.ctrlKey && e.key === ".") pararResposta();
+            }}
+            onPaste={(e) => {
+              const colados = arquivosColados(e.clipboardData);
+              if (!colados.length) return;
+              e.preventDefault();
+              anexos.adicionar(colados);
             }}
           />
         </div>
