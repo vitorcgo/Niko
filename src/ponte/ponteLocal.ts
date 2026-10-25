@@ -150,6 +150,7 @@ export const sistema = {
   desconectar: () => pedir("/sistema/desconectar", { method: "POST", body: "{}" }),
   brilho: (nivel: number) => pedir("/sistema/brilho", { method: "POST", body: JSON.stringify({ nivel }) }),
   radio: (tipo: "WiFi" | "Bluetooth", ligado: boolean) => pedir("/sistema/radio", { method: "POST", body: JSON.stringify({ tipo, ligado }) }),
+  bluetoothConexao: (id: string, conectar: boolean) => pedir<{ ok: boolean }>("/sistema/bluetooth", { method: "POST", body: JSON.stringify({ id, conectar }) }),
   configuracoes: (pagina: "bluetooth" | "wifi" | "rede" | "bateria") => pedir("/sistema/configuracoes", { method: "POST", body: JSON.stringify({ pagina }) }),
 };
 

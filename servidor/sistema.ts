@@ -44,6 +44,13 @@ export const definirRadio = (dados: Record<string, unknown>) => {
 
 export const listarBluetooth = () => sistema.bluetooth();
 
+export function idDeBluetooth(valor: unknown): string {
+  if (typeof valor !== "string" || valor.length > 200 || !/[0-9A-Fa-f]{2}(?::[0-9A-Fa-f]{2}){5}$/.test(valor)) throw new Error("valor_invalido");
+  return valor;
+}
+
+export const conectarBluetooth = (dados: Record<string, unknown>) => sistema.bluetoothConexao(idDeBluetooth(dados.id), dados.conectar !== false);
+
 let computadorEmCache: { quando: number; dados: Promise<Computador> } | null = null;
 export const lerComputador = () => {
   if (!computadorEmCache || Date.now() - computadorEmCache.quando > 15000) {

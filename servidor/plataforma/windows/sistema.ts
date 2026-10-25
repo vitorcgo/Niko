@@ -113,8 +113,78 @@ function AparelhosBluetooth {
   return @($lista | Sort-Object -Property @{ Expression = 'ativo'; Descending = $true }, nome)
 }
 
+function TipoDoBluetooth {
+  if ('NikoBluetooth.Controle' -as [type]) { return }
+  Add-Type -TypeDefinition @'
+using System;
+using System.Collections.Generic;
+using System.Runtime.InteropServices;
+namespace NikoBluetooth {
+  [StructLayout(LayoutKind.Sequential)] public struct KsPropriedade { public Guid Conjunto; public uint Id; public uint Tipo; }
+  [ComImport, Guid("A95664D2-9614-4F35-A746-DE8DB63617E6"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+  interface IMMDeviceEnumerator { [PreserveSig] int EnumAudioEndpoints(int fluxo, int estados, out IMMDeviceCollection lista); }
+  [ComImport, Guid("0BD7A1BE-7A1A-44DB-8397-CC5392387B5E"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+  interface IMMDeviceCollection { [PreserveSig] int GetCount(out uint n); [PreserveSig] int Item(uint i, out IMMDevice d); }
+  [ComImport, Guid("D666063F-1587-4E43-81F1-B948E807363F"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+  interface IMMDevice { [PreserveSig] int Activate(ref Guid iid, int ctx, IntPtr p, [MarshalAs(UnmanagedType.IUnknown)] out object o); }
+  [ComImport, Guid("2A07407E-6497-4A18-9787-32F79BD0D98F"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+  interface IDeviceTopology { [PreserveSig] int GetConnectorCount(out uint n); [PreserveSig] int GetConnector(uint i, out IConnector c); }
+  [ComImport, Guid("9c2c4058-23f5-41de-877a-df3af236a09e"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+  interface IConnector {
+    [PreserveSig] int ObterTipo(out int t); [PreserveSig] int ObterFluxo(out int f); [PreserveSig] int Ligar(IntPtr c); [PreserveSig] int Desligar();
+    [PreserveSig] int EstaLigado(out int b); [PreserveSig] int ObterLigadoA(out IConnector c);
+    [PreserveSig] int ObterIdDoConectorLigado([MarshalAs(UnmanagedType.LPWStr)] out string s);
+    [PreserveSig] int ObterIdDoAparelhoLigado([MarshalAs(UnmanagedType.LPWStr)] out string s);
+  }
+  [ComImport, Guid("AE2DE0E4-5BCA-4F2D-AA46-5D13F8FDB3A9"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+  interface IPart {
+    [PreserveSig] int GetName(IntPtr p); [PreserveSig] int GetLocalId(IntPtr p); [PreserveSig] int GetGlobalId(IntPtr p); [PreserveSig] int GetPartType(IntPtr p);
+    [PreserveSig] int GetSubType(IntPtr p); [PreserveSig] int GetControlInterfaceCount(IntPtr p); [PreserveSig] int GetControlInterface(uint i, IntPtr p);
+    [PreserveSig] int EnumPartsIncoming(IntPtr p); [PreserveSig] int EnumPartsOutgoing(IntPtr p); [PreserveSig] int GetTopologyObject(IntPtr p);
+    [PreserveSig] int Activate(int ctx, ref Guid iid, [MarshalAs(UnmanagedType.IUnknown)] out object o);
+  }
+  [ComImport, Guid("28F54685-06FD-11D2-B27A-00A0C9223196"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+  interface IKsControl { [PreserveSig] int KsProperty(ref KsPropriedade p, uint tamanho, IntPtr dados, uint tamanhoDosDados, out uint lidos); }
+  [ComImport, Guid("BCDE0395-E52F-467C-8E3D-C4579291692E")] class Enumerador {}
+  public static class Controle {
+    public static int Enviar(string endereco, bool conectar) {
+      IMMDeviceCollection lista;
+      if (((IMMDeviceEnumerator)new Enumerador()).EnumAudioEndpoints(2, 0xF, out lista) != 0) return 0;
+      uint n; lista.GetCount(out n);
+      var iidTopologia = new Guid("2A07407E-6497-4A18-9787-32F79BD0D98F");
+      var iidKs = new Guid("28F54685-06FD-11D2-B27A-00A0C9223196");
+      var feitos = new HashSet<string>();
+      int enviados = 0;
+      for (uint i = 0; i < n; i++) {
+        try {
+          IMMDevice d; if (lista.Item(i, out d) != 0) continue;
+          object o; if (d.Activate(ref iidTopologia, 23, IntPtr.Zero, out o) != 0) continue;
+          IConnector c; if (((IDeviceTopology)o).GetConnector(0, out c) != 0) continue;
+          string filtro; if (c.ObterIdDoAparelhoLigado(out filtro) != 0 || filtro == null) continue;
+          if (filtro.ToLowerInvariant().IndexOf(endereco) < 0 || !feitos.Add(filtro)) continue;
+          IConnector outro; if (c.ObterLigadoA(out outro) != 0) continue;
+          object ks; if (((IPart)outro).Activate(23, ref iidKs, out ks) != 0) continue;
+          var p = new KsPropriedade { Conjunto = new Guid("7FA06C40-B8F6-4C7E-8556-E8C33A12E54D"), Id = conectar ? 0u : 1u, Tipo = 1 };
+          uint lidos;
+          if (((IKsControl)ks).KsProperty(ref p, (uint)Marshal.SizeOf(typeof(KsPropriedade)), IntPtr.Zero, 0, out lidos) == 0) enviados++;
+        } catch (Exception) { }
+      }
+      return enviados;
+    }
+  }
+}
+'@
+}
+
 function Executar($entrada) {
 switch ($entrada.acao) {
+  'bluetooth-conexao' {
+    $endereco = (([string]$entrada.id -split '-')[-1] -replace ':', '').ToLowerInvariant()
+    if ($endereco -notmatch '^[0-9a-f]{12}$') { throw 'valor_invalido' }
+    TipoDoBluetooth
+    if ([NikoBluetooth.Controle]::Enviar($endereco, [bool]$entrada.conectar) -lt 1) { throw 'bluetooth_sem_audio' }
+    @{ ok = $true } | ConvertTo-Json -Compress
+  }
   'tipo' {
     $b = Get-CimInstance Win32_Battery -ErrorAction SilentlyContinue
     $chassi = (Get-CimInstance Win32_SystemEnclosure -ErrorAction SilentlyContinue | Select-Object -First 1).ChassisTypes
@@ -298,6 +368,7 @@ export const sistema: Plataforma["sistema"] = {
   brilho: (nivel) => executar({ acao: "brilho", nivel }),
   radio: (tipo, ligado) => executar({ acao: "radio", tipo, ligado }),
   bluetooth: () => executar({ acao: "bluetooth" }),
+  bluetoothConexao: (id, conectar) => executar({ acao: "bluetooth-conexao", id, conectar }, 30000),
   computador: () => executar({ acao: "computador" }, 30000),
   configuracoes: (pagina) => executar({ acao: "configuracoes", pagina }),
   encerrar: () => leitorContinuo.encerrar(),

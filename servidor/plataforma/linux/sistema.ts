@@ -352,6 +352,13 @@ export const sistema: Plataforma["sistema"] = {
   brilho,
   radio,
   bluetooth: async () => ({ aparelhos: await aparelhosBluetooth() }),
+  bluetoothConexao: async (id, conectar) => {
+    const endereco = /([0-9A-Fa-f]{2}(?::[0-9A-Fa-f]{2}){5})$/.exec(id)?.[1];
+    if (!endereco) throw new Error("valor_invalido");
+    const saida = await rodar("bluetoothctl", [conectar ? "connect" : "disconnect", endereco], 20000);
+    if (/Failed|not available|org\.bluez\.Error/i.test(saida)) throw new Error("bluetooth_nao_conectou");
+    return { ok: true };
+  },
   computador,
   async configuracoes(pagina) {
     const gnome = { bluetooth: "bluetooth", wifi: "wifi", rede: "network", bateria: "power" }[pagina];

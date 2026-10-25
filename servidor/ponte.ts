@@ -22,7 +22,7 @@ import {
 } from "./whatsapp/whatsapp.ts";
 import { ehRotaDeAgente, receberEventoDeAgente, estadoDosAgentes, instalarAgente, previaDoAgente, removerAgente } from "./agentesDeCodigo.ts";
 import { listarArquivos, receberArquivo, enviarConteudo, excluirArquivo, excluirArquivosDaMateria, baixarArquivo, abrirArquivoNoPrograma, exportarParaDownloads } from "./arquivos.ts";
-import { tipoDoComputador, estadoDoSistema, listarRedes, listarBluetooth, lerComputador, conectarRede, esquecerRede, desconectarRede, definirBrilho, definirRadio, abrirConfiguracoesDoSistema } from "./sistema.ts";
+import { tipoDoComputador, estadoDoSistema, listarRedes, listarBluetooth, conectarBluetooth, lerComputador, conectarRede, esquecerRede, desconectarRede, definirBrilho, definirRadio, abrirConfiguracoesDoSistema } from "./sistema.ts";
 
 const LIMITE_CORPO = 24 * 1024 * 1024;
 
@@ -277,6 +277,7 @@ export const rotas: Connect.NextHandleFunction = async (req, res, proximo) => {
         desconectar: () => desconectarRede(),
         brilho: definirBrilho,
         radio: definirRadio,
+        bluetooth: conectarBluetooth,
         configuracoes: abrirConfiguracoesDoSistema,
       };
       if (req.method === "GET" && leitura[acao]) return responder(res, 200, await leitura[acao]());

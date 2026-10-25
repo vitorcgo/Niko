@@ -170,6 +170,7 @@ export interface Plataforma {
     brilho(nivel: number): Promise<{ ok: boolean; brilho: number }>;
     radio(tipo: Radio, ligado: boolean): Promise<{ ok: boolean; radios: Partial<Record<Radio, boolean>> }>;
     bluetooth(): Promise<{ aparelhos: AparelhoBluetooth[] }>;
+    bluetoothConexao(id: string, conectar: boolean): Promise<{ ok: boolean }>;
     computador(): Promise<Computador>;
     configuracoes(pagina: PaginaDeConfiguracao): Promise<{ ok: boolean }>;
     encerrar(): void;
