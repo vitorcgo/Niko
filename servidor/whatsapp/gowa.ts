@@ -6,6 +6,7 @@ import { uptime } from "node:os";
 import { join } from "node:path";
 import { pastaDados } from "../ia.ts";
 import { extrairDoZip } from "./zip.ts";
+import { ambienteSemAppImage } from "../plataforma/linux/comum.ts";
 
 const RELEASE_MAIS_RECENTE = "https://api.github.com/repos/aldinokemal/go-whatsapp-web-multidevice/releases/latest";
 const TAMANHO_MAXIMO_DO_DOWNLOAD = 120 * 1024 * 1024;
@@ -32,8 +33,8 @@ export function gowaInstalado() {
 
 export function alvoDaPlataforma(plataforma = process.platform, arquitetura = process.arch): { so: string; arq: string } | null {
   const so = plataforma === "win32" ? "windows" : plataforma === "linux" ? "linux" : null;
-  const arq = arquitetura === "x64" ? "amd64" : arquitetura === "arm64" ? "arm64" : arquitetura === "ia32" ? "386" : null;
-  if (!so || !arq || (so === "windows" && arq === "arm64")) return null;
+  const arq = arquitetura === "x64" ? "amd64" : arquitetura === "arm64" ? "arm64" : arquitetura === "ia32" ? "386" : arquitetura === "arm" ? "armv7" : null;
+  if (!so || !arq || (so === "windows" && (arq === "arm64" || arq === "armv7"))) return null;
   return { so, arq };
 }
 
@@ -148,7 +149,7 @@ export interface OpcoesDoGowa {
 
 export function ambienteDoGowa(o: OpcoesDoGowa, base: NodeJS.ProcessEnv = process.env): NodeJS.ProcessEnv {
   return {
-    ...base,
+    ...ambienteSemAppImage(base),
     APP_HOST: "127.0.0.1",
     APP_PORT: String(o.porta),
     APP_OS: "Niko",

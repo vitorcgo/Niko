@@ -56,6 +56,13 @@ test("gateway do whatsapp escolhe o build certo e só baixa do github", () => {
   assert.deepEqual(gowa.alvoDaPlataforma("win32", "x64"), { so: "windows", arq: "amd64" });
   assert.deepEqual(gowa.alvoDaPlataforma("linux", "arm64"), { so: "linux", arq: "arm64" });
   assert.equal(gowa.alvoDaPlataforma("win32", "arm64"), null);
+  assert.deepEqual(gowa.alvoDaPlataforma("linux", "arm"), { so: "linux", arq: "armv7" });
+  assert.equal(gowa.alvoDaPlataforma("win32", "arm"), null);
+  assert.equal(gowa.escolherArquivos([{ nome: "whatsapp_9.6.0_linux_armv7.zip", url: "https://github.com/c", tamanho: 1 }], "9.6.0", { so: "linux", arq: "armv7" }).binario, "linux-armv7");
+  const doAppImage = gowa.ambienteDoGowa({ porta: 1, acesso: "a", urlDoWebhook: "u", segredoDoWebhook: "s" }, { APPDIR: "/tmp/.mount_niko", APPIMAGE: "/home/v/Niko.AppImage", LD_LIBRARY_PATH: "/tmp/.mount_niko/usr/lib:/opt/lib", PATH: "/tmp/.mount_niko/usr/bin:/usr/bin" });
+  assert.equal(doAppImage.LD_LIBRARY_PATH, "/opt/lib");
+  assert.equal(doAppImage.PATH, "/usr/bin");
+  assert.equal(doAppImage.APPDIR, undefined);
   assert.equal(gowa.alvoDaPlataforma("darwin", "x64"), null);
   const arquivos = [
     { nome: "whatsapp_9.6.0_windows_amd64.zip", url: "https://github.com/a", tamanho: 1, digest: `sha256:${"a".repeat(64)}` },

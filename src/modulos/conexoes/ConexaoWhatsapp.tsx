@@ -115,6 +115,7 @@ export function ConfigWhatsapp({ aberto, aoFechar }: { aberto: boolean; aoFechar
                   <span className="linha"><Smartphone size={14} />{estado.vinculo === "conectado" && estado.eu ? W.conectadoComo(numeroDoJid(estado.eu)) : W.vinculos[estado.vinculo]}</span>
                 )}
                 {estado.erro === "gateway_fora" && <AvisoFaixa tipo="alerta">{W.gatewayFora}</AvisoFaixa>}
+                {estado.erro && estado.erro !== "gateway_fora" && T.configuracoes.errosDoCofre[estado.erro] && <AvisoFaixa tipo="erro">{T.configuracoes.errosDoCofre[estado.erro]}</AvisoFaixa>}
               </div>
             )}
             {estado && (
