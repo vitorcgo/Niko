@@ -28,6 +28,8 @@ sudo dnf install ./Niko-*.x86_64.rpm       # Fedora
 chmod +x Niko_*_amd64.AppImage && ./Niko_*_amd64.AppImage   # outras distribuições
 ```
 
+Prefira o `.deb` ou o `.rpm` quando a sua distribuição aceitar. Eles entram no menu de aplicativos com o ícone e usam as bibliotecas do sistema. O AppImage traz bibliotecas próprias, que podem não combinar com as de distribuições rolling, como Kali e Arch, e não entra sozinho no menu nem no início automático.
+
 Depois instale as ferramentas da tabela abaixo que quiser usar. Sem elas o Niko abre, mas o recurso correspondente fica indisponível. No Linux o app avisa quando sai versão nova, mas não se atualiza sozinho: baixe o pacote novo e instale por cima.
 
 ## O que foi feito
@@ -69,6 +71,16 @@ A pasta de dados do app fica em `~/.local/share/com.niko.desktop`. No Linux o Ni
 - Sem atualização automática: o app avisa da versão nova e o pacote é baixado à mão.
 - Os pacotes da release saem do GitHub Actions (`.github/workflows/pacotes-linux.yml`), num Ubuntu 22.04, para abrirem também em sistemas mais antigos. O `pnpm lancar` continua gerando só os instaladores do Windows.
 - Sem a extensão Window Calls, apps nativos de Wayland não aparecem no dock.
+
+## Problemas conhecidos
+
+| Sintoma | O que fazer |
+| ------- | ----------- |
+| Erro ao guardar a chave de IA e janela pedindo para desbloquear o chaveiro "Login" | O chaveiro do sistema está bloqueado ou com a senha diferente da sua senha de login. Desbloqueie em Senhas e chaves (Seahorse) e tente de novo. Para conferir se o chaveiro funciona: `printf teste \| secret-tool store --label=teste app teste` e depois `secret-tool lookup app teste`. |
+| A aba Mídia mostra "Nada tocando" com música tocando | Instale o `playerctl` e confira com `playerctl -l` se o player aparece. |
+| O AppImage não aparece no menu e não abre com o sistema | É o comportamento normal do AppImage. Prefira o `.deb` ou o `.rpm`. Se usar o AppImage, crie um `.desktop` em `~/.local/share/applications` com `Exec=` apontando para ele e `Icon=` com o ícone do Niko, e copie esse arquivo para `~/.config/autostart`. |
+| Avisos `GStreamer element ... not found` ou `undefined symbol` no terminal com o AppImage | Mistura das bibliotecas do AppImage com as da distribuição. Use o `.deb` ou o `.rpm`. |
+| Avisos `libEGL warning: DRI3 error` em máquina virtual | A máquina virtual está sem aceleração 3D. Os avisos não impedem o Niko de funcionar. |
 
 ## Como rodar
 
