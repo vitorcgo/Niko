@@ -26,6 +26,9 @@ scripts/*
 !scripts/conexoes-em-testes.test.mjs
 !scripts/conexoes-novas.test.mjs
 !scripts/whatsapp.test.mjs
+!scripts/ondasDoAudio.test.mjs
+!scripts/forjas.test.mjs
+!scripts/resumoDeUso.test.mjs
 !scripts/concorrencia.test.mjs
 !scripts/pre-lancamento.test.mjs
 !scripts/assistive.test.mjs
