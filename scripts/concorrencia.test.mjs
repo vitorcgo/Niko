@@ -342,21 +342,53 @@ test("modelo do transcript reutiliza leitura, invalida mudanças e limita o cach
   assert.equal(contexto.quantidade(), 64);
 });
 
-function scriptDoSistemaDoWindows() {
+function scriptDoWindows(arquivo, exportado) {
   let capturado = "";
   const contexto = vm.createContext({
     process: { platform: "win32" },
-    spawn: () => undefined,
-    garantirScript: () => "simulado.ps1",
     criarProcessoPowerShell: (_prefixo, script) => {
       capturado = script;
       return { pedir: async () => ({}), encerrar: () => undefined };
     },
   });
-  const codigo = lerCodigo("servidor/plataforma/windows/sistema.ts").replace(/^import .*;\r?\n/gm, "").replace("export const sistema", "const sistema");
-  vm.runInContext(codigo, contexto);
+  vm.runInContext(lerCodigo(arquivo).replace(/^import .*;\r?\n/gm, "").replace(`export const ${exportado}`, `const ${exportado}`), contexto);
   return capturado;
 }
+
+function conversarComPowerShell(caminho, linhas) {
+  return new Promise((resolver, rejeitar) => {
+    const filho = iniciarProcesso("powershell.exe", ["-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File", caminho], { windowsHide: true });
+    let saida = "";
+    filho.stdout.on("data", (d) => (saida += d.toString("utf8")));
+    filho.on("error", rejeitar);
+    filho.on("close", () => resolver(saida.split(/\r?\n/).filter(Boolean).map((l) => JSON.parse(l))));
+    filho.stdin.end(linhas.map((l) => `${JSON.stringify(l)}\n`).join(""));
+  });
+}
+
+test("lista de janelas do Windows não reaproveita o app de um PID que fechou e foi reutilizado", { skip: process.platform !== "win32" }, async () => {
+  const script = scriptDoWindows("servidor/plataforma/windows/janelas.ts", "janelas");
+  assert.ok(script.includes("[NikoJanelas]::Listar()") && script.includes("while ($true) {"));
+  const simulacao = String.raw`
+$script:rodada = 0
+function ListarSimulado {
+  $script:rodada++
+  if ($script:rodada -eq 2) { return @() }
+  return @([pscustomobject]@{ Id = 1; Pid = 4242; Titulo = 'Janela'; Minimizada = $false; Ativa = $false; Monitor = ''; Grupo = $null; IconeDoGrupo = $null; NomeDoGrupo = $null })
+}
+function Get-Process { param($Id, $ErrorAction) [pscustomobject]@{ ProcessName = "app$($script:rodada)"; Path = $null; MainModule = $null } }
+while ($true) {`;
+  const alterado = script.replace("[NikoJanelas]::Listar()", "(ListarSimulado)").replace("while ($true) {", simulacao);
+  const pasta = await mkdtemp(join(tmpdir(), "niko-plataforma-"));
+  try {
+    const caminho = join(pasta, "janelas.ps1");
+    await writeFile(caminho, alterado, "utf8");
+    const respostas = await conversarComPowerShell(caminho, [1, 2, 3].map((id) => ({ acao: "listar", id })));
+    assert.deepEqual(respostas.map((r) => (r.janelas ?? []).map((j) => j.app)), [["app1"], [], ["app3"]]);
+  } finally {
+    await rm(pasta, { recursive: true, force: true });
+  }
+});
 
 function rodarPowerShell(caminho, entrada) {
   return new Promise((resolver, rejeitar) => {
@@ -370,7 +402,7 @@ function rodarPowerShell(caminho, entrada) {
 }
 
 test("script de sistema do Windows lê SSID e senha com acento sem corromper", { skip: process.platform !== "win32" }, async () => {
-  const script = scriptDoSistemaDoWindows();
+  const script = scriptDoWindows("servidor/plataforma/windows/sistema.ts", "sistema");
   const final = "Executar ([Console]::In.ReadToEnd() | ConvertFrom-Json)";
   assert.ok(script.includes(final));
   const eco = script.replace(final, "$e = [Console]::In.ReadToEnd() | ConvertFrom-Json; [Console]::Out.Write((@{ ssid = [string]$e.ssid; senha = [string]$e.senha } | ConvertTo-Json -Compress))");

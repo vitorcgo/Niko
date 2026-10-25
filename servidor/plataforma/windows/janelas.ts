@@ -175,7 +175,9 @@ while ($true) {
     elseif ($pedido.acao -eq 'fechar') { $r = @{ ok = [NikoJanelas]::Fechar([long]$pedido.janela) } }
     else {
       $lista = @()
+      $vivos = @{}
       foreach ($j in [NikoJanelas]::Listar()) {
+        $vivos[$j.Pid] = $true
         if (-not $caminhos.ContainsKey($j.Pid)) {
           $p = Get-Process -Id $j.Pid -ErrorAction SilentlyContinue
           $caminhos[$j.Pid] = @{ nome = $(if ($p) { $p.ProcessName } else { '' }); caminho = $(try { $p.Path } catch { $null }); descricao = $(try { $p.MainModule.FileVersionInfo.FileDescription } catch { $null }) }
@@ -185,6 +187,7 @@ while ($true) {
         $iconeDoGrupo = IconeDoGrupo $j.IconeDoGrupo
         $lista += @{ id = [string]$j.Id; pid = $j.Pid; titulo = $j.Titulo; minimizada = $j.Minimizada; ativa = $j.Ativa; app = $info.nome; nome = $(if ($info.descricao) { $info.descricao } else { $info.nome }); caminho = $info.caminho; icone = $(if ($iconeDoGrupo) { $iconeDoGrupo } else { Icone $info.caminho }); monitor = $j.Monitor; grupo = $j.Grupo; nomeDoGrupo = $j.NomeDoGrupo }
       }
+      foreach ($pidAntigo in @($caminhos.Keys)) { if (-not $vivos.ContainsKey($pidAntigo)) { $caminhos.Remove($pidAntigo) } }
       $r = @{ janelas = $lista }
     }
     $r.id = $pedido.id
