@@ -6,6 +6,7 @@ import type { EstadoDoSistema, Plataforma } from "../tipos.ts";
 const SCRIPT = String.raw`
 param([switch]$Continuo)
 $ErrorActionPreference = 'Stop'
+[Console]::InputEncoding = [System.Text.Encoding]::UTF8
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 
 $script:metodoTarefa = $null

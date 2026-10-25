@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { EventEmitter } from "node:events";
+import { spawn as iniciarProcesso } from "node:child_process";
 import { readFileSync, constants } from "node:fs";
 import { copyFile, mkdtemp, mkdir, readFile, rm, writeFile, readdir, stat, open } from "node:fs/promises";
 import { stripTypeScriptTypes } from "node:module";
@@ -339,6 +340,49 @@ test("modelo do transcript reutiliza leitura, invalida mudanças e limita o cach
     contexto.ler(`${i}.jsonl`);
   }
   assert.equal(contexto.quantidade(), 64);
+});
+
+function scriptDoSistemaDoWindows() {
+  let capturado = "";
+  const contexto = vm.createContext({
+    process: { platform: "win32" },
+    spawn: () => undefined,
+    garantirScript: () => "simulado.ps1",
+    criarProcessoPowerShell: (_prefixo, script) => {
+      capturado = script;
+      return { pedir: async () => ({}), encerrar: () => undefined };
+    },
+  });
+  const codigo = lerCodigo("servidor/plataforma/windows/sistema.ts").replace(/^import .*;\r?\n/gm, "").replace("export const sistema", "const sistema");
+  vm.runInContext(codigo, contexto);
+  return capturado;
+}
+
+function rodarPowerShell(caminho, entrada) {
+  return new Promise((resolver, rejeitar) => {
+    const filho = iniciarProcesso("powershell.exe", ["-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File", caminho], { windowsHide: true });
+    let saida = "";
+    filho.stdout.on("data", (d) => (saida += d.toString("utf8")));
+    filho.on("error", rejeitar);
+    filho.on("close", () => resolver(saida.trim()));
+    filho.stdin.end(entrada);
+  });
+}
+
+test("script de sistema do Windows lê SSID e senha com acento sem corromper", { skip: process.platform !== "win32" }, async () => {
+  const script = scriptDoSistemaDoWindows();
+  const final = "Executar ([Console]::In.ReadToEnd() | ConvertFrom-Json)";
+  assert.ok(script.includes(final));
+  const eco = script.replace(final, "$e = [Console]::In.ReadToEnd() | ConvertFrom-Json; [Console]::Out.Write((@{ ssid = [string]$e.ssid; senha = [string]$e.senha } | ConvertTo-Json -Compress))");
+  const pasta = await mkdtemp(join(tmpdir(), "niko-plataforma-"));
+  try {
+    const caminho = join(pasta, "sistema.ps1");
+    await writeFile(caminho, eco, "utf8");
+    const entrada = { ssid: "Família Conceição", senha: "pão-de-açúcar" };
+    assert.deepEqual(JSON.parse(await rodarPowerShell(caminho, JSON.stringify(entrada))), entrada);
+  } finally {
+    await rm(pasta, { recursive: true, force: true });
+  }
 });
 
 test("manifesto de testes exige todos os arquivos presentes no repositório", () => {
