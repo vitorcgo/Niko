@@ -735,6 +735,7 @@ export const T = {
     silenciar: "Silenciar sons",
     ativarSom: "Ativar sons",
     semMidia: "Nada tocando",
+    midiaSemPlayerctl: "Para mostrar a música, o Niko precisa do playerctl. Instale o pacote playerctl e toque algo de novo.",
     semAvisos: "Tudo em dia. Nenhum aviso.",
     tocar: "Tocar",
     pausar: "Pausar",

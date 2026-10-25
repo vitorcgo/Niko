@@ -909,6 +909,18 @@ test("programas abertos pelo Niko no AppImage não herdam as bibliotecas do paco
   assert.deepEqual(ambienteSemAppImage(fora), fora);
 });
 
+test("mídia no linux escolhe o player que está tocando, não o primeiro da lista", async () => {
+  const { escolherPlayer } = await vite.ssrLoadModule("/servidor/plataforma/linux/midia.ts");
+  const S = "\u001f";
+  const linha = (instancia, status, titulo) => [instancia, instancia.split(".")[0], status, titulo, "", "", "0", "0", ""].join(S);
+  const saida = [linha("org.webkit.app-123.Sandboxed.instance-269", "Paused", "Som do Niko"), linha("firefox.instance_1_392", "Playing", "The Emptiness Machine"), linha("vlc", "Stopped", "Outro")].join("\n");
+  assert.equal(escolherPlayer(saida)[0], "firefox.instance_1_392");
+  assert.equal(escolherPlayer([linha("vlc", "Stopped", "A"), linha("spotify", "Paused", "B")].join("\n"))[0], "spotify");
+  assert.equal(escolherPlayer(linha("vlc", "Stopped", "A"))[0], "vlc");
+  assert.equal(escolherPlayer(""), null);
+  assert.equal(escolherPlayer(linha("vlc", "Playing", "")), null);
+});
+
 test("chaveiro bloqueado no linux vira uma mensagem que explica o que fazer", async () => {
   const { erroDoChaveiro } = await vite.ssrLoadModule("/servidor/plataforma/linux/segredos.ts");
   assert.equal(erroDoChaveiro("secret-tool: Cannot create an item in a locked collection"), "chaveiro_bloqueado");

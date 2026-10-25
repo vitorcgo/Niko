@@ -340,7 +340,7 @@ export function VisaoMidia() {
           <Music size={18} color="#8e939c" />
           <div className="coluna" style={{ gap: 2 }}>
             <span className="ilha-titulo">{T.ilha.semMidia}</span>
-            <span className="ilha-sub">{midia.disponivel ? T.ilha.semMidiaDica : T.ilha.midiaSemPonte}</span>
+            <span className="ilha-sub">{!midia.disponivel ? T.ilha.midiaSemPonte : midia.semPlayerctl ? T.ilha.midiaSemPlayerctl : T.ilha.semMidiaDica}</span>
           </div>
         </div>
       </Cartao>

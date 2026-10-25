@@ -39,15 +39,31 @@ async function controlesDoPlayer(instancia: string): Promise<{ podeAvancar: bool
   return { podeAvancar: valores[0] === true, podeVoltar: valores[1] === true, podeBuscar: valores[2] === true };
 }
 
+const PRIORIDADE_DO_STATUS: Record<string, number> = { Playing: 0, Paused: 1 };
+
+export function escolherPlayer(saida: string): string[] | null {
+  const players = saida
+    .split("\n")
+    .map((linha) => linha.split(SEPARADOR))
+    .filter((campos) => campos.length >= 4 && campos[0] && campos[3]);
+  if (!players.length) return null;
+  return players.reduce((melhor, atual) => ((PRIORIDADE_DO_STATUS[atual[2]] ?? 2) < (PRIORIDADE_DO_STATUS[melhor[2]] ?? 2) ? atual : melhor));
+}
+
 async function estado(): Promise<EstadoDaMidia> {
   let saida: string;
   try {
-    saida = await rodar("playerctl", ["metadata", "--format", FORMATO], 5000);
-  } catch {
+    saida = await rodar("playerctl", ["-a", "metadata", "--format", FORMATO], 5000).catch(() => rodar("playerctl", ["metadata", "--format", FORMATO], 5000));
+  } catch (e) {
+    playerAtual = "";
+    return { sessao: false, ...((e as NodeJS.ErrnoException).code === "ENOENT" ? { semPlayerctl: true } : {}) };
+  }
+  const escolhido = escolherPlayer(saida);
+  if (!escolhido) {
     playerAtual = "";
     return { sessao: false };
   }
-  const [instancia = "", app = "", status = "", titulo = "", artista = "", album = "", posicao = "", duracao = "", arte = ""] = saida.replace(/\n$/, "").split(SEPARADOR);
+  const [instancia = "", app = "", status = "", titulo = "", artista = "", album = "", posicao = "", duracao = "", arte = ""] = escolhido;
   playerAtual = instancia;
   const segundos = microParaSegundos(duracao);
   const [controles, imagem] = await Promise.all([controlesDoPlayer(instancia), capa(arte)]);

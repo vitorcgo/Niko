@@ -137,6 +137,7 @@ export interface EstadoDaMidia {
   podeVoltar?: boolean;
   podeBuscar?: boolean;
   capa?: string | null;
+  semPlayerctl?: boolean;
 }
 
 export interface ResultadoOcr {

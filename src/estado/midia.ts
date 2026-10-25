@@ -20,10 +20,12 @@ interface RespostaMidia {
   podeAvancar?: boolean;
   podeVoltar?: boolean;
   podeBuscar?: boolean;
+  semPlayerctl?: boolean;
 }
 
 interface EstadoMidia {
   disponivel: boolean;
+  semPlayerctl: boolean;
   faixa: Faixa | null;
   tocando: boolean;
   tocouPorUltimoEm: number;
@@ -46,10 +48,11 @@ function mesmaFaixa(a: Faixa | null, b: Faixa): boolean {
 }
 
 function aplicar(r: RespostaMidia, anterior: Faixa | null): Partial<EstadoMidia> {
-  if (!r.sessao || !r.titulo) return { disponivel: true, faixa: null, tocando: false, posicao: 0, lidoEm: Date.now(), tocouPorUltimoEm: 0, podeAvancar: false, podeVoltar: false, podeBuscar: false };
+  if (!r.sessao || !r.titulo) return { disponivel: true, semPlayerctl: Boolean(r.semPlayerctl), faixa: null, tocando: false, posicao: 0, lidoEm: Date.now(), tocouPorUltimoEm: 0, podeAvancar: false, podeVoltar: false, podeBuscar: false };
   const nova: Faixa = { titulo: r.titulo, artista: r.artista ?? "", app: nomeDoApp(r.app ?? ""), duracao: r.duracao ?? 0, capa: r.capa ?? null };
   return {
     disponivel: true,
+    semPlayerctl: false,
     faixa: mesmaFaixa(anterior, nova) ? anterior : nova,
     tocando: Boolean(r.tocando),
     ...(r.tocando ? { tocouPorUltimoEm: Date.now() } : {}),
@@ -98,6 +101,7 @@ export const useMidia = create<EstadoMidia>()((set, get) => {
   };
   return {
     disponivel: false,
+    semPlayerctl: false,
     faixa: null,
     tocando: false,
     tocouPorUltimoEm: 0,
