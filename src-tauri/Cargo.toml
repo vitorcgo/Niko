@@ -1,6 +1,6 @@
 [package]
 name = "niko"
-version = "0.2.7"
+version = "0.2.8"
 description = "Niko"
 authors = ["vitorcgo"]
 edition = "2021"

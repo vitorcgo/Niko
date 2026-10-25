@@ -10,7 +10,7 @@ Rotina, estudos, finanças, metas e os serviços que você acompanha, reunidos e
 
 ![Windows 10 e 11](https://img.shields.io/badge/Windows-10%20%7C%2011-0b0d10?style=flat-square)
 ![Linux](https://img.shields.io/badge/Linux-Ubuntu%20%7C%20Fedora%20(GNOME)-0b0d10?style=flat-square)
-![Versão](https://img.shields.io/badge/versão-0.2.7-0b0d10?style=flat-square)
+![Versão](https://img.shields.io/badge/versão-0.2.8-0b0d10?style=flat-square)
 ![Licença](https://img.shields.io/badge/licença-proprietária-b42318?style=flat-square)
 
 <br />
