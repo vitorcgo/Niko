@@ -80,6 +80,7 @@ interface EstadoComunicacao extends DadosComunicacao {
   atualizarMensagem: (conversaId: string, mensagemId: string, parcial: Partial<Mensagem>) => void;
   trocarAgente: (conversaId: string, agenteId: AgenteId) => void;
   excluirConversa: (id: string) => Conversa | undefined;
+  renomearConversa: (id: string, titulo: string) => void;
   restaurarConversa: (c: Conversa) => void;
   limparConversas: () => void;
   lembrar: (texto: string, agenteId: AgenteId, origem: Memoria["origem"]) => void;
@@ -136,7 +137,11 @@ export const useComunicacao = create<EstadoComunicacao>()(
         });
         return removida;
       },
-      restaurarConversa: (c) => set((s) => ({ conversas: [c, ...s.conversas] })),
+      renomearConversa: (id, titulo) => {
+        const limpo = titulo.trim().slice(0, 80);
+        if (limpo) set((s) => ({ conversas: s.conversas.map((c) => (c.id === id ? { ...c, titulo: limpo } : c)) }));
+      },
+      restaurarConversa: (c) => set((s) => ({ conversas: [c, ...s.conversas].sort((a, b) => b.atualizadaEm.localeCompare(a.atualizadaEm)) })),
       limparConversas: () => set({ conversas: [] }),
       lembrar: (texto, agenteId, origem) =>
         set((s) => ({ memoria: [...s.memoria, { id: gerarId(), texto: texto.trim().slice(0, 300), agenteId, origem, data: new Date().toISOString() }] })),

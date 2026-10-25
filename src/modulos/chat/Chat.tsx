@@ -1,6 +1,6 @@
 import { memo, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { Plus, Search, ArrowUp, Download, Trash2, Copy, Check, BrainCircuit, FileText, SquareSlash, Terminal, Square, Settings2, RotateCcw, Play, AlertTriangle, Paperclip, Lightbulb, ListChecks, ScanText, MessagesSquare, X, CircleCheck, type LucideIcon } from "lucide-react";
+import { Plus, Search, ArrowUp, Download, Trash2, Copy, Check, BrainCircuit, FileText, SquareSlash, Terminal, Square, Settings2, RotateCcw, Play, AlertTriangle, Paperclip, Lightbulb, ListChecks, ScanText, MessagesSquare, X, CircleCheck, PencilLine, type LucideIcon } from "lucide-react";
 import { TextoRico } from "../../componentes/TextoRico";
 import { CartoesDaMensagem } from "../../componentes/CartaoAcao";
 import { EscolhaDoAgente } from "../../componentes/EscolhaDoAgente";
@@ -221,6 +221,8 @@ export default function Chat() {
   const criar = useComunicacao((s) => s.criarConversa);
   const excluir = useComunicacao((s) => s.excluirConversa);
   const restaurar = useComunicacao((s) => s.restaurarConversa);
+  const renomear = useComunicacao((s) => s.renomearConversa);
+  const [renomeando, setRenomeando] = useState<string | null>(null);
   const nomes = useConfig((s) => s.agentes.nomes);
   const cargos = useConfig((s) => s.agentes.cargos);
   const ia = useConfig((s) => s.ia);
@@ -342,6 +344,13 @@ export default function Chat() {
     setGavetaAberta(false);
   };
 
+  const excluirDaLista = (id: string) => {
+    const r = excluir(id);
+    if (!r) return;
+    if (id === atualId) setAtualId(undefined);
+    avisar(T.geral.excluido, () => restaurar(r));
+  };
+
   const inserirNoCampo = (simbolo: "/" | "@") => {
     if (simbolo === "/") setTexto((t) => (t.trim() ? t : "/"));
     else setTexto((t) => (!t || /\s$/.test(t) ? `${t}@` : `${t} @`));
@@ -385,18 +394,50 @@ export default function Chat() {
               <div key={g} className="chat-grupo">
                 <span className="chat-grupo-rotulo">{g}</span>
                 {grupos[g].map((c) => (
-                  <button key={c.id} type="button" className="chat-conversa" aria-current={c.id === atualId} onClick={() => abrirConversa(c.id)}>
-                    <span className="chat-conversa-avatar">
-                      <Personagem agente={agenteDaConversa(c)} estado="ocioso" tamanho={34} interativo={false} halo={false} olhar={false} />
-                    </span>
-                    <span className="chat-conversa-texto">
-                      <span className="chat-conversa-linha">
-                        <span className="chat-conversa-titulo">{c.titulo || T.chat.novaConversa}</span>
-                        <span className="chat-conversa-hora">{horaDaConversa(c.atualizadaEm)}</span>
+                  <div key={c.id} className="chat-conversa-caixa" data-editando={renomeando === c.id || undefined}>
+                    <button type="button" className="chat-conversa" aria-current={c.id === atualId} onClick={() => abrirConversa(c.id)}>
+                      <span className="chat-conversa-avatar">
+                        <Personagem agente={agenteDaConversa(c)} estado="ocioso" tamanho={34} interativo={false} halo={false} olhar={false} />
                       </span>
-                      <span className="chat-conversa-previa privado">{previaDaConversa(c, nomes)}</span>
-                    </span>
-                  </button>
+                      <span className="chat-conversa-texto">
+                        <span className="chat-conversa-linha">
+                          <span className="chat-conversa-titulo">{c.titulo || T.chat.novaConversa}</span>
+                          <span className="chat-conversa-hora">{horaDaConversa(c.atualizadaEm)}</span>
+                        </span>
+                        <span className="chat-conversa-previa privado">{previaDaConversa(c, nomes)}</span>
+                      </span>
+                    </button>
+                    {renomeando === c.id ? (
+                      <input
+                        className="chat-conversa-nome"
+                        autoFocus
+                        defaultValue={c.titulo}
+                        maxLength={80}
+                        aria-label={T.chat.renomearConversa}
+                        onFocus={(e) => e.currentTarget.select()}
+                        onBlur={(e) => {
+                          renomear(c.id, e.currentTarget.value);
+                          setRenomeando(null);
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") e.currentTarget.blur();
+                          else if (e.key === "Escape") {
+                            e.currentTarget.value = c.titulo;
+                            e.currentTarget.blur();
+                          }
+                        }}
+                      />
+                    ) : (
+                      <span className="chat-conversa-acoes">
+                        <button type="button" aria-label={`${T.chat.renomearConversa}: ${c.titulo || T.chat.novaConversa}`} title={T.chat.renomearConversa} onClick={() => setRenomeando(c.id)}>
+                          <PencilLine size={13} />
+                        </button>
+                        <button type="button" data-perigo aria-label={`${T.chat.excluirConversa}: ${c.titulo || T.chat.novaConversa}`} title={T.chat.excluirConversa} onClick={() => excluirDaLista(c.id)}>
+                          <Trash2 size={13} />
+                        </button>
+                      </span>
+                    )}
+                  </div>
                 ))}
               </div>
             ))

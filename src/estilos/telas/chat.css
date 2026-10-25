@@ -198,6 +198,71 @@
   border-color: var(--borda-controle);
 }
 
+.estilo-sistema .chat-conversa-caixa {
+  position: relative;
+}
+
+.estilo-sistema .chat-conversa-acoes {
+  position: absolute;
+  top: 7px;
+  right: 7px;
+  display: flex;
+  gap: 2px;
+  padding: 2px;
+  border-radius: 8px;
+  border: 1px solid var(--borda-suave);
+  background: var(--superficie);
+  box-shadow: var(--sombra-menu);
+  opacity: 0;
+  transform: translateY(-2px);
+  pointer-events: none;
+  transition: opacity 0.14s, transform 0.16s var(--curva-entrar);
+}
+
+.estilo-sistema .chat-conversa-caixa:hover .chat-conversa-acoes,
+.estilo-sistema .chat-conversa-acoes:focus-within {
+  opacity: 1;
+  transform: none;
+  pointer-events: auto;
+}
+
+.estilo-sistema .chat-conversa-acoes button {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  color: var(--texto-2);
+}
+
+.estilo-sistema .chat-conversa-acoes button:hover {
+  background: var(--superficie-2);
+  color: var(--texto);
+}
+
+.estilo-sistema .chat-conversa-acoes button[data-perigo]:hover {
+  background: color-mix(in srgb, var(--erro) 14%, transparent);
+  color: var(--erro);
+}
+
+.estilo-sistema .chat-conversa-nome {
+  position: absolute;
+  top: 6px;
+  left: 50px;
+  right: 8px;
+  height: 28px;
+  padding: 0 8px;
+  border-radius: 7px;
+  border: 1px solid var(--destaque-borda);
+  background: var(--superficie);
+  color: var(--texto);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 500;
+  outline: 0;
+  box-shadow: 0 0 0 3px var(--destaque-suave);
+}
+
 .estilo-sistema .chat-conversa-avatar {
   width: 30px;
   height: 30px;
