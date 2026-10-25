@@ -388,6 +388,24 @@ fn sem_prefixo(caminho: std::path::PathBuf) -> std::path::PathBuf {
     }
 }
 
+fn pasta_de_dados_antes_do_app() -> Option<std::path::PathBuf> {
+    let base = if cfg!(windows) {
+        std::env::var_os("APPDATA").map(std::path::PathBuf::from)
+    } else {
+        std::env::var_os("XDG_DATA_HOME").map(std::path::PathBuf::from).or_else(|| std::env::var_os("HOME").map(|casa| std::path::PathBuf::from(casa).join(".local").join("share")))
+    };
+    base.map(|pasta| pasta.join("com.niko.desktop"))
+}
+
+fn registrar_falha_ao_iniciar(erro: &str) {
+    let Some(pasta) = pasta_de_dados_antes_do_app() else {
+        return;
+    };
+    let _ = std::fs::create_dir_all(&pasta);
+    let segundos = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_secs()).unwrap_or(0);
+    let _ = std::fs::write(pasta.join("niko.log"), format!("falha ao iniciar (unix {segundos}): {erro}\n"));
+}
+
 fn iniciar_ponte(app: &AppHandle, token: &str, reinicio: bool) {
     if cfg!(debug_assertions) {
         return;
@@ -673,7 +691,10 @@ pub fn run() {
             Ok(())
         })
         .build(tauri::generate_context!())
-        .expect("falha ao iniciar o Niko");
+        .unwrap_or_else(|erro| {
+            registrar_falha_ao_iniciar(&erro.to_string());
+            panic!("falha ao iniciar o Niko: {erro}");
+        });
 
     app.run(|handle, evento| {
         if let RunEvent::Exit = evento {
