@@ -288,6 +288,7 @@ export const rotas: Connect.NextHandleFunction = async (req, res, proximo) => {
     }
     return responder(res, 404, { erro: "rota_desconhecida" });
   } catch (e) {
+    process.stderr.write(`${new Date().toISOString()} ${req.method} ${url.pathname} falhou: ${(e as Error).message}\n`);
     if (!res.headersSent) return responder(res, 400, { erro: (e as Error).message });
     res.end();
   }

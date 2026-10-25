@@ -17,6 +17,13 @@ const LIMITE_APPS = 8;
 const LIMITE_JANELAS = 3;
 const LIMITE_COMANDOS = 4;
 const LIMITE_RECENTES = 6;
+
+export function mensagemDeFalhaAoAbrir(erro: unknown, nome: string, padrao: string): string {
+  const motivo = erro instanceof Error ? erro.message : "";
+  if (motivo === "app_desconhecido") return B.appSumiu(nome);
+  if (motivo === "tempo_esgotado" || motivo === "controle_encerrado") return B.appDemorou(nome);
+  return padrao;
+}
 const LOTE_DE_ICONES = 12;
 const COMANDOS_INICIAIS: ComandoDoSistema[] = ["wifi", "bluetooth", "som", "configuracoes"];
 const COMANDOS = (Object.keys(B.comandos) as ComandoDoSistema[]).filter((c) => !(NO_LINUX && c === "painel"));
@@ -146,13 +153,13 @@ export function BuscaApps({ aoFechar }: { aoFechar: () => void }) {
         aoFechar();
       },
     });
-    const abrirDepois = (acao: () => Promise<unknown>, falha: string) => async () => {
+    const abrirDepois = (acao: () => Promise<unknown>, falha: string, nome?: string) => async () => {
       void tocarSom("blip");
       try {
         await acao();
         aoFechar();
-      } catch {
-        setAviso(falha);
+      } catch (e) {
+        setAviso(nome ? mensagemDeFalhaAoAbrir(e, nome, falha) : falha);
       }
     };
     const doApp = (app: AppInstalado, grupo: Grupo): Item => ({
@@ -165,7 +172,7 @@ export function BuscaApps({ aoFechar }: { aoFechar: () => void }) {
       admin: app.admin,
       executar: async (admin) => {
         usar(app.id);
-        await abrirDepois(() => controle.abrirApp(app.id, admin && app.admin), admin && app.admin ? B.semAdmin(app.nome) : B.falhouAbrir(app.nome))();
+        await abrirDepois(() => controle.abrirApp(app.id, admin && app.admin), admin && app.admin ? B.semAdmin(app.nome) : B.falhouAbrir(app.nome), app.nome)();
       },
     });
     const doComando = (c: ComandoDoSistema): Item => ({

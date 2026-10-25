@@ -496,6 +496,8 @@ export const T = {
       copiar: "Enter copia",
       copiado: "Resultado copiado.",
       falhouAbrir: (nome: string) => `Não foi possível abrir ${nome}.`,
+      appSumiu: (nome: string) => `${nome} não foi encontrado. Ele pode ter sido desinstalado ou movido.`,
+      appDemorou: (nome: string) => `${nome} demorou demais para abrir. Tente de novo.`,
       semAdmin: (nome: string) => `${nome} não pode ser aberto como administrador por aqui.`,
       pesquisar: (q: string, buscador: string) => `Pesquisar "${q}" no ${buscador}`,
       abrirEndereco: (endereco: string) => `Abrir ${endereco}`,

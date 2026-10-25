@@ -883,6 +883,14 @@ test("ilha e dock se recuperam sozinhos de uma falha e só recarregam se ela se 
   assert.deepEqual(proximaRecuperacao([100_000, 105_000], 200_000).falhas, [200_000]);
 });
 
+test("lupa explica por que um app não abriu em vez de uma mensagem genérica", async () => {
+  const { mensagemDeFalhaAoAbrir } = await vite.ssrLoadModule("/src/janelas/dock/BuscaApps.tsx");
+  assert.match(mensagemDeFalhaAoAbrir(new Error("app_desconhecido"), "Calculadora", "x"), /Calculadora não foi encontrado/);
+  assert.match(mensagemDeFalhaAoAbrir(new Error("tempo_esgotado"), "Calculadora", "x"), /demorou demais/);
+  assert.equal(mensagemDeFalhaAoAbrir(new Error("outra"), "Calculadora", "padrão"), "padrão");
+  assert.equal(mensagemDeFalhaAoAbrir("texto", "Calculadora", "padrão"), "padrão");
+});
+
 test("cor da capa: pega o tom predominante e ignora preto, branco e transparente", async () => {
   const { corPredominante } = await vite.ssrLoadModule("/src/janelas/ilha/midia/corDaCapa.ts");
   const pixels = (lista) => new Uint8ClampedArray(lista.flat());
