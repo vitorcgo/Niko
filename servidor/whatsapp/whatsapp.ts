@@ -117,6 +117,7 @@ function guardarRastro(r: RastroWhatsapp | null) {
 
 function aplicarEvento(e: EventoWhatsapp) {
   if (e.tipo === "mensagem") {
+    if (e.mensagem.visualizacaoUnica) registrarUnica(e.mensagem.id);
     digitando.delete(jidNormalizado(e.mensagem.conversa));
     guardar([e.mensagem], true);
   } else if (e.tipo === "apagada") guardarRastro(caixa.aplicarApagada(e.id, e.quando));
@@ -463,7 +464,7 @@ function guardarMidia(chave: string, midia: MidiaBaixada) {
   }
 }
 
-async function baixarMidia(jid: string, id: string, tipoDaMidia: string): Promise<MidiaBaixada> {
+async function baixarMidia(jid: string, id: string, tipoDaMidia: string, guardar = true): Promise<MidiaBaixada> {
   const corpo = await chamarComSucesso("GET", `/message/${encodeURIComponent(id)}/download`, { query: { phone: jid }, tempoMs: 60_000 });
   const relativo = ((corpo as Record<string, unknown> | null)?.results as Record<string, unknown> | undefined)?.file_path;
   const pasta = resolve(pastaDoWhatsapp());
@@ -475,18 +476,78 @@ async function baixarMidia(jid: string, id: string, tipoDaMidia: string): Promis
     const tipo = tipoPelosBytes(bytes, tipoDaMidia) ?? TIPOS_POR_EXTENSAO[extname(caminho).slice(1).toLowerCase()];
     if (!tipo) throw new Error("midia_formato");
     const midia = { tipo, bytes };
-    guardarMidia(`${jid}/${id}`, midia);
+    if (guardar) guardarMidia(`${jid}/${id}`, midia);
     return midia;
   } finally {
     rmSync(caminho, { force: true });
   }
 }
 
+const LIMITE_DE_UNICAS = 2000;
+const arquivoDeUnicas = () => join(pastaDados(), "whatsapp-unicas.json");
+let unicas: { conhecidas: Set<string>; abertas: Set<string> } | null = null;
+
+function ids(v: unknown): string[] {
+  return Array.isArray(v) ? v.filter((i): i is string => typeof i === "string").slice(-LIMITE_DE_UNICAS) : [];
+}
+
+function unicasGuardadas() {
+  if (unicas) return unicas;
+  try {
+    const lido = existsSync(arquivoDeUnicas()) ? (JSON.parse(readFileSync(arquivoDeUnicas(), "utf8")) as Record<string, unknown>) : {};
+    unicas = { conhecidas: new Set(ids(lido.conhecidas)), abertas: new Set(ids(lido.abertas)) };
+  } catch {
+    unicas = { conhecidas: new Set(), abertas: new Set() };
+  }
+  return unicas;
+}
+
+function salvarUnicas() {
+  const u = unicasGuardadas();
+  const dados = { conhecidas: [...u.conhecidas].slice(-LIMITE_DE_UNICAS), abertas: [...u.abertas].slice(-LIMITE_DE_UNICAS) };
+  unicas = { conhecidas: new Set(dados.conhecidas), abertas: new Set(dados.abertas) };
+  mkdirSync(pastaDados(), { recursive: true });
+  const temporario = `${arquivoDeUnicas()}.${process.pid}.tmp`;
+  writeFileSync(temporario, JSON.stringify(dados), "utf8");
+  renameSync(temporario, arquivoDeUnicas());
+}
+
+function registrarUnica(id: string) {
+  if (unicasGuardadas().conhecidas.has(id)) return;
+  unicasGuardadas().conhecidas.add(id);
+  salvarUnicas();
+}
+
+export function comMarcaDeUnica<M extends MensagemWhatsapp>(m: M, u: { conhecidas: Set<string>; abertas: Set<string> } = unicasGuardadas()): M {
+  const unica = m.visualizacaoUnica === true || u.conhecidas.has(m.id);
+  if (!unica) return m;
+  return { ...m, visualizacaoUnica: true, ...(u.abertas.has(m.id) ? { unicaAberta: true } : {}) };
+}
+
+const unicasEmAndamento = new Set<string>();
+
+async function abrirUnica(conversa: string, mensagem: MensagemWhatsapp): Promise<MidiaBaixada> {
+  if (unicasGuardadas().abertas.has(mensagem.id) || unicasEmAndamento.has(mensagem.id)) throw new Error("unica_ja_aberta");
+  unicasEmAndamento.add(mensagem.id);
+  try {
+    const midia = await baixarMidia(conversa, mensagem.id, mensagem.midia, false).catch(() => {
+      throw new Error("unica_indisponivel");
+    });
+    unicasGuardadas().conhecidas.add(mensagem.id);
+    unicasGuardadas().abertas.add(mensagem.id);
+    salvarUnicas();
+    return midia;
+  } finally {
+    unicasEmAndamento.delete(mensagem.id);
+  }
+}
+
 export async function midiaDaMensagem(jid: unknown, id: unknown): Promise<MidiaBaixada> {
   if (typeof jid !== "string" || typeof id !== "string") throw new Error("pedido_invalido");
   const conversa = caixa.conversas.get(jidNormalizado(jid));
-  const mensagem = conversa?.mensagens.find((m) => m.id === id);
-  if (!conversa || !mensagem || !MIDIAS_BAIXAVEIS.has(mensagem.midia) || mensagem.visualizacaoUnica) throw new Error("midia_indisponivel");
+  const mensagem = conversa?.mensagens.find((m) => m.id === id) ?? (conversa ? caixa.mensagem(id) : undefined);
+  if (!conversa || !mensagem || mensagem.conversa !== conversa.id || !MIDIAS_BAIXAVEIS.has(mensagem.midia)) throw new Error("midia_indisponivel");
+  if (comMarcaDeUnica(mensagem).visualizacaoUnica) return abrirUnica(conversa.id, mensagem);
   if ((mensagem.tamanho ?? 0) > TAMANHO_MAXIMO_DA_MIDIA) throw new Error("midia_grande_demais");
   const chave = `${conversa.id}/${id}`;
   const guardada = midias.get(chave);
@@ -504,7 +565,8 @@ export async function midiaDaMensagem(jid: unknown, id: unknown): Promise<MidiaB
 
 function resumoDaConversa(c: ConversaWhatsapp) {
   const foto = estado.config.mostrarFotos === false ? null : fotos.get(c.id)?.imagem ?? null;
-  return { ...c, mensagens: c.mensagens.slice(-20), foto };
+  const u = unicasGuardadas();
+  return { ...c, mensagens: c.mensagens.slice(-20).map((m) => comMarcaDeUnica(m, u)), foto };
 }
 
 export function estadoDoWhatsapp() {
@@ -661,7 +723,8 @@ export async function historicoDaConversa(jid: unknown, deslocamento: unknown, b
   });
   const paginacao = ((corpo as Record<string, unknown> | null)?.results as Record<string, unknown> | undefined)?.pagination as Record<string, unknown> | undefined;
   const lidas = mensagensDoGateway(corpo, estado.eu);
-  const mensagens = lidas.map((m) => caixa.conhecer(m)).sort((a, b) => a.data.localeCompare(b.data));
+  const u = unicasGuardadas();
+  const mensagens = lidas.map((m) => comMarcaDeUnica(caixa.conhecer(m), u)).sort((a, b) => a.data.localeCompare(b.data));
   return { mensagens, total: typeof paginacao?.total === "number" ? paginacao.total : null, fim: lidas.length < MENSAGENS_POR_PAGINA };
 }
 
@@ -828,7 +891,9 @@ export async function esquecerWhatsapp() {
   await aguardarGowaParar();
   for (const pasta of ["storages", "statics"]) rmSync(join(pastaDoWhatsapp(), pasta), { recursive: true, force: true });
   rmSync(arquivoDeRastros(), { force: true });
+  rmSync(arquivoDeUnicas(), { force: true });
   rastros = [];
+  unicas = null;
   await apagarSegredo("whatsapp-acesso").catch(() => undefined);
   await apagarSegredo("whatsapp-webhook").catch(() => undefined);
   estado.acesso = "";

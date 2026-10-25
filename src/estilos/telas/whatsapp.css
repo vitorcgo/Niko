@@ -1855,6 +1855,143 @@
   }
 }
 
+.whatsapp-unica-tela {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  background: rgba(6, 6, 8, 0.94);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  color: #f2f2f2;
+  font-family: var(--fonte-texto);
+  user-select: none;
+  animation: wpp-surgir 0.2s ease-out;
+}
+
+.whatsapp-unica-topo {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  font-size: 13px;
+}
+
+.whatsapp-unica-topo span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.whatsapp-unica-topo button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  font-size: 12.5px;
+}
+
+.whatsapp-unica-topo button:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.whatsapp-unica-conteudo {
+  display: grid;
+  flex: 1;
+  place-items: center;
+  width: 100%;
+  min-height: 0;
+}
+
+.whatsapp-unica-conteudo img,
+.whatsapp-unica-conteudo video {
+  max-width: 100%;
+  max-height: 100%;
+  border-radius: 10px;
+  object-fit: contain;
+  pointer-events: auto;
+  -webkit-user-drag: none;
+  animation: wpp-subir 0.3s ease-out;
+}
+
+.whatsapp-unica-conteudo .whatsapp-player {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: min(420px, 100%);
+}
+
+.whatsapp-unica-conteudo .whatsapp-player audio {
+  display: none;
+}
+
+.whatsapp-unica-conteudo .whatsapp-player-tocar {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: #25d366;
+  color: #06301a;
+}
+
+.whatsapp-unica-conteudo .whatsapp-player-ondas {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 2px;
+  height: 40px;
+  cursor: pointer;
+}
+
+.whatsapp-unica-conteudo .whatsapp-player-ondas > span {
+  flex: 1;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.whatsapp-unica-conteudo .whatsapp-player-ondas > span[data-tocada] {
+  background: #25d366;
+}
+
+.whatsapp-unica-conteudo .whatsapp-player-tempo,
+.whatsapp-unica-conteudo .whatsapp-player-velocidade {
+  flex: none;
+  font-size: 12px;
+  color: #fff;
+}
+
+.whatsapp-unica-conteudo .whatsapp-player-velocidade {
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.whatsapp-unica-dica {
+  max-width: 520px;
+  font-size: 11.5px;
+  color: rgba(255, 255, 255, 0.55);
+  text-align: center;
+}
+
+.whatsapp-unica[data-aberta] {
+  opacity: 0.75;
+}
+
+.whatsapp-unica-erro {
+  color: #ff8a8a;
+}
+
 @keyframes wpp-subir {
   from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: none; }

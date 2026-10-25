@@ -12,6 +12,7 @@ export interface MensagemWhatsapp {
   minha: boolean;
   mencionaMe: boolean;
   visualizacaoUnica?: boolean;
+  unicaAberta?: boolean;
   encaminhada?: boolean;
   tamanho?: number;
   local?: boolean;
@@ -125,8 +126,18 @@ async function enviarArquivo(jid: string, arquivo: File, legenda: string): Promi
   return json;
 }
 
+async function urlDaMidiaUnica(jid: string, id: string): Promise<string> {
+  const r = await fetch(`/ponte/whatsapp/midia?${new URLSearchParams({ jid, id })}`, { headers: { "x-niko": "1" }, cache: "no-store" });
+  if (!r.ok) {
+    const json = (await r.json().catch(() => ({}))) as { erro?: string };
+    throw new Error(json.erro ?? `http_${r.status}`);
+  }
+  return URL.createObjectURL(await r.blob());
+}
+
 export const whatsappPonte = {
   midia: urlDaMidia,
+  midiaUnica: urlDaMidiaUnica,
   enviarArquivo,
   estado: () => pedir<EstadoWhatsapp>("estado"),
   novidades: (desde: number) => pedir<{ seq: number; itens: NovidadeWhatsapp[] }>(`novidades?desde=${desde}`),

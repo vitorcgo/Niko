@@ -6,6 +6,7 @@ import { T } from "../../textos/textos";
 import { corDoNome, iniciaisDoNome, whatsappPonte, type MensagemWhatsapp } from "../../ponte/whatsapp";
 import { formatarTamanho } from "../../utilitarios/anexos";
 import { EsperaDoAudio, PlayerDeAudio } from "./PlayerDeAudio";
+import { VisualizacaoUnica } from "./VisualizacaoUnica";
 
 const W = T.whatsapp;
 
@@ -46,6 +47,7 @@ const MIDIAS_NA_HORA = new Set(["imagem", "figurinha"]);
 const MIDIAS_COM_CLIQUE = new Set(["video", "audio"]);
 
 const AUDIO_AUTOMATICO = 2 * 1024 * 1024;
+const MIDIAS_UNICAS = new Set(["imagem", "video", "audio"]);
 
 export function MidiaDaMensagem({ jid, m, aoAmpliar }: { jid: string; m: MensagemWhatsapp; aoAmpliar?: (url: string) => void }) {
   const tipo = W.midias[m.midia] ?? W.midias.outra;
@@ -87,7 +89,7 @@ export function MidiaDaMensagem({ jid, m, aoAmpliar }: { jid: string; m: Mensage
     };
   }, [pedida, jid, m.id, m.visualizacaoUnica]);
 
-  if (m.visualizacaoUnica) return <span className="whatsapp-midia"><EyeOff size={11} /> {W.visualizacaoUnica(tipo)}</span>;
+  if (m.visualizacaoUnica) return MIDIAS_UNICAS.has(m.midia) ? <VisualizacaoUnica jid={jid} m={m} /> : <span className="whatsapp-midia"><EyeOff size={11} /> {W.visualizacaoUnica(tipo)}</span>;
   if (!naHora && !MIDIAS_COM_CLIQUE.has(m.midia)) {
     const tamanho = m.tamanho ? ` (${formatarTamanho(m.tamanho)})` : "";
     return <span className="whatsapp-midia">{rotuloDaMidia(m)}{tamanho}</span>;

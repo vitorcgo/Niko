@@ -15,6 +15,7 @@ export interface MensagemWhatsapp {
   mencionaMe: boolean;
   nomeDaConversa?: string;
   visualizacaoUnica?: boolean;
+  unicaAberta?: boolean;
   encaminhada?: boolean;
   tamanho?: number;
   local?: boolean;

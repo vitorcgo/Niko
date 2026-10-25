@@ -148,6 +148,19 @@ test("lista do whatsapp deixa grupos só na aba de grupos e busca sem ligar para
   assert.equal(naoLidasDasConversas(lista), 1);
 });
 
+test("visualização única continua marcada depois de recarregar e fica aberta uma vez só", async () => {
+  const whatsapp = await vite.ssrLoadModule("/servidor/whatsapp/whatsapp.ts");
+  const base = { conversa: "551@s.whatsapp.net", remetente: "551@s.whatsapp.net", nomeRemetente: "", texto: "", midia: "imagem", data: "2026-10-25T10:00:00.000Z", minha: false, mencionaMe: false };
+  const u = { conhecidas: new Set(["v1", "v2"]), abertas: new Set(["v2"]) };
+  const doHistorico = whatsapp.comMarcaDeUnica({ ...base, id: "v1" }, u);
+  assert.equal(doHistorico.visualizacaoUnica, true);
+  assert.equal(doHistorico.unicaAberta, undefined);
+  assert.equal(whatsapp.comMarcaDeUnica({ ...base, id: "v2" }, u).unicaAberta, true);
+  const comum = { ...base, id: "x" };
+  assert.equal(whatsapp.comMarcaDeUnica(comum, u), comum);
+  assert.equal(whatsapp.comMarcaDeUnica({ ...base, id: "novo", visualizacaoUnica: true }, u).visualizacaoUnica, true);
+});
+
 test("nomes dos grupos vêm da lista de grupos do gateway", async () => {
   const whatsapp = await vite.ssrLoadModule("/servidor/whatsapp/whatsapp.ts");
   const nomes = whatsapp.nomesDeGruposDoGateway({ results: { data: [{ JID: "120363@g.us", Name: " Família " }, { JID: "5511@s.whatsapp.net", Name: "Pessoa" }, { JID: "999@g.us", Name: "" }, null] } });
