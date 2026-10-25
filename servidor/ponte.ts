@@ -83,6 +83,11 @@ function origemConfiavel(req: IncomingMessage): boolean {
   }
 }
 
+export function linhaDeErroDaInterface(corpo: Record<string, unknown>): string {
+  const limpar = (valor: unknown, limite: number) => (typeof valor === "string" ? valor : "").replace(/[\u0000-\u001f]+/g, " | ").slice(0, limite);
+  return `${new Date().toISOString()} interface (${limpar(corpo.janela, 20) || "?"}) falhou: ${limpar(corpo.mensagem, 500)} | ${limpar(corpo.pilha, 1500)}\n`;
+}
+
 export const rotas: Connect.NextHandleFunction = async (req, res, proximo) => {
   const url = new URL(req.url ?? "/", "http://localhost");
   if (!url.pathname.startsWith("/ponte/")) return proximo();
@@ -95,6 +100,10 @@ export const rotas: Connect.NextHandleFunction = async (req, res, proximo) => {
   const caminho = url.pathname.slice("/ponte".length);
 
   try {
+    if (caminho === "/erro-da-interface" && req.method === "POST") {
+      process.stderr.write(linhaDeErroDaInterface(await lerCorpo(req)));
+      return responder(res, 200, { ok: true });
+    }
     if (caminho === "/atualizacao" && req.method === "GET") return responder(res, 200, await lerUltimaVersao());
     if (caminho === "/estado" && req.method === "GET") {
       return responder(res, 200, { disponivel: true, plataforma: process.platform, provedores: listarProvedores() });

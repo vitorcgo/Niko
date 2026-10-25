@@ -239,7 +239,12 @@ test("falha de página oferece retorno ao início e mantém a navegação fora d
   const janela = readFileSync(new URL("../src/janelas/sistema/JanelaSistema.tsx", import.meta.url), "utf8");
   assert.match(janela, /<BarraLateral[^]*<LimiteDeErro key=\{rota\}[^]*<Suspense[^]*<Pagina[^]*<\/LimiteDeErro>/);
   const principal = readFileSync(new URL("../src/main.tsx", import.meta.url), "utf8");
-  assert.match(principal, /<LimiteDeErro>\s*<Raiz\s*\/>\s*<\/LimiteDeErro>/);
+  assert.match(principal, /<LimiteDeErro recuperarSozinho=\{sobreposta\} janela=\{JANELA \?\? undefined\}>\s*<Raiz\s*\/>\s*<\/LimiteDeErro>/);
+});
+
+test("ilha, dock e assistive não cobrem a tela com um aviso que não recebe clique", () => {
+  assert.equal(comFalha({ recuperarSozinho: true }).render(), null);
+  assert.notEqual(comFalha().render(), null);
 });
 
 test("todos os testes com Vite passam pelo isolamento de cache", () => {

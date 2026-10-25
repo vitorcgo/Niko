@@ -1,4 +1,4 @@
-import { Component, Fragment, type ReactNode } from "react";
+import { Component, Fragment, type ErrorInfo, type ReactNode } from "react";
 import { AlertTriangle } from "lucide-react";
 import { T } from "../textos/textos";
 
@@ -6,6 +6,7 @@ interface Props {
   children: ReactNode;
   aoVoltar?: () => void;
   recuperarSozinho?: boolean;
+  janela?: string;
 }
 
 const ESPERA_PARA_REMONTAR = 1200;
@@ -26,8 +27,14 @@ export class LimiteDeErro extends Component<Props, { falhou: boolean; geracao: n
     return { falhou: true };
   }
 
-  componentDidCatch(erro: unknown) {
+  componentDidCatch(erro: unknown, info: ErrorInfo) {
     console.error("Falha na interface do Niko", erro);
+    const falha = erro instanceof Error ? erro : new Error(String(erro));
+    void fetch("/ponte/erro-da-interface", {
+      method: "POST",
+      headers: { "x-niko": "1", "content-type": "application/json" },
+      body: JSON.stringify({ janela: this.props.janela ?? "navegador", mensagem: falha.message, pilha: `${falha.stack ?? ""}${info.componentStack ?? ""}` }),
+    }).catch(() => undefined);
     if (!this.props.recuperarSozinho) return;
     const { falhas, acao } = proximaRecuperacao(this.falhas, Date.now());
     this.falhas = falhas;
@@ -43,7 +50,7 @@ export class LimiteDeErro extends Component<Props, { falhou: boolean; geracao: n
   }
 
   render() {
-    if (!this.state.falhou) return <Fragment key={this.state.geracao}>{this.props.children}</Fragment>;
+    if (!this.state.falhou) return this.state.geracao ? <Fragment key={this.state.geracao}>{this.props.children}</Fragment> : this.props.children;
     if (this.props.recuperarSozinho) return null;
     return <section className={`falha-interface ${this.props.aoVoltar ? "" : "falha-interface-geral"}`} role="alert">
       <AlertTriangle size={28} aria-hidden="true" />

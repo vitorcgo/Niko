@@ -909,6 +909,15 @@ test("programas abertos pelo Niko no AppImage não herdam as bibliotecas do paco
   assert.deepEqual(ambienteSemAppImage(fora), fora);
 });
 
+test("erro de tela vai para o ponte.log numa linha só e com tamanho limitado", async () => {
+  const { linhaDeErroDaInterface } = await vite.ssrLoadModule("/servidor/ponte.ts");
+  const linha = linhaDeErroDaInterface({ janela: "ilha", mensagem: "Rendered fewer hooks than expected", pilha: "a\nb\n".repeat(2000) });
+  assert.match(linha, /interface \(ilha\) falhou: Rendered fewer hooks than expected/);
+  assert.equal(linha.split("\n").length, 2);
+  assert.ok(linha.length < 2200);
+  assert.match(linhaDeErroDaInterface({}), /interface \(\?\) falhou/);
+});
+
 test("mídia no linux escolhe o player que está tocando, não o primeiro da lista", async () => {
   const { escolherPlayer } = await vite.ssrLoadModule("/servidor/plataforma/linux/midia.ts");
   const S = "\u001f";
