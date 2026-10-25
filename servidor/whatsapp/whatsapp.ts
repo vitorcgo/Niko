@@ -432,6 +432,7 @@ export function estadoDoWhatsapp() {
     erro: estado.erro,
     filtros: { silenciarGrupos: filtros.silenciarGrupos, lerAoAbrir: filtros.lerAoAbrir, esconderArquivadas: filtros.esconderArquivadas !== false, esconderGrupos: filtros.esconderGrupos === true, mostrarFotos: filtros.mostrarFotos !== false, ignoradas: filtros.ignoradas },
     conversas: visiveis.map(resumoDaConversa),
+    aberta: estado.conversaAberta && caixa.conversas.has(estado.conversaAberta) ? resumoDaConversa(caixa.conversas.get(estado.conversaAberta)!) : null,
     naoLidas: caixa.naoLidasVisiveis(filtros),
     seq: estado.seq,
   };
@@ -521,10 +522,29 @@ export async function enviarMensagem(jid: unknown, texto: unknown) {
   if (!envios.permitir()) throw new Error("resposta_muitas");
   const corpo = await chamarComSucesso("POST", "/send/message", { json: { phone: id, message: texto.trim() } });
   const idDaMensagem = ((corpo as Record<string, unknown> | null)?.results as Record<string, unknown> | undefined)?.message_id;
-  caixa.adicionar({ id: typeof idDaMensagem === "string" ? idDaMensagem : `niko-${randomBytes(6).toString("hex")}`, conversa: id, remetente: estado.eu ?? id, nomeRemetente: "", texto: texto.trim(), midia: "nenhuma", data: new Date().toISOString(), minha: true, mencionaMe: false }, estado.config);
-  await confirmarLeitura(id);
+  caixa.adicionar({ id: typeof idDaMensagem === "string" ? idDaMensagem : `niko-${randomBytes(6).toString("hex")}`, conversa: id, remetente: estado.eu ?? id, nomeRemetente: "", texto: texto.trim(), midia: "nenhuma", data: horarioDoEnvio(id), minha: true, mencionaMe: false, local: true }, estado.config);
+  void confirmarLeitura(id);
+  confirmarHorariosDepois(id);
   const conversa = caixa.conversas.get(id);
   return conversa ? resumoDaConversa(conversa) : null;
+}
+
+function horarioDoEnvio(jid: string): string {
+  const ultima = caixa.conversas.get(jid)?.mensagens.at(-1)?.data ?? "";
+  const agora = new Date().toISOString();
+  return ultima > agora ? new Date(Date.parse(ultima) + 1).toISOString() : agora;
+}
+
+const confirmacoesPendentes = new Map<string, ReturnType<typeof setTimeout>>();
+
+function confirmarHorariosDepois(jid: string) {
+  clearTimeout(confirmacoesPendentes.get(jid));
+  confirmacoesPendentes.set(jid, setTimeout(() => {
+    confirmacoesPendentes.delete(jid);
+    void chamarComSucesso("GET", `/chat/${encodeURIComponent(jid)}/messages`, { query: { limit: "20" } })
+      .then((corpo) => guardar(mensagensDoGateway(corpo, estado.eu), false))
+      .catch(() => undefined);
+  }, 1500));
 }
 
 const TAMANHO_MAXIMO_DO_ENVIO = 16 * 1024 * 1024;
@@ -577,7 +597,8 @@ export async function enviarArquivoNoWhatsapp(req: IncomingMessage, consulta: UR
   const idFinal = typeof idDaMensagem === "string" ? idDaMensagem : `niko-${randomBytes(6).toString("hex")}`;
   const tipo = tipoPelosBytes(bytes, rota.midia);
   if (tipo && rota.midia !== "documento") guardarMidia(`${id}/${idFinal}`, { tipo, bytes });
-  caixa.adicionar({ id: idFinal, conversa: id, remetente: estado.eu ?? id, nomeRemetente: "", texto: legenda, midia: rota.midia, nomeDoArquivo: nome, tamanho: bytes.length, data: new Date().toISOString(), minha: true, mencionaMe: false }, estado.config);
+  caixa.adicionar({ id: idFinal, conversa: id, remetente: estado.eu ?? id, nomeRemetente: "", texto: legenda, midia: rota.midia, nomeDoArquivo: nome, tamanho: bytes.length, data: horarioDoEnvio(id), minha: true, mencionaMe: false, local: true }, estado.config);
+  confirmarHorariosDepois(id);
   const conversa = caixa.conversas.get(id);
   return conversa ? resumoDaConversa(conversa) : null;
 }

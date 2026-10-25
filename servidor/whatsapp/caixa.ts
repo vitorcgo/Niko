@@ -17,6 +17,7 @@ export interface MensagemWhatsapp {
   visualizacaoUnica?: boolean;
   encaminhada?: boolean;
   tamanho?: number;
+  local?: boolean;
 }
 
 export interface ConversaWhatsapp {
@@ -37,7 +38,7 @@ export interface FiltrosWhatsapp {
 }
 
 function escondida(c: ConversaWhatsapp, filtros: FiltrosWhatsapp): boolean {
-  return filtros.ignoradas.includes(c.id) || (filtros.esconderArquivadas !== false && c.arquivada === true) || (filtros.esconderGrupos === true && c.grupo);
+  return !ehConversa(c.id) || filtros.ignoradas.includes(c.id) || (filtros.esconderArquivadas !== false && c.arquivada === true) || (filtros.esconderGrupos === true && c.grupo);
 }
 
 export type Resultado = "repetida" | "ignorada" | "silenciosa" | "avisar";
@@ -47,6 +48,10 @@ const LIMITE_DE_IDS_VISTOS = 2000;
 
 export function ehGrupo(jid: string): boolean {
   return jid.endsWith("@g.us");
+}
+
+export function ehConversa(jid: string): boolean {
+  return !/@(broadcast|newsletter)$/.test(jid);
 }
 
 export function jidNormalizado(jid: string): string {
@@ -86,9 +91,12 @@ export class CaixaWhatsapp {
   private ordemVista: string[] = [];
 
   adicionar(m: MensagemWhatsapp, filtros: FiltrosWhatsapp, historico = false, nome?: string): Resultado {
-    if (this.vistas.has(m.id)) return "repetida";
     const id = jidNormalizado(m.conversa);
-    if (filtros.ignoradas.includes(id)) return "ignorada";
+    if (this.vistas.has(m.id)) {
+      if (!m.local) this.confirmarHorario(id, m);
+      return "repetida";
+    }
+    if (filtros.ignoradas.includes(id) || !ehConversa(id)) return "ignorada";
     this.vistas.add(m.id);
     this.ordemVista.push(m.id);
     if (this.ordemVista.length > LIMITE_DE_IDS_VISTOS) for (const velha of this.ordemVista.splice(0, LIMITE_DE_IDS_VISTOS / 2)) this.vistas.delete(velha);
@@ -116,9 +124,20 @@ export class CaixaWhatsapp {
     return resultado;
   }
 
+  private confirmarHorario(id: string, m: MensagemWhatsapp) {
+    const conversa = this.conversas.get(id);
+    const guardada = conversa?.mensagens.find((x) => x.id === m.id);
+    if (!conversa || !guardada?.local) return;
+    const antes = guardada.data;
+    guardada.local = false;
+    guardada.data = m.data;
+    conversa.mensagens = [...conversa.mensagens].sort((a, b) => a.data.localeCompare(b.data));
+    if (conversa.ultimaAtividade === antes) conversa.ultimaAtividade = conversa.mensagens[conversa.mensagens.length - 1].data;
+  }
+
   registrarConversa(jid: string, nome: string, ultima: string, filtros: FiltrosWhatsapp, arquivada = false) {
     const id = jidNormalizado(jid);
-    if (filtros.ignoradas.includes(id)) return;
+    if (filtros.ignoradas.includes(id) || !ehConversa(id)) return;
     const numero = numeroParaExibir(id);
     const atual = this.conversas.get(id);
     if (!atual) {
@@ -182,7 +201,7 @@ export class LimiteDeEnvios {
   private maximo: number;
   private janelaMs: number;
 
-  constructor(maximo = 6, janelaMs = 60_000) {
+  constructor(maximo = 30, janelaMs = 60_000) {
     this.maximo = maximo;
     this.janelaMs = janelaMs;
   }
