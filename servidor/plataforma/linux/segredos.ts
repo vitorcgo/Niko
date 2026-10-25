@@ -5,10 +5,16 @@ import { AMBIENTE_DO_SISTEMA } from "./comum.ts";
 const PREFIXO = "Niko/";
 const TEMPO_LIMITE_MS = 20000;
 
-function secretTool(argumentos: string[], entrada = ""): Promise<{ codigo: number; saida: string }> {
+export function erroDoChaveiro(erros: string): string {
+  return /locked|unlock|dismiss|cancel|denied|not authori[sz]ed/i.test(erros) ? "chaveiro_bloqueado" : "falha_ao_gravar";
+}
+
+function secretTool(argumentos: string[], entrada = ""): Promise<{ codigo: number; saida: string; erros: string }> {
   return new Promise((resolver, rejeitar) => {
-    const processo = spawn("secret-tool", argumentos, { stdio: ["pipe", "pipe", "ignore"], env: AMBIENTE_DO_SISTEMA });
+    const processo = spawn("secret-tool", argumentos, { stdio: ["pipe", "pipe", "pipe"], env: AMBIENTE_DO_SISTEMA });
     let saida = "";
+    let erros = "";
+    processo.stderr.on("data", (d) => (erros += d.toString()));
     const relogio = setTimeout(() => {
       processo.kill();
       rejeitar(new Error("tempo_credencial"));
@@ -20,7 +26,7 @@ function secretTool(argumentos: string[], entrada = ""): Promise<{ codigo: numbe
     });
     processo.on("close", (codigo) => {
       clearTimeout(relogio);
-      resolver({ codigo: codigo ?? 1, saida });
+      resolver({ codigo: codigo ?? 1, saida, erros });
     });
     processo.stdin.on("error", () => undefined);
     processo.stdin.end(entrada);
@@ -30,7 +36,7 @@ function secretTool(argumentos: string[], entrada = ""): Promise<{ codigo: numbe
 export const segredos: Plataforma["segredos"] = {
   async gravar(id, segredo) {
     const r = await secretTool(["store", `--label=${PREFIXO}${id}`, "app", "niko", "id", id], segredo);
-    if (r.codigo !== 0) throw new Error("falha_ao_gravar");
+    if (r.codigo !== 0) throw new Error(erroDoChaveiro(r.erros));
   },
   async ler(id) {
     const r = await secretTool(["lookup", "app", "niko", "id", id]).catch(() => null);

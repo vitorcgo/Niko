@@ -909,6 +909,15 @@ test("programas abertos pelo Niko no AppImage não herdam as bibliotecas do paco
   assert.deepEqual(ambienteSemAppImage(fora), fora);
 });
 
+test("chaveiro bloqueado no linux vira uma mensagem que explica o que fazer", async () => {
+  const { erroDoChaveiro } = await vite.ssrLoadModule("/servidor/plataforma/linux/segredos.ts");
+  assert.equal(erroDoChaveiro("secret-tool: Cannot create an item in a locked collection"), "chaveiro_bloqueado");
+  assert.equal(erroDoChaveiro("secret-tool: Prompt dismissed"), "chaveiro_bloqueado");
+  assert.equal(erroDoChaveiro("secret-tool: algo inesperado"), "falha_ao_gravar");
+  const { T } = await vite.ssrLoadModule("/src/textos/textos.ts");
+  for (const codigo of ["chaveiro_bloqueado", "secret_tool_ausente", "tempo_credencial", "falha_ao_gravar"]) assert.ok(T.configuracoes.errosDoCofre[codigo]);
+});
+
 test("lupa explica por que um app não abriu em vez de uma mensagem genérica", async () => {
   const { mensagemDeFalhaAoAbrir } = await vite.ssrLoadModule("/src/janelas/dock/BuscaApps.tsx");
   assert.match(mensagemDeFalhaAoAbrir(new Error("app_desconhecido"), "Calculadora", "x"), /Calculadora não foi encontrado/);

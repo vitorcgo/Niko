@@ -168,7 +168,8 @@ export function SecaoIa() {
       await recarregar();
       void testar(p, escolhido.modeloSugerido);
     } catch (x) {
-      setErros({ geral: T.configuracoes.falhaPonte((x as Error).message) });
+      const motivo = (x as Error).message;
+      setErros({ geral: T.configuracoes.errosDoCofre[motivo] ?? T.configuracoes.falhaPonte(motivo) });
     } finally {
       setSalvando(false);
     }
