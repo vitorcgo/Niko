@@ -19,6 +19,7 @@ const STATUS_CONECTADO_MS = 60_000;
 const VARREDURA_COM_WEBHOOK_MS = 60_000;
 const VARREDURA_SEM_WEBHOOK_MS = 20_000;
 const MAXIMO_DE_NOVIDADES = 50;
+const CONVERSAS_DO_GATEWAY = "80";
 
 interface ConfigWhatsapp extends FiltrosWhatsapp {
   ligado: boolean;
@@ -77,7 +78,7 @@ const estado = {
   ultimoWebhook: 0,
   ultimaVarredura: 0,
   ultimoStatus: 0,
-  conversaAberta: null as string | null,
+  conversasAbertas: new Map<string, number>(),
   nomesPedidos: new Set<string>(),
   novidades: [] as { seq: number; jid: string; nome: string; grupo: boolean }[],
   seq: 0,
@@ -181,12 +182,26 @@ function anunciar(m: MensagemWhatsapp) {
   estado.novidades = [...estado.novidades.filter((n) => n.jid !== id), { seq: estado.seq, jid: id, nome: conversa.nome, grupo: conversa.grupo }].slice(-MAXIMO_DE_NOVIDADES);
 }
 
+const CONVERSA_ABERTA_MS = 2 * 3600_000;
+
+function conversaEstaAberta(jid: string, agora = Date.now()): boolean {
+  const ate = estado.conversasAbertas.get(jid);
+  if (ate === undefined) return false;
+  if (ate > agora) return true;
+  estado.conversasAbertas.delete(jid);
+  return false;
+}
+
+function conversasAbertasAgora(): string[] {
+  return [...estado.conversasAbertas.keys()].filter((jid) => conversaEstaAberta(jid) && caixa.conversas.has(jid));
+}
+
 function guardar(mensagens: MensagemWhatsapp[], avisar: boolean) {
   for (const m of mensagens) {
     const id = jidNormalizado(m.conversa);
     const resultado = caixa.adicionar(m, estado.config, !avisar);
     if (resultado === "repetida" || resultado === "ignorada") continue;
-    if (estado.conversaAberta === id && !m.minha) {
+    if (conversaEstaAberta(id) && !m.minha) {
       caixa.marcarLida(id);
       continue;
     }
@@ -245,14 +260,14 @@ async function lerNomesDosGrupos() {
 }
 
 async function carregarHistorico() {
-  const conversas = conversasDoGateway(await chamarComSucesso("GET", "/chats", { query: { limit: "40" } }));
-  if (conversas.length === 0) return;
+  const conversas = conversasDoGateway(await chamarComSucesso("GET", "/chats", { query: { limit: CONVERSAS_DO_GATEWAY } }));
   for (const c of conversas) caixa.registrarConversa(c.jid, c.nome, c.ultima, estado.config, c.arquivada);
-  await lerNomesDosGrupos();
+  if (conversas.length) await lerNomesDosGrupos();
   for (const c of [...conversas].sort((a, b) => b.ultima.localeCompare(a.ultima)).slice(0, 8)) {
     const corpo = await chamarComSucesso("GET", `/chat/${encodeURIComponent(c.jid)}/messages`, { query: { limit: "10" } }).catch(() => null);
     for (const m of mensagensDoGateway(corpo, estado.eu)) caixa.adicionar(m, estado.config, true, ehGrupo(c.jid) ? c.nome || undefined : undefined);
   }
+  aplicarNomesDosGrupos();
   caixa.marcarTodasLidas();
   estado.historicoCarregado = true;
   estado.ultimaVarredura = Date.now();
@@ -266,7 +281,7 @@ function horaDeVarrer() {
 async function varrerSemWebhook() {
   const desde = new Date(estado.ultimaVarredura - 5000).toISOString();
   estado.ultimaVarredura = Date.now();
-  const conversas = conversasDoGateway(await chamarComSucesso("GET", "/chats", { query: { limit: "40" } }));
+  const conversas = conversasDoGateway(await chamarComSucesso("GET", "/chats", { query: { limit: CONVERSAS_DO_GATEWAY } }));
   for (const c of conversas) caixa.registrarConversa(c.jid, c.nome, c.ultima, estado.config, c.arquivada);
   await lerNomesDosGrupos();
   for (const c of conversas.filter((x) => x.ultima > desde).slice(0, 8)) {
@@ -370,7 +385,7 @@ function pararTudo(esquecer: boolean) {
     fotos.clear();
     midias.clear();
     estado.novidades = [];
-    estado.conversaAberta = null;
+    estado.conversasAbertas.clear();
   }
 }
 
@@ -569,9 +584,15 @@ function resumoDaConversa(c: ConversaWhatsapp) {
   return { ...c, mensagens: c.mensagens.slice(-20).map((m) => comMarcaDeUnica(m, u)), foto };
 }
 
+const LIMITE_DE_PESSOAS_NA_LISTA = 40;
+const LIMITE_DE_GRUPOS_NA_LISTA = 25;
+
 export function estadoDoWhatsapp() {
   const filtros = estado.config;
-  const visiveis = caixa.visiveis(filtros).slice(0, 30);
+  const todas = caixa.visiveis(filtros);
+  const pessoas = todas.filter((c) => !c.grupo).slice(0, LIMITE_DE_PESSOAS_NA_LISTA);
+  const grupos = todas.filter((c) => c.grupo).slice(0, LIMITE_DE_GRUPOS_NA_LISTA);
+  const visiveis = [...pessoas, ...grupos].sort((a, b) => b.ultimaAtividade.localeCompare(a.ultimaAtividade));
   pedirFotos(visiveis);
   return {
     suportado: alvoDaPlataforma() !== null,
@@ -585,11 +606,12 @@ export function estadoDoWhatsapp() {
     erro: estado.erro,
     filtros: { silenciarGrupos: filtros.silenciarGrupos, lerAoAbrir: filtros.lerAoAbrir, esconderArquivadas: filtros.esconderArquivadas !== false, esconderGrupos: filtros.esconderGrupos === true, mostrarFotos: filtros.mostrarFotos !== false, ignoradas: filtros.ignoradas },
     conversas: visiveis.map(resumoDaConversa),
-    aberta: estado.conversaAberta && caixa.conversas.has(estado.conversaAberta) ? resumoDaConversa(caixa.conversas.get(estado.conversaAberta)!) : null,
+    abertas: conversasAbertasAgora().map((jid) => resumoDaConversa(caixa.conversas.get(jid)!)),
     naoLidas: caixa.naoLidasVisiveis(filtros),
     seq: estado.seq,
     digitando: quemDigita(),
     rastros: rastrosGuardados().length,
+    ultimoRastro: rastrosGuardados()[0]?.quando ?? "",
   };
 }
 
@@ -653,7 +675,7 @@ async function confirmarLeitura(jid: string) {
 export async function abrirConversa(jid: unknown) {
   if (typeof jid !== "string" || !caixa.conversas.has(jidNormalizado(jid))) throw new Error("conversa_invalida");
   const id = jidNormalizado(jid);
-  estado.conversaAberta = id;
+  estado.conversasAbertas.set(id, Date.now() + CONVERSA_ABERTA_MS);
   const tinhaNaoLidas = (caixa.conversas.get(id)?.naoLidas ?? 0) > 0;
   const recentes = await chamarComSucesso("GET", `/chat/${encodeURIComponent(id)}/messages`, { query: { limit: "20" } }).catch(() => null);
   for (const m of mensagensDoGateway(recentes, estado.eu)) caixa.adicionar(m, estado.config, true);
@@ -664,8 +686,9 @@ export async function abrirConversa(jid: unknown) {
   return conversa ? resumoDaConversa(conversa) : null;
 }
 
-export function fecharConversa() {
-  estado.conversaAberta = null;
+export function fecharConversa(jid?: unknown) {
+  if (typeof jid === "string" && jid) estado.conversasAbertas.delete(jidNormalizado(jid));
+  else estado.conversasAbertas.clear();
   return { ok: true };
 }
 

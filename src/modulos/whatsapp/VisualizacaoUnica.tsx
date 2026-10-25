@@ -14,7 +14,7 @@ function mensagemDoErro(e: unknown): string {
   return W.erros[codigo] ?? U.indisponivel;
 }
 
-export function VisualizacaoUnica({ jid, m }: { jid: string; m: MensagemWhatsapp }) {
+export function VisualizacaoUnica({ jid, m, emLinha }: { jid: string; m: MensagemWhatsapp; emLinha?: boolean }) {
   const tipo = W.midias[m.midia] ?? W.midias.outra;
   const [aberta, setAberta] = useState(Boolean(m.unicaAberta));
   const [carregando, setCarregando] = useState(false);
@@ -56,27 +56,26 @@ export function VisualizacaoUnica({ jid, m }: { jid: string; m: MensagemWhatsapp
     setUrl(null);
   }
 
-  const tela = url
-    ? createPortal(
-        <div className="whatsapp-unica-tela" role="dialog" aria-modal="true" aria-label={U.titulo(tipo)} onContextMenu={(e) => e.preventDefault()}>
-          <div className="whatsapp-unica-topo">
-            <span><Eye size={14} /> {U.titulo(tipo)}</span>
-            <button type="button" onClick={fechar}><X size={14} /> {U.fechar}</button>
-          </div>
-          <div className="whatsapp-unica-conteudo">
-            {m.midia === "video" ? (
-              <video src={url} controls autoPlay controlsList="nodownload noplaybackrate" disablePictureInPicture />
-            ) : m.midia === "audio" ? (
-              <PlayerDeAudio url={url} autoTocar />
-            ) : (
-              <img src={url} alt={tipo} draggable={false} />
-            )}
-          </div>
-          <span className="whatsapp-unica-dica">{U.dica}</span>
-        </div>,
-        document.body,
-      )
-    : null;
+  const visor = url ? (
+    <div className={emLinha ? "whatsapp-unica-linha" : "whatsapp-unica-tela"} role="dialog" aria-modal={emLinha ? undefined : true} aria-label={U.titulo(tipo)} onContextMenu={(e) => e.preventDefault()}>
+      <div className="whatsapp-unica-topo">
+        <span><Eye size={14} /> {U.titulo(tipo)}</span>
+        <button type="button" onClick={fechar}><X size={14} /> {U.fechar}</button>
+      </div>
+      <div className="whatsapp-unica-conteudo">
+        {m.midia === "video" ? (
+          <video src={url} controls autoPlay controlsList="nodownload noplaybackrate" disablePictureInPicture />
+        ) : m.midia === "audio" ? (
+          <PlayerDeAudio url={url} autoTocar />
+        ) : (
+          <img src={url} alt={tipo} draggable={false} />
+        )}
+      </div>
+      {!emLinha && <span className="whatsapp-unica-dica">{U.dica}</span>}
+    </div>
+  ) : null;
+  const tela = visor && !emLinha ? createPortal(visor, document.body) : null;
+  if (visor && emLinha) return visor;
 
   if (aberta && !url) {
     return (

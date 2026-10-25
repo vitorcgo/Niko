@@ -84,11 +84,12 @@ export interface EstadoWhatsapp {
   erro: string;
   filtros: { silenciarGrupos: boolean; lerAoAbrir: boolean; esconderArquivadas: boolean; esconderGrupos: boolean; mostrarFotos: boolean; ignoradas: string[] };
   conversas: ConversaWhatsapp[];
-  aberta?: ConversaWhatsapp | null;
+  abertas?: ConversaWhatsapp[];
   naoLidas: number;
   seq: number;
   digitando?: Record<string, { nome: string; audio: boolean }>;
   rastros?: number;
+  ultimoRastro?: string;
 }
 
 export interface NovidadeWhatsapp {
@@ -146,7 +147,7 @@ export const whatsappPonte = {
   filtros: (filtros: { silenciarGrupos?: boolean; lerAoAbrir?: boolean; esconderArquivadas?: boolean; esconderGrupos?: boolean; mostrarFotos?: boolean }) => pedir<EstadoWhatsapp>("filtros", filtros),
   ignorar: (jid: string, ignorar: boolean) => pedir<EstadoWhatsapp>("ignorar", { jid, ignorar }),
   abrir: (jid: string) => pedir<ConversaWhatsapp | null>("abrir", { jid }),
-  fechar: () => pedir<{ ok: boolean }>("fechar", {}),
+  fechar: (jid: string) => pedir<{ ok: boolean }>("fechar", { jid }),
   enviar: (jid: string, texto: string) => pedir<ConversaWhatsapp | null>("enviar", { jid, texto }),
   desconectar: () => pedir<EstadoWhatsapp>("desconectar", {}),
   esquecer: () => pedir<EstadoWhatsapp>("esquecer", {}),

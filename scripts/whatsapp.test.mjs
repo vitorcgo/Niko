@@ -161,6 +161,22 @@ test("visualização única continua marcada depois de recarregar e fica aberta 
   assert.equal(whatsapp.comMarcaDeUnica({ ...base, id: "novo", visualizacaoUnica: true }, u).visualizacaoUnica, true);
 });
 
+test("nome provisório de grupo do gateway não apaga o nome de verdade", () => {
+  assert.equal(caixa.nomeDeVerdade("Group 120363395796550660"), undefined);
+  assert.equal(caixa.nomeDeVerdade("group 1203@g.us"), undefined);
+  assert.equal(caixa.nomeDeVerdade("  Família  "), "Família");
+  assert.equal(caixa.nomeDeVerdade("Group de estudos"), "Group de estudos");
+  const c = new caixa.CaixaWhatsapp();
+  const filtros = { silenciarGrupos: true, ignoradas: [] };
+  const g = "120363395796550660@g.us";
+  c.registrarConversa(g, "Group 120363395796550660", "2026-10-25T10:00:00.000Z", filtros);
+  assert.equal(c.conversas.get(g).nome, "+120363395796550660");
+  c.renomear(g, "Família");
+  c.adicionar({ id: "g1", conversa: g, remetente: "5511@s.whatsapp.net", nomeRemetente: "Tia", texto: "oi", midia: "nenhuma", data: "2026-10-25T10:01:00.000Z", minha: false, mencionaMe: false, nomeDaConversa: "Group 120363395796550660" }, filtros, true, "Group 120363395796550660");
+  c.registrarConversa(g, "Group 120363395796550660", "2026-10-25T10:01:00.000Z", filtros);
+  assert.equal(c.conversas.get(g).nome, "Família");
+});
+
 test("nomes dos grupos vêm da lista de grupos do gateway", async () => {
   const whatsapp = await vite.ssrLoadModule("/servidor/whatsapp/whatsapp.ts");
   const nomes = whatsapp.nomesDeGruposDoGateway({ results: { data: [{ JID: "120363@g.us", Name: " Família " }, { JID: "5511@s.whatsapp.net", Name: "Pessoa" }, { JID: "999@g.us", Name: "" }, null] } });

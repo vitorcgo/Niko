@@ -2715,6 +2715,7 @@ export const T = {
     } as Record<string, string>,
     pagina: {
       conversas: "Conversas",
+      abrirCompleto: "Abrir o WhatsApp completo no Niko",
       desconectadoTitulo: "Seu WhatsApp, dentro do Niko",
       desconectadoTexto: "Conecte o celular para ver as conversas, os rastros e os envios agendados aqui.",
       resumo: { naoLidas: "não lidas", rastros: "rastros", agendadas: "agendadas" },

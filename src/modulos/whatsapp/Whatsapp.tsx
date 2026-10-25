@@ -13,12 +13,12 @@ import { Marca } from "../../marcas/Marca";
 import { Botao, ConfirmarModal, Modal } from "../../componentes/basicos";
 import { ConfigWhatsapp, mensagemDoWhatsapp } from "../conexoes/ConexaoWhatsapp";
 import {
-  corDoNome, numeroDoJid, whatsappPonte, type AgendadaWhatsapp, type ConversaWhatsapp, type EstadoWhatsapp, type MensagemWhatsapp, type RastroWhatsapp, type ReacaoWhatsapp,
+  corDoNome, numeroDoJid, whatsappPonte, type AgendadaWhatsapp, type ConversaWhatsapp, type EstadoWhatsapp, type MensagemWhatsapp, type RastroWhatsapp,
 } from "../../ponte/whatsapp";
 import { filtrarConversas, naoLidasDasConversas, type FiltroDaLista } from "../../utilitarios/conversasWhatsapp";
 import { horarioRelativo } from "../../utilitarios/datas";
 import { arquivosColados, formatarTamanho } from "../../utilitarios/anexos";
-import { Avatar, MidiaDaMensagem, Previa, PreviaDoArquivo, diaDaMensagem, horaDaMensagem, rotuloDaMidia } from "./pecasDoWhatsapp";
+import { Avatar, MidiaDaMensagem, Previa, PreviaDoArquivo, agruparReacoes, diaDaMensagem, horaDaMensagem, rotuloDaMidia } from "./pecasDoWhatsapp";
 
 const W = T.whatsapp;
 const P = W.pagina;
@@ -74,13 +74,24 @@ export default function Whatsapp() {
   }, [visivel, carregar]);
 
   useEffect(() => () => {
-    if (abertaRef.current) void whatsappPonte.fechar().catch(() => undefined);
+    if (abertaRef.current) void whatsappPonte.fechar(abertaRef.current).catch(() => undefined);
   }, []);
 
+  const jaEstavaVisivel = useRef(visivel);
+  useEffect(() => {
+    if (jaEstavaVisivel.current === visivel) return;
+    jaEstavaVisivel.current = visivel;
+    const atual = abertaRef.current;
+    if (!atual) return;
+    if (visivel) void whatsappPonte.abrir(atual).then(() => carregar()).catch(() => undefined);
+    else void whatsappPonte.fechar(atual).catch(() => undefined);
+  }, [visivel, carregar]);
+
+  const ultimoRastro = estado?.ultimoRastro ?? "";
   useEffect(() => {
     if (!conectado) return;
     void whatsappPonte.rastros().then((r) => setRastros(r.rastros)).catch(() => undefined);
-  }, [conectado, totalDeRastros]);
+  }, [conectado, totalDeRastros, ultimoRastro]);
 
   const atualizarAgendadas = useCallback(() => whatsappPonte.agendadas().then((r) => setAgendadas(r.agendadas)).catch(() => undefined), []);
 
@@ -98,6 +109,7 @@ export default function Whatsapp() {
   }, [rastros]);
 
   const abrir = useCallback(async (id: string) => {
+    if (abertaRef.current && abertaRef.current !== id) void whatsappPonte.fechar(abertaRef.current).catch(() => undefined);
     abertaRef.current = id;
     setAbertaId(id);
     setAba((a) => (a === "rastros" || a === "agendadas" ? a : "contato"));
@@ -107,10 +119,11 @@ export default function Whatsapp() {
   }, [carregar]);
 
   const fechar = () => {
+    const fechada = abertaRef.current;
     abertaRef.current = null;
     setAbertaId(null);
     setAbertaBase(null);
-    void whatsappPonte.fechar().catch(() => undefined);
+    if (fechada) void whatsappPonte.fechar(fechada).catch(() => undefined);
   };
 
   const mostrarNoPainel = (a: AbaDoPainel) => {
@@ -134,7 +147,7 @@ export default function Whatsapp() {
     );
   }
 
-  const viva = abertaId ? (estado.aberta?.id === abertaId ? estado.aberta : estado.conversas.find((c) => c.id === abertaId)) ?? null : null;
+  const viva = abertaId ? estado.abertas?.find((c) => c.id === abertaId) ?? estado.conversas.find((c) => c.id === abertaId) ?? null : null;
   const aberta = viva ?? (abertaBase?.id === abertaId ? abertaBase : null);
   const digitando = estado.digitando ?? {};
   const fantasma = !estado.filtros.lerAoAbrir;
@@ -842,12 +855,6 @@ function Conversa({
       {painel(mensagens)}
     </>
   );
-}
-
-function agruparReacoes(reacoes: ReacaoWhatsapp[]): { emoji: string; quem: string[] }[] {
-  const grupos = new Map<string, string[]>();
-  for (const r of reacoes) grupos.set(r.emoji, [...(grupos.get(r.emoji) ?? []), r.minha ? W.voce : r.nome || numeroDoJid(r.de)]);
-  return [...grupos.entries()].map(([emoji, quem]) => ({ emoji, quem }));
 }
 
 function Bolha({

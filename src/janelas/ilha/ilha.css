@@ -2768,6 +2768,77 @@
   font-weight: 600;
 }
 
+.whatsapp-reacoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+}
+
+.whatsapp-reacao {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.whatsapp-reacao b {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.whatsapp-digitando,
+.whatsapp-topo-sub[data-digitando] {
+  color: #25d366;
+}
+
+.whatsapp-unica-linha {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 6px;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.35);
+  user-select: none;
+}
+
+.whatsapp-unica-linha .whatsapp-unica-topo {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  font-size: 10.5px;
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.whatsapp-unica-linha .whatsapp-unica-topo span,
+.whatsapp-unica-linha .whatsapp-unica-topo button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.whatsapp-unica-linha .whatsapp-unica-topo button {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff;
+  font-size: 10.5px;
+}
+
+.whatsapp-unica-linha img,
+.whatsapp-unica-linha video {
+  display: block;
+  max-width: 100%;
+  max-height: 150px;
+  border-radius: 8px;
+  object-fit: contain;
+  -webkit-user-drag: none;
+}
+
 .whatsapp-previa-arquivo {
   display: grid;
   flex: none;

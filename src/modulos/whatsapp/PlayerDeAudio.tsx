@@ -62,8 +62,11 @@ export function PlayerDeAudio({ url, autoTocar }: { url: string; autoTocar?: boo
     if (audio.current) audio.current.playbackRate = velocidade;
   }, [velocidade]);
 
-  useEffect(() => () => {
-    if (tocandoAgora === audio.current) tocandoAgora = null;
+  useEffect(() => {
+    const elemento = audio.current;
+    return () => {
+      if (tocandoAgora === elemento) tocandoAgora = null;
+    };
   }, []);
 
   const alternar = () => {

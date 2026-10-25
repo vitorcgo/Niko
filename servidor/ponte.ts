@@ -161,7 +161,7 @@ export const rotas: Connect.NextHandleFunction = async (req, res, proximo) => {
         if (acao === "filtros") return responder(res, 200, definirFiltrosDoWhatsapp(corpo));
         if (acao === "ignorar") return responder(res, 200, ignorarConversa(corpo.jid, corpo.ignorar));
         if (acao === "abrir") return responder(res, 200, await abrirConversa(corpo.jid));
-        if (acao === "fechar") return responder(res, 200, fecharConversa());
+        if (acao === "fechar") return responder(res, 200, fecharConversa(corpo.jid));
         if (acao === "enviar") return responder(res, 200, await enviarMensagem(corpo.jid, corpo.texto));
         if (acao === "desconectar") return responder(res, 200, await desconectarWhatsapp());
         if (acao === "esquecer") return responder(res, 200, await esquecerWhatsapp());

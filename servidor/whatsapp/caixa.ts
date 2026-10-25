@@ -100,6 +100,11 @@ export function numeroParaExibir(jid: string): string {
   return digitos && digitos === jid.split("@")[0].split(":")[0] ? `+${digitos}` : jid.split("@")[0];
 }
 
+export function nomeDeVerdade(nome: string | undefined): string | undefined {
+  const limpo = nome?.trim();
+  return limpo && !/^group\s*\d+(@g\.us)?$/i.test(limpo) ? limpo : undefined;
+}
+
 export function iniciais(nome: string): string {
   const letras = nome
     .split(/[\s-]+/)
@@ -159,8 +164,8 @@ export class CaixaWhatsapp {
     const grupo = ehGrupo(id);
     const numero = numeroParaExibir(id);
     const nomeDaPessoa = grupo || m.minha ? undefined : m.nomeRemetente || undefined;
-    const conversa = this.conversas.get(id) ?? { id, nome: nome ?? m.nomeDaConversa ?? nomeDaPessoa ?? numero, grupo, mensagens: [], naoLidas: 0, ultimaAtividade: m.data };
-    const nomeNovo = nome ?? m.nomeDaConversa;
+    const nomeNovo = nomeDeVerdade(nome) ?? nomeDeVerdade(m.nomeDaConversa);
+    const conversa = this.conversas.get(id) ?? { id, nome: nomeNovo ?? nomeDaPessoa ?? numero, grupo, mensagens: [], naoLidas: 0, ultimaAtividade: m.data };
     if (nomeNovo) conversa.nome = nomeNovo;
     else if (conversa.nome === numero && nomeDaPessoa) conversa.nome = nomeDaPessoa;
     const nova = { ...m, conversa: id };
@@ -192,8 +197,9 @@ export class CaixaWhatsapp {
     if (conversa.ultimaAtividade === antes) conversa.ultimaAtividade = conversa.mensagens[conversa.mensagens.length - 1].data;
   }
 
-  registrarConversa(jid: string, nome: string, ultima: string, filtros: FiltrosWhatsapp, arquivada = false) {
+  registrarConversa(jid: string, nomeBruto: string, ultima: string, filtros: FiltrosWhatsapp, arquivada = false) {
     const id = jidNormalizado(jid);
+    const nome = nomeDeVerdade(nomeBruto) ?? "";
     if (filtros.ignoradas.includes(id) || !ehConversa(id)) return;
     const numero = numeroParaExibir(id);
     const atual = this.conversas.get(id);

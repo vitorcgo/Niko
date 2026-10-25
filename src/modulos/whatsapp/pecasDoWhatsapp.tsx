@@ -3,7 +3,7 @@ import { format, isToday, isYesterday } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Check, Contact, EyeOff, FileText, Image, MapPin, Mic, Paperclip, Play, Sticker, Users, Video, type LucideIcon } from "lucide-react";
 import { T } from "../../textos/textos";
-import { corDoNome, iniciaisDoNome, whatsappPonte, type MensagemWhatsapp } from "../../ponte/whatsapp";
+import { corDoNome, iniciaisDoNome, numeroDoJid, whatsappPonte, type MensagemWhatsapp, type ReacaoWhatsapp } from "../../ponte/whatsapp";
 import { formatarTamanho } from "../../utilitarios/anexos";
 import { EsperaDoAudio, PlayerDeAudio } from "./PlayerDeAudio";
 import { VisualizacaoUnica } from "./VisualizacaoUnica";
@@ -49,7 +49,7 @@ const MIDIAS_COM_CLIQUE = new Set(["video", "audio"]);
 const AUDIO_AUTOMATICO = 2 * 1024 * 1024;
 const MIDIAS_UNICAS = new Set(["imagem", "video", "audio"]);
 
-export function MidiaDaMensagem({ jid, m, aoAmpliar }: { jid: string; m: MensagemWhatsapp; aoAmpliar?: (url: string) => void }) {
+export function MidiaDaMensagem({ jid, m, aoAmpliar, unicaEmLinha }: { jid: string; m: MensagemWhatsapp; aoAmpliar?: (url: string) => void; unicaEmLinha?: boolean }) {
   const tipo = W.midias[m.midia] ?? W.midias.outra;
   const naHora = MIDIAS_NA_HORA.has(m.midia);
   const audioAutomatico = m.midia === "audio" && !m.visualizacaoUnica && (m.tamanho ?? 0) <= AUDIO_AUTOMATICO;
@@ -89,7 +89,7 @@ export function MidiaDaMensagem({ jid, m, aoAmpliar }: { jid: string; m: Mensage
     };
   }, [pedida, jid, m.id, m.visualizacaoUnica]);
 
-  if (m.visualizacaoUnica) return MIDIAS_UNICAS.has(m.midia) ? <VisualizacaoUnica jid={jid} m={m} /> : <span className="whatsapp-midia"><EyeOff size={11} /> {W.visualizacaoUnica(tipo)}</span>;
+  if (m.visualizacaoUnica) return MIDIAS_UNICAS.has(m.midia) ? <VisualizacaoUnica jid={jid} m={m} emLinha={unicaEmLinha} /> : <span className="whatsapp-midia"><EyeOff size={11} /> {W.visualizacaoUnica(tipo)}</span>;
   if (!naHora && !MIDIAS_COM_CLIQUE.has(m.midia)) {
     const tamanho = m.tamanho ? ` (${formatarTamanho(m.tamanho)})` : "";
     return <span className="whatsapp-midia">{rotuloDaMidia(m)}{tamanho}</span>;
@@ -111,7 +111,13 @@ export function MidiaDaMensagem({ jid, m, aoAmpliar }: { jid: string; m: Mensage
   return <button type="button" className="whatsapp-ampliar" aria-label={W.pagina.ampliar} onClick={() => aoAmpliar(url)}>{imagem}</button>;
 }
 
-const IMAGEM_COM_PREVIA = /^image\/(png|jpeg|gif|webp)$/;
+export function agruparReacoes(reacoes: ReacaoWhatsapp[]): { emoji: string; quem: string[] }[] {
+  const grupos = new Map<string, string[]>();
+  for (const r of reacoes) grupos.set(r.emoji, [...(grupos.get(r.emoji) ?? []), r.minha ? W.voce : r.nome || numeroDoJid(r.de)]);
+  return [...grupos.entries()].map(([emoji, quem]) => ({ emoji, quem }));
+}
+
+const IMAGEM_COM_PREVIA =/^image\/(png|jpeg|gif|webp)$/;
 
 export function PreviaDoArquivo({ arquivo, tamanho }: { arquivo: File; tamanho: number }) {
   const [url, setUrl] = useState<string | null>(null);
