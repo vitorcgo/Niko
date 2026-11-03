@@ -60,6 +60,24 @@ test('somente a janela principal e o navegador apresentam o painel para tentar n
   }
 });
 
+test('novidades da 0.2.9 ficam restritas à versão instalada e incluem a ressalva do Fedora', async () => {
+  const { novidadesAte, temNovidadesDe } = await vite.ssrLoadModule('/src/utilitarios/novidades.ts');
+  assert.equal(temNovidadesDe('0.2.9'), true);
+  assert.equal(novidadesAte('0.2.8').some(v => v.versao === '0.2.9'), false);
+  const atual = novidadesAte('0.2.9')[0];
+  assert.equal(atual.versao, '0.2.9');
+  assert.equal(atual.data, '2026-11-03');
+  const mudancas = atual.mudancas.map(([, texto]) => texto).join('\n');
+  const notas = readFileSync('docs/releases/0.2.9.md', 'utf8');
+  for (const trecho of ['sincronização dos monitores', 'barra de tarefas', 'AtalhoTouch', 'WebKitGTK 2.54', 'Fedora 44 com GNOME 50']) {
+    assert.ok(mudancas.includes(trecho), trecho);
+    assert.ok(notas.includes(trecho), trecho);
+  }
+  assert.match(mudancas, /validação visual.*ainda está pendente/);
+  assert.match(notas, /validação visual.*ainda está pendente/);
+  assert.match(notas, /https:\/\/github.com\/vitorcgo\/Niko\/issues\/23/);
+});
+
 test("novidades da 0.2.2 incluem o time, segurança e agradecimentos, sem antecipar a instalação", async () => {
   const { novidadesAte, temNovidadesDe } = await vite.ssrLoadModule('/src/utilitarios/novidades.ts');
   assert.equal(temNovidadesDe('0.2.2'), true);

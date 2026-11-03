@@ -197,6 +197,21 @@ export const T = {
     tiposDeMudanca: { novo: "Novo", melhoria: "Melhoria", correcao: "Correção" },
     historico: [
       {
+        versao: "0.2.9",
+        data: "2026-11-03",
+        mudancas: [
+          ["correcao", "Corrigido um travamento na sincronização dos monitores que podia deixar o Niko aberto em segundo plano, com a barra de tarefas escondida e sem mostrar a ilha ou o dock."],
+          ["correcao", "Abrir o Niko novamente traz a janela principal e recupera as sobreposições. A cópia extra encerra sem ficar esperando indefinidamente a primeira instância."],
+          ["melhoria", "A barra de tarefas só é escondida depois que ilha e dock estão prontos. Se essas interfaces pararem de responder, a barra do Windows é restaurada."],
+          ["correcao", "A restauração da barra durante a inicialização não bloqueia mais a criação das janelas enquanto o Explorer está iniciando."],
+          ["correcao", "A recuperação ao reabrir também considera janelas que nunca chegaram a terminar o carregamento."],
+          ["melhoria", "A preparação da conexão com o serviço local agora tenta novamente quando há demora na inicialização."],
+          ["correcao", "Uma falha da ilha, do dock ou do AtalhoTouch não exibe mais um painel de erro gigante sobre a área de trabalho. O aviso aparece na janela principal, e a sobreposição tenta iniciar novamente."],
+          ["melhoria", "O log niko-eventos.log registra a inicialização, as interfaces que ficaram prontas, as falhas ao carregar e as tentativas de reabertura, para facilitar o suporte."],
+          ["correcao", "Linux: ajuste para o efeito fantasma da ilha no WebKitGTK 2.54 ou mais recente, mantendo a composição com buffers em memória compartilhada. A validação visual no Fedora 44 com GNOME 50 ainda está pendente."],
+        ],
+      },
+      {
         versao: "0.2.8",
         data: "2026-10-25",
         mudancas: [

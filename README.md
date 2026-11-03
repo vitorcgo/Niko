@@ -339,16 +339,16 @@ pnpm app         # gera o instalador do Windows
 Informe a versão explicitamente, sem editar os arquivos à mão:
 
 ```powershell
-pnpm lancar 0.2.2 "Descrição das novidades"
+pnpm lancar 0.2.9 "Correções na inicialização, ilha e dock"
 ```
 
-As notas completas da versão 0.2.2 estão em [docs/releases/0.2.2.md](docs/releases/0.2.2.md), incluindo os agradecimentos. Para incluir esse mesmo texto no manifesto de atualização, sem colar uma descrição longa no terminal:
+As notas completas da versão 0.2.9 estão em [docs/releases/0.2.9.md](docs/releases/0.2.9.md). Para incluir esse mesmo texto no manifesto de atualização, sem colar uma descrição longa no terminal:
 
 ```powershell
-pnpm lancar 0.2.2 --notas-arquivo docs/releases/0.2.2.md
+pnpm lancar 0.2.9 --notas-arquivo docs/releases/0.2.9.md
 ```
 
-Cole o conteúdo desse arquivo na descrição da release no GitHub. O histórico da versão também aparece na página Atualização do instalador 0.2.2; builds da versão anterior não apresentam essas mudanças como já instaladas.
+Cole o conteúdo desse arquivo na descrição da release no GitHub. O histórico da versão também aparece na página Atualização do instalador 0.2.9; builds da versão anterior não apresentam essas mudanças como já instaladas.
 
 O comando sincroniza `package.json`, `src-tauri/tauri.conf.json`, a versão do pacote Niko em `src-tauri/Cargo.toml` e `src-tauri/Cargo.lock`, além do selo de versão deste README. Antes de escrever, valida os arquivos, recusa redução de versão e consulta o GitHub para impedir uma release duplicada. Em builds feitos a partir de uma tag no GitHub Actions, a tag precisa ser `v` seguida da mesma versão.
 
@@ -360,7 +360,7 @@ Comandos que não geram instalador:
 
 ```powershell
 pnpm lancar:verificar
-pnpm lancar 0.2.2 --verificar
+pnpm lancar 0.2.9 --verificar
 pnpm lancar:testar
 ```
 
