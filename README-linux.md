@@ -171,14 +171,17 @@ As opções de pacote do Linux ficam em `src-tauri/tauri.linux.conf.json`, que o
 | Variável | Para que serve |
 | -------- | -------------- |
 | `GDK_BACKEND` | O Niko define `x11` sozinho; defina outro valor para sobrescrever |
-| `WEBKIT_DISABLE_DMABUF_RENDERER` | O Niko define `1` sozinho, o que evita janela em branco ou preta em algumas placas de vídeo (por exemplo NVIDIA). Defina `0` para voltar ao desenho padrão do WebKitGTK |
+| `WEBKIT_DISABLE_DMABUF_RENDERER` | Em WebKitGTK anterior ao 2.54, o Niko define `1` sozinho para evitar falhas de GBM/janela em branco, inclusive em NVIDIA. Defina `0` para usar o desenho padrão |
+| `WEBKIT_DMABUF_RENDERER_FORCE_SHM` | Em WebKitGTK 2.54 ou mais recente, o Niko define `1` sozinho: mantém o compositor com buffers em memória compartilhada, evitando que a ilha e outras janelas transparentes desapareçam ou mostrem só pedaços. A escolha usa a biblioteca em execução, independentemente da distribuição |
 | `WEBKIT_DISABLE_COMPOSITING_MODE` | O Niko define `1` sozinho quando não há compositor (X11 simples ou máquina virtual), o que evita janela em branco. Defina `0` para manter a composição acelerada |
 | `NO_STRIP=true` | Evita falha do empacotador do AppImage |
 | `XDG_DATA_HOME` | Muda a pasta de dados (padrão `~/.local/share`) |
 
 ```bash
-WEBKIT_DISABLE_DMABUF_RENDERER=0 pnpm tauri dev
+WEBKIT_DMABUF_RENDERER_FORCE_SHM=1 pnpm tauri dev
 ```
+
+Se qualquer uma das duas variáveis de renderização (`WEBKIT_DISABLE_DMABUF_RENDERER` ou `WEBKIT_DMABUF_RENDERER_FORCE_SHM`) já estiver definida, inclusive como `0`, o Niko preserva a escolha e não define a outra. Em WebKitGTK 2.54+, remova um `WEBKIT_DISABLE_DMABUF_RENDERER=1` antigo do ambiente para usar o novo padrão: essa opção tem precedência sobre `FORCE_SHM` e pode causar a falha visual da [issue #23](https://github.com/vitorcgo/Niko/issues/23). Feche completamente o Niko e abra novamente depois de alterar essas variáveis.
 
 ### Outros comandos
 

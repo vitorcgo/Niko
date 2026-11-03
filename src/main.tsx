@@ -38,7 +38,7 @@ import "./estilos/telas/configuracoes.css";
 import "./estilos/telas/busca.css";
 import "./estilos/telas/whatsapp.css";
 import { iniciarArmazenamento } from "./ponte/armazenamento";
-import { JANELA, NATIVO, prepararPonte, desviarLinksExternos, iniciarSinalDeVida } from "./desktop/desktop";
+import { JANELA, NATIVO, prepararPonte, desviarLinksExternos } from "./desktop/desktop";
 import { T } from "./textos/textos";
 import { LimiteDeErro } from "./componentes/LimiteDeErro";
 
@@ -47,7 +47,6 @@ document.documentElement.dataset.tema = "claro";
 const SELETOR_DAS_SOBREPOSTAS = ".ilha-raiz, .ilha-gatilho, .ilha-barra, .ilha-pop, .dock, .dock-gatilho, .dock-previa";
 
 async function iniciar() {
-  iniciarSinalDeVida();
   const sobreposta = JANELA === "ilha" || JANELA === "dock" || JANELA === "assistive";
   if (sobreposta) document.documentElement.classList.add("janela-sobreposta");
   document.addEventListener("contextmenu", (e) => {
@@ -55,18 +54,22 @@ async function iniciar() {
     if (alvo?.closest("input, textarea, [contenteditable='true']")) return;
     if (sobreposta || alvo?.closest(SELETOR_DAS_SOBREPOSTAS)) e.preventDefault();
   });
-  await prepararPonte();
   desviarLinksExternos();
   let modo = "local";
+  let pontePreparada = false;
+  let falha: unknown;
   for (let tentativa = 0; tentativa < (NATIVO ? 5 : 1); tentativa++) {
-    modo = await iniciarArmazenamento();
+    try {
+      if (!pontePreparada) { await prepararPonte(); pontePreparada = true; }
+      modo = await iniciarArmazenamento();
+    } catch (erro) { falha = erro; }
     if (modo === "banco") break;
     await new Promise((r) => setTimeout(r, 500));
   }
   const raiz = document.getElementById("raiz");
   if (!raiz) return;
   if (NATIVO && modo !== "banco") {
-    throw new Error("ponte_indisponivel");
+    throw falha ?? new Error("ponte_indisponivel");
   }
   if (sobreposta) document.documentElement.classList.add("janela-sobreposta");
   let Raiz: () => React.ReactElement;
@@ -84,7 +87,16 @@ async function iniciar() {
   );
 }
 
-function mostrarFalhaInicial() {
+function mostrarFalhaInicial(erro: unknown) {
+  if (NATIVO) {
+    void import("@tauri-apps/api/core").then(({ invoke }) => invoke("falha_inicial", { mensagem: erro instanceof Error ? erro.message : String(erro) })).catch(() => undefined);
+    if (JANELA !== "sistema") {
+      // Uma sobreposta ocupa uma faixa inteira da tela. O aviso pertence ao sistema;
+      // esta janela fica transparente e tenta se recuperar quando a ponte responder.
+      window.setTimeout(() => window.location.reload(), 5000);
+      return;
+    }
+  }
   const raiz = document.getElementById("raiz");
   if (!raiz) return;
   const painel = document.createElement("div");
@@ -99,7 +111,6 @@ function mostrarFalhaInicial() {
   repetir.onclick = () => window.location.reload();
   painel.append(titulo, dica, repetir);
   raiz.replaceChildren(painel);
-  if (NATIVO) void import("@tauri-apps/api/webviewWindow").then(({ getCurrentWebviewWindow }) => getCurrentWebviewWindow().show()).catch(() => undefined);
 }
 
 void iniciar().catch(mostrarFalhaInicial);

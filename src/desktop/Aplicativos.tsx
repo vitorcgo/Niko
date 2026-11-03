@@ -14,11 +14,13 @@ import { usarTema } from "../janelas/area-de-trabalho/usarTema";
 import { usarAtalhos } from "../janelas/area-de-trabalho/usarAtalhos";
 import { useServicos } from "../servicos/servicos";
 import { usarPreferenciasDaJanela } from "../servicos/usarPreferenciasDaJanela";
-import { definirMonitorDaIlha, janelaAtual, ouvirComandos, ouvirEvento, sincronizarInicioComWindows } from "./desktop";
+import { definirMonitorDaIlha, iniciarSinalDeVida, janelaAtual, ouvirComandos, ouvirEvento, sincronizarInicioComWindows } from "./desktop";
 import { usarSincronia } from "./sincronia";
 import { usarAtalhosDaIlha, usarAtalhosGlobais } from "./usarAtalhosGlobais";
+import { T } from "../textos/textos";
 
 export function AppSistema() {
+  useEffect(iniciarSinalDeVida, []);
   usarTema();
   usarPreferenciasDaJanela();
   usarAtalhos();
@@ -51,6 +53,16 @@ export function AppSistema() {
     return () => desligar();
   }, []);
 
+  useEffect(() => {
+    let vivo = true;
+    let desligar = () => undefined as void;
+    void ouvirEvento("niko://falha-inicial", () => useInterface.getState().avisar(T.app.sobrepostaFalhou)).then((f) => {
+      if (vivo) desligar = f;
+      else f();
+    }).catch(() => undefined);
+    return () => { vivo = false; desligar(); };
+  }, []);
+
   return (
     <div className="area-trabalho area-nativa estilo-sistema">
       <JanelaSistema />
@@ -68,8 +80,17 @@ export function AppSistema() {
 
 function usarMostrarAoMontar() {
   useEffect(() => {
-    const t = window.setTimeout(() => void janelaAtual().then((j) => j.show()), 120);
-    return () => window.clearTimeout(t);
+    let vivo = true;
+    let parar = () => undefined as void;
+    const t = window.setTimeout(() => {
+      void (async () => {
+        const janela = await janelaAtual();
+        if (!vivo) return;
+        await janela.show();
+        if (vivo) parar = iniciarSinalDeVida();
+      })().catch((erro) => console.error("Falha ao mostrar a janela do Niko", erro));
+    }, 120);
+    return () => { vivo = false; window.clearTimeout(t); parar(); };
   }, []);
 }
 
@@ -107,6 +128,7 @@ export function AppDock() {
 }
 
 export function AppAssistive() {
+  useEffect(iniciarSinalDeVida, []);
   usarTema();
   usarSincronia();
   const ativo = useConfig((s) => s.assistive.ativo);

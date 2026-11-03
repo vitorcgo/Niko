@@ -146,11 +146,25 @@ fn assinatura(lista: &[(Monitor, MonitorDoNiko)]) -> String {
 }
 
 pub fn sincronizar(app: &AppHandle) {
+    // Nunca disputar SINCRONIZANDO na thread da interface: quem já tem o mutex
+    // pode estar esperando available_monitors/set_position responderem nela.
+    // Isso ocorria no setup quando definir_docks chegava de uma WebView já carregada.
+    let app = app.clone();
+    agendar_sincronizacao(move || sincronizar_agora(&app));
+}
+
+fn agendar_sincronizacao(trabalho: impl FnOnce() + Send + 'static) {
+    tauri::async_runtime::spawn_blocking(move || {
+        let Ok(_vez) = SINCRONIZANDO.lock() else { return };
+        if !crate::ENCERRANDO.load(Ordering::Relaxed) { trabalho(); }
+    });
+}
+
+fn sincronizar_agora(app: &AppHandle) {
     // Sem transparência os docks seriam faixas pretas por cima de tudo (ver plataforma::sobrepostas_transparentes).
     if !crate::plataforma::sobrepostas_transparentes() {
         return;
     }
-    let Ok(_vez) = SINCRONIZANDO.lock() else { return };
     let ligado = LIGADO.load(Ordering::SeqCst);
     let escolha = ESCOLHA.lock().map(|e| e.clone()).unwrap_or_default();
     let monitores = monitores_ordenados(app);
@@ -229,4 +243,35 @@ pub fn vigiar_monitores(app: AppHandle) {
             }).await.is_err() { return; }
         }
     });
+}
+
+#[cfg(test)]
+mod testes_da_sincronizacao {
+    use super::agendar_sincronizacao;
+    use std::sync::mpsc;
+    use std::time::Duration;
+
+    #[test]
+    fn reentrar_enquanto_o_worker_espera_a_interface_nao_bloqueia_a_interface() {
+        let prazo = Duration::from_secs(3);
+        let (pedido, receber_pedido) = mpsc::channel();
+        let (responder, resposta) = mpsc::channel();
+        let (concluir, conclusao) = mpsc::channel();
+        agendar_sincronizacao(move || {
+            pedido.send(()).unwrap();
+            // Simula available_monitors esperando uma resposta da thread da interface.
+            resposta.recv_timeout(Duration::from_secs(10)).unwrap();
+        });
+        receber_pedido.recv_timeout(prazo).unwrap();
+        let (retornou, retorno) = mpsc::channel();
+        std::thread::spawn(move || {
+            // O setup precisa continuar para atender o pedido do worker anterior.
+            agendar_sincronizacao(move || concluir.send(()).unwrap());
+            retornou.send(()).unwrap();
+        });
+        let livre = retorno.recv_timeout(prazo).is_ok();
+        responder.send(()).unwrap();
+        assert!(livre, "a thread da interface ficou esperando o mutex da sincronização");
+        conclusao.recv_timeout(prazo).unwrap();
+    }
 }

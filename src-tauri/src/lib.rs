@@ -14,6 +14,7 @@ mod atalhos;
 mod docks;
 mod plataforma;
 mod salvamento;
+mod saude;
 
 use plataforma::{barra, janela_frente, miniaturas};
 
@@ -75,9 +76,10 @@ fn anotar(app: &AppHandle, texto: &str) {
 }
 
 #[tauri::command]
-fn sinal_de_vida(janela: WebviewWindow, estado: tauri::State<Estado>) {
-    if let Ok(mut sinais) = estado.sinais.lock() {
-        sinais.insert(janela.label().to_string(), std::time::Instant::now());
+fn sinal_de_vida(app: AppHandle, janela: WebviewWindow, estado: tauri::State<Estado>) {
+    let primeira = estado.sinais.lock().map(|mut sinais| sinais.insert(janela.label().to_string(), std::time::Instant::now()).is_none()).unwrap_or(false);
+    if primeira {
+        anotar(&app, &format!("interface {} pronta", janela.label()));
     }
 }
 
@@ -97,8 +99,7 @@ fn conferir_janelas_vivas(app: &AppHandle) {
         };
         for (rotulo, janela) in app.webview_windows() {
             if !janela.is_visible().unwrap_or(false) { continue; }
-            let Some(ultimo) = sinais.get(&rotulo) else { continue };
-            if *ultimo < mostradas_em {
+            if !saude::respondeu(sinais.get(&rotulo).copied(), mostradas_em) {
                 anotar(&app, &format!("janela {rotulo} sem resposta depois de mostrada; recarregando"));
                 let _ = janela.reload();
             }
@@ -147,6 +148,22 @@ fn porta_ponte() -> u16 {
 
 #[tauri::command]
 fn mostrar_sistema(app: AppHandle) {
+    mostrar(&app);
+}
+
+#[tauri::command]
+fn falha_inicial(app: AppHandle, janela: WebviewWindow, mensagem: String) {
+    let mensagem: String = mensagem.chars().filter(|c| !c.is_control()).take(500).collect();
+    anotar(&app, &format!("falha ao iniciar {}: {mensagem}", janela.label()));
+    if let Ok(mut sinais) = app.state::<Estado>().sinais.lock() {
+        sinais.remove(janela.label());
+    }
+    let recuperar_barra = app.clone();
+    tauri::async_runtime::spawn_blocking(move || barra::restaurar(&recuperar_barra));
+    if janela.label() != "sistema" {
+        let _ = janela.hide();
+        let _ = app.emit_to("sistema", "niko://falha-inicial", ());
+    }
     mostrar(&app);
 }
 
@@ -266,12 +283,7 @@ fn reavivar_sobrepostas(app: &AppHandle) {
         }
     }
     let _ = app.emit("niko://reavivar", ());
-    let alvo = app.clone();
-    tauri::async_runtime::spawn_blocking(move || {
-        if !ENCERRANDO.load(Ordering::Relaxed) {
-            docks::sincronizar(&alvo);
-        }
-    });
+    docks::sincronizar(app);
 }
 
 fn dock_sob_o_cursor(app: &AppHandle) -> Option<WebviewWindow> {
@@ -567,6 +579,7 @@ pub fn run() {
             token_ponte,
             porta_ponte,
             mostrar_sistema,
+            falha_inicial,
             alternar_sistema,
             docks::monitores,
             docks::definir_docks,
@@ -590,7 +603,13 @@ pub fn run() {
         ])
         .setup(move |app| {
             let handle = app.handle().clone();
-            barra::restaurar(&handle);
+            // O Explorer pode ainda estar iniciando no login. Restaurar a barra
+            // também não pode bloquear a criação das janelas do Niko.
+            let recuperar_barra = handle.clone();
+            tauri::async_runtime::spawn_blocking(move || barra::restaurar(&recuperar_barra));
+            #[cfg(windows)]
+            barra::vigiar_interface(&handle);
+            anotar(&handle, if escondido { "iniciando em segundo plano" } else { "iniciando" });
             // Aqui, e não no início de run(): uma segunda abertura sai na instância única sem esperar a porta.
             if !cfg!(debug_assertions) {
                 let porta = escolher_porta();

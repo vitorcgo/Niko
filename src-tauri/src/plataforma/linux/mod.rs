@@ -2,6 +2,7 @@ mod atalhos_gnome;
 pub mod barra;
 pub mod janela_frente;
 pub mod miniaturas;
+mod renderizacao;
 mod x11;
 
 pub use atalhos_gnome::atalhos_do_sistema;
@@ -31,12 +32,7 @@ pub fn preparar_ambiente() {
     if std::env::var_os("GDK_BACKEND").is_none() {
         std::env::set_var("GDK_BACKEND", "x11");
     }
-    // O desenho por DMABUF do WebKitGTK falha em várias placas (NVIDIA principalmente) e pelo XWayland:
-    // a janela abre vazia e o terminal mostra "Failed to create GBM buffer". Quem instala o pacote não
-    // lê o README, então o contorno vem ligado; WEBKIT_DISABLE_DMABUF_RENDERER=0 volta ao padrão.
-    if std::env::var_os("WEBKIT_DISABLE_DMABUF_RENDERER").is_none() {
-        std::env::set_var("WEBKIT_DISABLE_DMABUF_RENDERER", "1");
-    }
+    renderizacao::preparar();
     // Sem compositor (X11 simples, máquina virtual, o teste do catálogo de AppImages) a composição
     // acelerada do WebKitGTK também deixa a janela em branco. Com compositor ela fica ligada,
     // porque deixa as animações da ilha e do dock mais leves.

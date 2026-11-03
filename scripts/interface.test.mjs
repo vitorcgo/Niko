@@ -4,12 +4,61 @@ import { existsSync, readFileSync } from "node:fs";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { criarServidorDeTeste } from "./vite-para-testes.mjs";
+import { stripTypeScriptTypes } from "node:module";
+import vm from "node:vm";
 
 const opcoes = { configFile: false, server: { middlewareMode: true, hmr: false, watch: null }, appType: "custom", optimizeDeps: { noDiscovery: true } };
 const vite = await criarServidorDeTeste(opcoes);
 after(() => vite.close());
 const { LimiteDeErro } = await vite.ssrLoadModule("/src/componentes/LimiteDeErro.tsx");
 const { circuloDoTema, animarTrocaDeTema } = await vite.ssrLoadModule("/src/utilitarios/transicaoTema.ts");
+
+async function falhaInicialIsolada(janela, nativo = true) {
+  const fonte = readFileSync('src/main.tsx', 'utf8');
+  const trecho = fonte.slice(fonte.indexOf('function mostrarFalhaInicial('), fonte.lastIndexOf('void iniciar()'));
+  const codigo = stripTypeScriptTypes(trecho).replace('import("@tauri-apps/api/core")', 'Promise.resolve({ invoke: invocar })');
+  const raiz = { filhos: [], replaceChildren(...filhos) { this.filhos = filhos; } };
+  const chamadas = [];
+  const timers = [];
+  let recargas = 0;
+  const contexto = vm.createContext({
+    NATIVO: nativo, JANELA: janela,
+    T: { app: { ponteFalhou: 'falha', ponteFalhouDica: 'dica', tentarNovamente: 'repetir' } },
+    invocar: async (...args) => { chamadas.push(args); },
+    window: { setTimeout: (fn, ms) => timers.push({ fn, ms }), location: { reload: () => recargas++ } },
+    document: {
+      getElementById: () => raiz,
+      createElement: (tag) => ({ tag, filhos: [], append(...filhos) { this.filhos.push(...filhos); } }),
+    },
+  });
+  vm.runInContext(`${codigo}\nmostrarFalhaInicial(new Error('ponte_indisponivel'));`, contexto);
+  await new Promise(resolve => setImmediate(resolve));
+  return { raiz, chamadas, timers, recargas: () => recargas };
+}
+
+test('falha de inicialização da ilha e do dock não mostra painel sobre a área de trabalho e tenta recuperar', async () => {
+  for (const janela of ['ilha', 'dock', 'assistive']) {
+    const r = await falhaInicialIsolada(janela);
+    assert.equal(r.raiz.filhos.length, 0);
+    assert.equal(r.chamadas[0][0], 'falha_inicial');
+    assert.equal(r.chamadas[0][1].mensagem, 'ponte_indisponivel');
+    assert.equal(r.timers.length, 1);
+    assert.equal(r.timers[0].ms, 5000);
+    r.timers[0].fn();
+    assert.equal(r.recargas(), 1);
+  }
+});
+
+test('somente a janela principal e o navegador apresentam o painel para tentar novamente', async () => {
+  for (const nativo of [true, false]) {
+    const r = await falhaInicialIsolada('sistema', nativo);
+    assert.equal(r.raiz.filhos[0].className, 'falha-ponte');
+    assert.equal(r.timers.length, 0);
+    assert.equal(r.chamadas.length, nativo ? 1 : 0);
+    r.raiz.filhos[0].filhos[2].onclick();
+    assert.equal(r.recargas(), 1);
+  }
+});
 
 test("novidades da 0.2.2 incluem o time, segurança e agradecimentos, sem antecipar a instalação", async () => {
   const { novidadesAte, temNovidadesDe } = await vite.ssrLoadModule('/src/utilitarios/novidades.ts');

@@ -11,6 +11,7 @@ use windows::Win32::UI::Shell::{DefSubclassProc, RemoveWindowSubclass, SetWindow
 use windows::Win32::UI::WindowsAndMessaging::{FindWindowExW, FindWindowW, IsWindowVisible, PostMessageW, ShowWindow, SW_HIDE, SW_SHOWNA, WM_ACTIVATE, WM_APP, WM_DISPLAYCHANGE, WM_DPICHANGED, WM_NCDESTROY, WM_WINDOWPOSCHANGED};
 
 static OCULTA: AtomicBool = AtomicBool::new(false);
+static DESEJA_OCULTAR: AtomicBool = AtomicBool::new(false);
 static GERACAO_DA_BARRA: AtomicU64 = AtomicU64::new(0);
 static ALTERANDO_BARRA: Mutex<()> = Mutex::new(());
 
@@ -97,7 +98,7 @@ fn vigiar_barra(geracao: u64) {
 
 pub fn ocultar(app: &AppHandle) {
     let Ok(_vez) = ALTERANDO_BARRA.lock() else { return };
-    if crate::ENCERRANDO.load(Ordering::Relaxed) { return; }
+    if crate::ENCERRANDO.load(Ordering::Relaxed) || !DESEJA_OCULTAR.load(Ordering::SeqCst) || !interface_pronta(app) { return; }
     if OCULTA.swap(true, Ordering::SeqCst) {
         return;
     }
@@ -133,6 +134,33 @@ pub fn restaurar(app: &AppHandle) {
         let _ = std::fs::remove_file(arquivo);
     }
     reposicionar_dock(app);
+}
+
+fn interface_pronta(app: &AppHandle) -> bool {
+    let estado = app.state::<crate::Estado>();
+    let Ok(sinais) = estado.sinais.lock() else { return false };
+    crate::saude::sobrepostas_prontas(sinais.get("ilha").copied(), sinais.get("dock").copied(), std::time::Instant::now())
+}
+
+fn conferir_interface(app: &AppHandle) {
+    if DESEJA_OCULTAR.load(Ordering::SeqCst) && interface_pronta(app) {
+        ocultar(app);
+    } else if barra_oculta() {
+        crate::anotar(app, "interface indisponível ou dock desativado; restaurando a barra de tarefas");
+        restaurar(app);
+    }
+}
+
+pub fn vigiar_interface(app: &AppHandle) {
+    let app = app.clone();
+    tauri::async_runtime::spawn(async move {
+        loop {
+            tokio::time::sleep(Duration::from_secs(2)).await;
+            if crate::ENCERRANDO.load(Ordering::Relaxed) { return; }
+            let alvo = app.clone();
+            if tauri::async_runtime::spawn_blocking(move || conferir_interface(&alvo)).await.is_err() { return; }
+        }
+    });
 }
 
 #[derive(Clone)]
@@ -321,12 +349,9 @@ pub fn reservar_dock(window: WebviewWindow, reservar: bool, altura: Option<f64>)
 // ALTERANDO_BARRA é disputado com o vigia da barra. Travando aqui, todas as janelas do Niko congelariam.
 #[tauri::command]
 pub async fn barra_windows(app: AppHandle, ocultar_barra: bool) {
+    DESEJA_OCULTAR.store(ocultar_barra, Ordering::SeqCst);
     let _ = tauri::async_runtime::spawn_blocking(move || {
-        if ocultar_barra {
-            ocultar(&app);
-        } else {
-            restaurar(&app);
-        }
+        conferir_interface(&app);
     })
     .await;
 }

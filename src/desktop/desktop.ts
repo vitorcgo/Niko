@@ -65,10 +65,11 @@ const INTERVALO_SINAL_DE_VIDA_MS = 2000;
 
 // O Rust recarrega, ao reabrir o Niko, a janela que parou de mandar este sinal.
 export function iniciarSinalDeVida() {
-  if (!NATIVO) return;
+  if (!NATIVO) return () => undefined;
   const enviar = () => void invocar("sinal_de_vida");
   enviar();
-  window.setInterval(enviar, INTERVALO_SINAL_DE_VIDA_MS);
+  const intervalo = window.setInterval(enviar, INTERVALO_SINAL_DE_VIDA_MS);
+  return () => window.clearInterval(intervalo);
 }
 
 export function foraDoSistema(): boolean {

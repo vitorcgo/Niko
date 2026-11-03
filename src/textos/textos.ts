@@ -36,6 +36,7 @@ export const T = {
     voltarInicio: "Voltar ao início",
     recarregar: "Recarregar o Niko",
     ponteFalhou: "O Niko não conseguiu iniciar o serviço local.",
+    sobrepostaFalhou: "A ilha ou o dock não conseguiu iniciar. Tentando novamente.",
     tentarNovamente: "Tentar novamente",
     ponteFalhouDica: NO_LINUX
       ? "Feche pelo ícone do Niko na barra do sistema e abra de novo. Se continuar, o erro está em ~/.local/share/com.niko.desktop/ponte.log e niko.log."
