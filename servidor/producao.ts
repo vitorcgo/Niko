@@ -32,7 +32,20 @@ const servidor = createServer((req, res) => {
 process.on("uncaughtException", (e) => {
   process.stderr.write(`${new Date().toISOString()} erro: ${e.stack ?? e.message}\n`);
 });
-servidor.on("error", (e) => {
+
+const TENTATIVAS_PORTA_EM_USO = 5;
+const ESPERA_ENTRE_TENTATIVAS_MS = 1000;
+let tentativa = 0;
+
+servidor.on("error", (e: NodeJS.ErrnoException) => {
+  if (e.code === "EADDRINUSE" && tentativa < TENTATIVAS_PORTA_EM_USO) {
+    tentativa++;
+    process.stderr.write(
+      `${new Date().toISOString()} porta ${porta} em uso, tentando de novo (${tentativa}/${TENTATIVAS_PORTA_EM_USO})...\n`,
+    );
+    setTimeout(() => servidor.listen(porta, "127.0.0.1"), ESPERA_ENTRE_TENTATIVAS_MS);
+    return;
+  }
   process.stderr.write(`${new Date().toISOString()} falha ao abrir a porta ${porta}: ${e.message}\n`);
   process.exit(1);
 });
